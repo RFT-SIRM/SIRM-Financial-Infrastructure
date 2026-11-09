@@ -130,7 +130,7 @@ theorem holderSubledgerAgreement_transfer
     rw [hAgreement holder asset]
     by_cases hSourceHolder : holder = source <;>
       by_cases hDestinationHolder : holder = destination <;>
-      simp [transferBetweenHolders, hSourceHolder, hDestinationHolder] <;> ring
+      simp [executeTransfer, transferBetweenHolders, hSourceHolder, hDestinationHolder] <;> ring
   · rw [hAgreement holder currentAsset]
     simp [transferBetweenHolders, hAsset]
 
