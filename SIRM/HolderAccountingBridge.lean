@@ -54,7 +54,8 @@ and credit. Injectivity of the mapping is essential for this identity.
 -/
 theorem holderTransferJournal_posting
     {Holder LedgerAccount Asset : Type}
-    [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    [DecidableEq Holder] [Fintype LedgerAccount]
+    [DecidableEq LedgerAccount] [DecidableEq Asset]
     (mapping : HolderLedgerMap Holder LedgerAccount)
     (source destination holder : Holder) (asset currentAsset : Asset)
     (amount : Nat) :
@@ -69,7 +70,8 @@ theorem holderTransferJournal_posting
       mapping.ledgerAccount holder = mapping.ledgerAccount source ↔
         holder = source := by
     constructor
-    · exact mapping.injective_ledgerAccount
+    · intro h
+      exact mapping.injective_ledgerAccount h
     · intro h
       cases h
       rfl
@@ -77,7 +79,8 @@ theorem holderTransferJournal_posting
       mapping.ledgerAccount holder = mapping.ledgerAccount destination ↔
         holder = destination := by
     constructor
-    · exact mapping.injective_ledgerAccount
+    · intro h
+      exact mapping.injective_ledgerAccount h
     · intro h
       cases h
       rfl
@@ -90,6 +93,7 @@ theorem holderTransferJournal_posting
 theorem postJournal_holderTransfer_balance
     {Holder LedgerAccount Asset : Type}
     [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    [DecidableEq Holder]
     (mapping : HolderLedgerMap Holder LedgerAccount)
     (ledger : Ledger LedgerAccount Asset)
     (source destination holder : Holder) (asset currentAsset : Asset)
@@ -124,15 +128,12 @@ theorem holderSubledgerAgreement_transfer
       (postJournal ledger
         (holderTransferJournal mapping source destination asset amount)) := by
   intro holder currentAsset
-  rw [postJournal_holderTransfer_balance]
+  rw [postJournal_holderTransfer_balance, hAgreement holder currentAsset]
   by_cases hAsset : currentAsset = asset
   · subst currentAsset
-    rw [hAgreement holder asset]
-    by_cases hSourceHolder : holder = source <;>
-      by_cases hDestinationHolder : holder = destination <;>
-      simp [executeTransfer, transferBetweenHolders, hSourceHolder, hDestinationHolder] <;> ring
-  · rw [hAgreement holder currentAsset]
-    simp [transferBetweenHolders, hAsset]
+    simp [executeTransfer, transferBetweenHolders]
+    ring
+  · simp [executeTransfer, transferBetweenHolders, hAsset]
 
 /-- The mapped transfer journal is balanced for each asset. -/
 theorem holderTransferJournal_balanced
