@@ -270,11 +270,11 @@ theorem demoBridgeTransfer_preserves_total_signed_balance :
 theorem demoBridgeTransfer_journal_balanced :
     ∀ asset,
       (∑ account : DemoLedgerAccount,
-        (holderTransferJournal demoHolderLedgerMap .alice .bob .rft 40).posting
+        (holderTransferJournal demoHolderLedgerMap .alice .bob DemoAsset.rft 40).posting
           account asset) = 0 := by
   intro asset
   exact holderTransferJournal_balanced
-    demoHolderLedgerMap .alice .bob .rft asset 40
+    demoHolderLedgerMap .alice .bob DemoAsset.rft asset 40
 
 theorem demoBridge_alice_subledger_matches :
     demoBridgeAfterLedger.balance .aliceSubledger .rft =

@@ -142,7 +142,6 @@ theorem holderSubledgerAgreement_transfer
           exact hSourceHolder (hDestinationHolder.trans hEqual)
         subst holder
         simp [hDestinationNeSource]
-        ring
       · simp [hSourceHolder, hDestinationHolder]
   · simp [executeTransfer, transferBetweenHolders, hAsset]
 
