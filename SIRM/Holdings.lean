@@ -353,4 +353,3 @@ theorem executeBurn_rejects_excess {Account Asset : Type}
   simp [executeBurn, hNotEnough]
 
 end SIRM
-end SIRM

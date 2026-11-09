@@ -111,7 +111,7 @@ theorem executeTransfer40_preserves_reconciliation :
   executeTransfer_preserves_invariant demoState demoState_reconciled
     .alice .bob .rft 40
 
-/-- A self-transfer is permitted and leaves the account balances unchanged. -//-- A self-transfer is permitted and leaves the account balances unchanged. -/
+/-- A self-transfer is permitted and leaves the account balances unchanged. -/
 def afterSelfTransfer : HoldingsState DemoAccount DemoAsset :=
   transferBetweenHolders demoState .alice .alice .rft 999
 
@@ -181,7 +181,7 @@ theorem executeBurn20_preserves_reconciliation :
   executeBurn_preserves_invariant demoState demoState_reconciled
     .alice .rft 20
 
-/-- The founder genesis allocation is an exact integer calculation. -//-- The founder genesis allocation is an exact integer calculation. -/
+/-- The founder genesis allocation is an exact integer calculation. -/
 theorem founderAllocation_example :
     founderAllocation 1_000_000_000_000 = 13_090_000_000 := by
   norm_num [founderAllocation, founderRatePpm, ppmScale]
