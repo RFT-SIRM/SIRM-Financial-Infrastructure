@@ -1,6 +1,5 @@
 name = "SIRMFinancialInfrastructure"
 version = "0.1.0"
-srcDir = "SIRM"
 
 [[require]]
 name = "mathlib"
