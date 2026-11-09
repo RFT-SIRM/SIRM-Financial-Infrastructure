@@ -3,12 +3,11 @@ import Mathlib
 /-!
 # SIRM Financial Core — initial formal model
 
-This module is deliberately small. It specifies aggregate token accounting,
-not a production bank, a complete ledger, or a consensus protocol.
-
-All quantities are natural-number accounting units. More expressive asset
-types, participant accounts, fractional units, fees, and external attestations
-will be introduced only with explicit semantics.
+This module specifies aggregate token accounting, not a production bank,
+complete ledger, or consensus protocol. Quantities are natural-number
+accounting units. More expressive asset types, participant accounts,
+fractional units, fees, and external attestations will be introduced with
+explicit semantics.
 -/
 
 namespace SIRM
@@ -20,7 +19,7 @@ structure SupplyState where
   outstanding : Nat
   deriving DecidableEq, Repr
 
-/-- The outstanding supply equals cumulative issuance less cumulative burns. -/
+/-- Outstanding supply equals cumulative issuance less cumulative burns. -/
 def SupplyInvariant (s : SupplyState) : Prop :=
   s.minted = s.burned + s.outstanding
 
@@ -61,7 +60,7 @@ theorem transfer_preserves_invariant
     SupplyInvariant (transfer s amount) := by
   simpa [transfer] using h
 
-/-- A token allocation is an exact split of a fixed total. -/
+/-- An allocation is an exact split of a fixed total. -/
 structure Allocation where
   total : Nat
   founder : Nat
@@ -69,7 +68,7 @@ structure Allocation where
   ecosystem : Nat
   deriving DecidableEq, Repr
 
-/-- Every unit is assigned exactly once; no units are created by allocation. -/
+/-- Every unit is assigned exactly once. -/
 def AllocationInvariant (a : Allocation) : Prop :=
   a.total = a.founder + a.treasury + a.ecosystem
 
@@ -78,29 +77,28 @@ theorem allocation_invariant_of_parts
     (h : a.total = a.founder + a.treasury + a.ecosystem) :
     AllocationInvariant a := h
 
-/--
-A founder share is represented as basis points, with 10,000 basis points
-equal to 100%. No default founder rate is selected by this formal core.
--/
+/-- 10,000 basis points represent 100%; no founder rate is selected here. -/
 def ValidBasisPoints (bps : Nat) : Prop := bps ≤ 10000
 
-/-- Exact floor allocation in integer accounting units. -/
+/--
+The integer founder share, capped at total supply. The cap makes the
+accounting operation total even for an invalid parameter; policy code must
+still require ValidBasisPoints.
+-/
 def shareOf (total bps : Nat) : Nat :=
-  total * bps / 10000
+  min total (total * bps / 10000)
 
-theorem shareOf_le_total (total bps : Nat) (h : ValidBasisPoints bps) :
+theorem shareOf_le_total (total bps : Nat) :
     shareOf total bps ≤ total := by
-  unfold shareOf ValidBasisPoints at *
-  omega
+  exact Nat.min_le_left _ _
 
-/-- The unallocated remainder is explicit and never silently discarded. -/
+/-- The unallocated remainder is explicit. -/
 def remainderAfterShare (total bps : Nat) : Nat :=
   total - shareOf total bps
 
-theorem share_plus_remainder (total bps : Nat) (h : ValidBasisPoints bps) :
+theorem share_plus_remainder (total bps : Nat) :
     shareOf total bps + remainderAfterShare total bps = total := by
   unfold remainderAfterShare
-  have hs := shareOf_le_total total bps h
-  omega
+  exact Nat.sub_add_cancel (shareOf_le_total total bps)
 
 end SIRM
