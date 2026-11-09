@@ -154,7 +154,7 @@ def executeTransfer {Account Asset : Type}
     [DecidableEq Account] [DecidableEq Asset]
     (state : HoldingsState Account Asset)
     (source destination : Account) (asset : Asset) (amount : Nat)
-    (hAllowed : TransferAllowed state source destination asset amount) :
+    (_hAllowed : TransferAllowed state source destination asset amount) :
     HoldingsState Account Asset :=
   transferBetweenHolders state source destination asset amount
 
@@ -306,7 +306,7 @@ def executeBurn {Account Asset : Type}
     [DecidableEq Account] [DecidableEq Asset]
     (state : HoldingsState Account Asset)
     (holder : Account) (asset : Asset) (amount : Nat)
-    (hEnough : (amount : Int) ≤ state.balance holder asset) :
+    (_hEnough : (amount : Int) ≤ state.balance holder asset) :
     HoldingsState Account Asset :=
   burnFromHolder state holder asset amount
 
