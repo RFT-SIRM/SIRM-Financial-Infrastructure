@@ -75,6 +75,11 @@ theorem transfer40_leaves_other_asset_unchanged :
     afterTransfer.supply .usd = demoState.supply .usd := by
   decide
 
+/-- Alice's RFT balance in the regression state is exactly 100 units. -/
+theorem demoState_alice_rft_balance :
+    demoState.balance DemoAccount.alice DemoAsset.rft = 100 := by
+  simp [demoState, issueToHolder, emptyHoldingsState]
+
 /-- Overspending is rejected by the transfer precondition. -/
 theorem transfer101_is_not_funded :
     ¬ TransferAllowed demoState .alice .bob .rft 101 := by
@@ -83,7 +88,8 @@ theorem transfer101_is_not_funded :
     (101 : Int) ≤ demoState.balance DemoAccount.alice DemoAsset.rft at hAllowed
   rcases hAllowed with hSame | hFunds
   · cases hSame
-  · norm_num [demoState] at hFunds
+  · rw [demoState_alice_rft_balance] at hFunds
+    norm_num at hFunds
 
 /-- A self-transfer is permitted and leaves the account balances unchanged. -/
 def afterSelfTransfer : HoldingsState DemoAccount DemoAsset :=
