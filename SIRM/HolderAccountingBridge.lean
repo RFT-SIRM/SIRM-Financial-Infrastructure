@@ -131,8 +131,10 @@ theorem holderSubledgerAgreement_transfer
   rw [postJournal_holderTransfer_balance, hAgreement holder currentAsset]
   by_cases hAsset : currentAsset = asset
   · subst currentAsset
-    simp [executeTransfer, transferBetweenHolders]
-    ring
+    simp only [executeTransfer, transferBetweenHolders]
+    by_cases hSourceHolder : holder = source <;>
+      by_cases hDestinationHolder : holder = destination <;>
+      simp [hSourceHolder, hDestinationHolder] <;> ring
   · simp [executeTransfer, transferBetweenHolders, hAsset]
 
 /-- The mapped transfer journal is balanced for each asset. -/
