@@ -1,5 +1,6 @@
 name = "SIRMFinancialInfrastructure"
 version = "0.1.0"
+defaultTargets = ["SIRM"]
 
 [[require]]
 name = "mathlib"

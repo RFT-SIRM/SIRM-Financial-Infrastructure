@@ -1,72 +1,21 @@
 # SIRM Financial Infrastructure
 
-**A formally specified financial protocol and infrastructure, grounded in the RFT research programme.**
+SIRM is the formal and institutional framework. **RFT Network** is the planned independent native network; **RFT** is its planned native asset. Lean 4 is the normative specification language. Rust is the intended implementation language.
 
-SIRM Financial Infrastructure is the foundational engineering project for building reliable financial systems from explicit mathematical rules. Its first deliverable is a Lean 4 specification of the financial state and the transitions that are allowed to change it. Executable implementations, a native ledger, networking, consensus, institutional governance, and token interfaces will be developed against that specification.
+## Design rule
+Specify the financial rules mathematically, prove their invariants, implement deterministic state transitions, and establish implementation correspondence before real-value deployment.
 
-The long-term objective is a network-independent financial infrastructure suitable for institutional settlement and accounting. The repository does **not** claim to be a bank, a production blockchain, or a live financial service.
+## Founder allocation
+The requested founder allocation is **1.309% of genesis supply**, replacing the old 3.14% Rift prototype parameter. Exact representation: 13,090 / 1,000,000 = 1.309%, stored as integer ppm. The allocation is one-time at genesis; it does not grant future inflation, fee, reserve, treasury, or administrative rights. Total supply, decimals, vesting, custody, and the other allocation pools remain open decisions.
 
-## Design principle
+## Project boundary
+This repository is not yet a bank, licensed institution, production blockchain, live token, or customer financial service. Lean theorems establish properties of the model, not of an unverified Rust binary, validator network, custodian, or real-world reserve.
 
-> Specify the rules mathematically. Prove the model's properties. Implement the model. Verify that implementations conform. Only then expose institutional and network interfaces.
+## Modules
+- `SIRM/FinancialCore.lean`: supply accounting and exact founder allocation.
+- `SIRM/Accounting.lean`: balanced journal postings.
+- `docs/`: protocol, tokenomics, accounting, network, migration, governance, security and release specifications.
 
-Lean is the normative language for the mathematical specification. Rust is the intended language for the high-performance reference implementation and node software. A blockchain is an execution and settlement environment; it is not the source of the economic rules.
+Old Rift repositories are migration references, not normative protocol definitions. Solana was the original host because no native network existed; RFT Network is designed as a separate network, not a renamed Solana program.
 
-## Initial scope
-
-The first foundation release focuses on:
-
-- a canonical financial state model;
-- explicit accounting and supply invariants;
-- state-transition definitions and machine-checked preservation proofs;
-- exact, parameterized token-allocation mathematics, without silently choosing a founder allocation;
-- an architecture that can later support a native ledger, governance, settlement, reserves, risk controls, networking, and consensus.
-
-## What this project is not yet
-
-At this stage there is no native blockchain, consensus algorithm, peer-to-peer network, validator implementation, production ledger, bank, legal entity, deposit product, or issued token. These are future engineering and institutional workstreams, not implied by the repository name.
-
-The previous Rift projects are treated as research prototypes and sources of design questions. Their Rust and Solana implementations are not automatically normative. Any future adapter or migration must conform to the SIRM formal specification.
-
-## Mathematical provenance and token allocation
-
-The project will keep a traceable register of constants, units, definitions, assumptions, and proofs. No numerical value is promoted into financial policy merely because it appears in an RFT model.
-
-In particular, the spectral value near **1.30912892028081…** reported by the Phi-Genesis research is a numerically observed eigenvalue candidate in a specific spectral problem. The current Phi-Genesis status describes the exact limiting value and a closed form as open. It is not an established 1.309% financial allocation rule. The founder-allocation rate therefore remains an explicit, unselected policy parameter until its economic meaning, unit, rounding rule, and governance approval are specified.
-
-The historical 3.14% founder allocation from the Rift token prototype is not carried forward as a default.
-
-## Verification levels
-
-The project distinguishes four different claims:
-
-1. **Model theorem:** Lean proves a property of the mathematical specification.
-2. **Implementation correspondence:** an executable implementation is shown to implement that specification.
-3. **Runtime assurance:** tests, fuzzing, audits, operational controls, and deployment evidence support the running system.
-4. **Institutional assurance:** legal, custodial, reserve, governance, and regulatory requirements are met by the relevant real-world entities.
-
-A result at one level does not imply the next.
-
-## Repository layout
-
-The initial formal core and its documentation are being introduced incrementally:
-
-- `SIRM/` — Lean 4 specification;
-- `docs/` — architecture, protocol decisions, mathematical scope, constants, and roadmap;
-- `.github/workflows/` — reproducible Lean build checks.
-
-## Development status
-
-**Status:** foundational specification phase
-
-The repository is in its foundational specification phase. Early proofs concern the aggregate accounting model only; they do not yet prove correctness of participant-level account storage, token issuance, a ledger implementation, or a network.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/MATHEMATICAL_SCOPE.md](docs/MATHEMATICAL_SCOPE.md), [docs/CONSTANTS_REGISTER.md](docs/CONSTANTS_REGISTER.md), and [docs/ROADMAP.md](docs/ROADMAP.md) as they are added.
-
-## Toolchain
-
-The Lean project is pinned to Lean 4.33.1 and Mathlib v4.33.1, matching the current formalization toolchain used in the RFT research repositories.
-
-## Licensing
-
-No repository-specific license has been selected in this initial foundation. Public visibility on GitHub does not itself grant permission to use, deploy, modify, or redistribute the work. A clear licensing and contribution policy must be adopted before external development or operational deployment.
+**Status:** foundational formal specification. No production readiness is claimed.

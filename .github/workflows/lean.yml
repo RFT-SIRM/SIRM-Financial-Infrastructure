@@ -17,5 +17,3 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           use-mathlib-cache: true
-      - name: Build formal core
-        run: lake build

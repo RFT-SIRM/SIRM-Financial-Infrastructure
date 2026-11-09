@@ -1,48 +1,42 @@
-# Roadmap
+# Roadmap and Completion Gates
 
-## Phase 0 — Formal foundation
+## Phase 0 — formal foundation
+- [x] Establish SIRM/RFT naming and boundaries.
+- [x] Pin Lean and Mathlib.
+- [x] Add supply accounting and 1.309% founder allocation.
+- [x] Add first balanced-journal theorem.
+- [x] Configure explicit Lean library target.
+- [ ] Verify expanded core in CI.
 
-- [x] Establish the repository charter and assurance boundaries.
-- [x] Pin Lean 4 and Mathlib versions.
-- [x] Introduce an initial aggregate supply model and preservation theorems.
-- [ ] Build the Lean project in CI and verify all declarations with the pinned toolchain.
-- [ ] Add reproducible proof and dependency instructions.
+## Phase 1 — accounting kernel
+- typed assets, accounts and account classes;
+- balanced journals, account ownership and authorization;
+- transfer, fees, escrow, settlement and reversals;
+- pending pools, dust and rounding;
+- issuance, burn, redemption, liability accounting and supply caps;
+- reachable-state safety theorem.
 
-## Phase 1 — Accounting kernel
+## Phase 2 — protocol
+- reconcile global field with individual accounts;
+- prove distribution equivalent to account-level postings;
+- rework negative-entropy semantics and debt safety;
+- formalize edge costs, fees, governance and upgrades.
 
-- [ ] Typed assets and accounts.
-- [ ] Double-entry journal and balanced postings.
-- [ ] Account-level transfer and conservation theorems.
-- [ ] Issuance, redemption, fee, and dust semantics.
-- [ ] Reachability theorem for accounting safety.
+## Phase 3 — reference implementation
+- Rust state machine, checked arithmetic and canonical serialization;
+- differential/property/fuzz tests, conformance vectors and audit;
+- replay and migration tests.
 
-## Phase 2 — Protocol and governance
+## Phase 4 — RFT Network
+- deterministic transaction format, state engine and local ledger;
+- block format, state commitment, RPC and single-node devnet;
+- validator admission, threat model, consensus and finality;
+- multi-node adversarial testnet and recovery.
 
-- [ ] Authorization and role model.
-- [ ] Threshold approvals and timelocks.
-- [ ] Governance-controlled parameter changes.
-- [ ] Emergency pause and recovery model.
-- [ ] Upgrade and migration safety.
+## Phase 5 — institutional infrastructure
+- treasury, reserves, custody attestations, settlement and reporting;
+- legal and compliance review per jurisdiction;
+- independent security and operational audits.
 
-## Phase 3 — Executable reference implementation
-
-- [ ] Rust reference state machine.
-- [ ] Canonical serialization and deterministic arithmetic.
-- [ ] Differential/property testing against Lean-generated examples.
-- [ ] Conformance vectors and independent audit.
-
-## Phase 4 — Ledger and network research
-
-- [ ] Specify transaction ordering and finality requirements.
-- [ ] Evaluate replicated state machine and consensus designs.
-- [ ] Specify validator membership, incentives, slashing, and recovery.
-- [ ] Prototype P2P transport and data availability.
-- [ ] Do not launch a token or public network before threat modelling and independent review.
-
-## Phase 5 — Institutional integrations
-
-- [ ] Reserve and liability accounting.
-- [ ] Custody and external attestation interfaces.
-- [ ] Settlement and reporting.
-- [ ] Jurisdiction-specific legal and compliance analysis.
-- [ ] Independent operational and security audits.
+## Phase 6 — production
+No public token sale, customer deposits, real-money settlement or mainnet launch before relevant legal, custody, reserve, security and operational gates are independently satisfied.

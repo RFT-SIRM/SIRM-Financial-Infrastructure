@@ -1,29 +1,11 @@
-# Mathematical scope and assurance boundaries
+# Mathematical Scope and Assurance Boundaries
 
-## What the first Lean module proves
+The current Lean core defines aggregate supply, issuance, burn, transfer, and exact 1.309% genesis allocation. The accounting module defines balanced signed journal entries and aims to prove aggregate signed-balance conservation.
 
-The initial module defines aggregate supply accounting over natural-number units and proves:
+These are foundation theorems, not a complete banking or blockchain proof.
 
-- the empty state satisfies the supply invariant;
-- minting preserves the invariant;
-- burning preserves the invariant when the burned amount does not exceed outstanding supply;
-- transfers preserve aggregate supply;
-- an allocation can be represented as an exact split;
-- a basis-point share and its explicit remainder sum to the original total.
+Not yet proved: account ownership and authorization; solvency or reserve backing; redemption at par; Rust correspondence; consensus safety/finality; censorship resistance; custody key security; legal enforceability or regulatory compliance.
 
-## What it does not prove
+Critical next step: relate individual balances, effective participant balances, participant set, global field, journal and supply counters. An aggregate scalar must not be assumed equal to the sum of individual accounts unless that equality is defined and proved.
 
-It does not yet prove participant-level conservation, authorization, solvency, reserve adequacy, correctness of an executable implementation, consensus safety, censorship resistance, legal enforceability, custody of real-world assets, or regulatory compliance.
-
-The current aggregate model is intentionally not a substitute for a complete double-entry accounting model. In particular, it does not assert that a token supply is backed by reserves or redeemable at par.
-
-## Next formal milestones
-
-1. Define typed assets and account identifiers.
-2. Define balanced journal entries and prove debit/credit conservation.
-3. Define transfers with authorization and account-level balance preservation.
-4. Define issuance and redemption against explicit liability accounts.
-5. Define fee, rounding, dust, and overflow semantics.
-6. Define governance authorization and bounded parameter changes.
-7. Define reserve attestations as external assumptions with provenance and freshness.
-8. Define a transition-system safety theorem for all reachable states.
+Formalization order: typed assets/accounts; balanced postings; transfers and debt limits; issuance/redemption; global-field refinement; pending pools and dust; governance; reserve attestations as external assumptions; reachable-state safety theorem.
