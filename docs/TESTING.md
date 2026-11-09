@@ -13,9 +13,9 @@ The CI workflow pins Lean 4.33.1 and Mathlib v4.33.1 and explicitly runs:
 
 - initial per-asset holdings/supply reconciliation;
 - a funded transfer and its exact resulting balances;
-- rejection of an over-funded transfer request by the guarded command API (no next state is produced);
-- successful guarded transfer and preservation of reconciliation;
-- successful guarded holder burn and rejection of a burn exceeding the holder's balance;
+- proof that an over-funded transfer request does not satisfy the transition precondition;
+- successful proof-carrying transfer and preservation of reconciliation;
+- successful proof-carrying holder burn and proof that an excessive burn does not satisfy its precondition;
 - self-transfer behavior;
 - non-interference with another asset;
 - issuance and corresponding outstanding-supply increase;

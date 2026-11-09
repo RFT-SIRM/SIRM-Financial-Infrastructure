@@ -19,7 +19,7 @@ This file separates Lean declarations present in source from protocol properties
 - A funded holder-transfer transition preserving balances, nonnegativity and supply reconciliation; self-transfer is a no-op.
 - An issuance-to-holder transition that increases the holder balance and outstanding supply equally.
 - A burn-from-holder transition bounded by that holder's balance, with a proof that this bound also protects aggregate outstanding supply.
-- Guarded transfer and holder-burn command wrappers: failed numeric preconditions return no next state, while every successful result preserves the holdings invariant.
+- Proof-carrying transfer and holder-burn transitions: numeric preconditions are explicit proof arguments, so invalid requests have no admissible transition term; every resulting state preserves the holdings invariant.
 - Generic reachable-state invariant theorem for a state machine whose initial and transition safety obligations are supplied.
 - A dedicated `SIRMTests` Lake test-driver library covering a reconciled two-asset example, funded transfer, overspending rejection, self-transfer, issuance, holder burn, founder allocation arithmetic and journal conservation.
 

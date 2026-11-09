@@ -31,7 +31,7 @@ Each state-changing operation specifies signer requirements, roles, thresholds, 
 
 ## State transition contract
 
-For every operation, the complete protocol definition must include: input schema; read/write set; authorization; preconditions; arithmetic; journal postings; state changes; emitted events; atomicity; failure codes; and invariant-preservation obligations.
+For every operation, the complete protocol definition must include: input schema; read/write set; authorization; preconditions; arithmetic; journal postings; state changes; emitted events; atomicity; failure codes; and invariant-preservation obligations. In the current Lean holder model, arithmetic preconditions are explicit proof arguments to guarded transitions. This establishes admissibility at the specification level; it is not yet a runtime transaction decoder, signature check, or failure-code implementation.
 
 ## Genesis
 

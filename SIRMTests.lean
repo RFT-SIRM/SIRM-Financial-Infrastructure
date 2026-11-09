@@ -92,24 +92,20 @@ theorem transfer101_is_not_funded :
     norm_num at hFunds
 
 
-/-- The guarded command returns the exact state for a funded transfer. -/
+
+/-- A successful guarded transfer is the underlying proved transition. -/
 theorem executeTransfer40_returns_expected :
-    executeTransfer demoState .alice .bob .rft 40 = some afterTransfer := by
-  simp [executeTransfer, transfer40_is_funded, afterTransfer]
+    executeTransfer demoState .alice .bob .rft 40 transfer40_is_funded =
+      afterTransfer := by
+  rfl
 
-/-- The guarded command produces no state for an over-funded transfer. -/
-theorem executeTransfer101_is_rejected :
-    executeTransfer demoState .alice .bob .rft 101 = none :=
-  executeTransfer_rejects_unfunded demoState .alice .bob .rft 101
-    transfer101_is_not_funded
-
-/-- Every successful invocation in the concrete test state remains reconciled. -/
+/-- The proof-carrying transfer preserves reconciliation. -/
 theorem executeTransfer40_preserves_reconciliation :
-    ∀ next,
-      executeTransfer demoState .alice .bob .rft 40 = some next →
-        HoldingsInvariant next :=
+    HoldingsInvariant
+      (executeTransfer demoState .alice .bob .rft 40 transfer40_is_funded) :=
   executeTransfer_preserves_invariant demoState demoState_reconciled
-    .alice .bob .rft 40
+    .alice .bob .rft 40 transfer40_is_funded
+
 
 /-- A self-transfer is permitted and leaves the account balances unchanged. -/
 def afterSelfTransfer : HoldingsState DemoAccount DemoAsset :=
@@ -158,28 +154,32 @@ theorem burn20_expected_state :
   decide
 
 
-/-- The guarded command returns the exact state for a holder-funded burn. -/
-theorem executeBurn20_returns_expected :
-    executeBurn demoState .alice .rft 20 = some afterBurn := by
-  have hEnough : (20 : Int) ≤ demoState.balance .alice .rft := by
-    rw [demoState_alice_rft_balance]
-    norm_num
-  simp [executeBurn, hEnough, afterBurn]
 
-/-- The guarded command rejects a burn larger than Alice's holdings. -/
-theorem executeBurn101_is_rejected :
-    executeBurn demoState .alice .rft 101 = none := by
-  apply executeBurn_rejects_excess
+/-- Alice has enough RFT for a 20-unit burn. -/
+theorem alice_rft_can_burn_20 :
+    (20 : Int) ≤ demoState.balance .alice .rft := by
   rw [demoState_alice_rft_balance]
   norm_num
 
-/-- Every successful holder-burn invocation in the test state remains reconciled. -/
+/-- Alice does not have enough RFT for a 101-unit burn. -/
+theorem alice_rft_cannot_burn_101 :
+    ¬ (101 : Int) ≤ demoState.balance .alice .rft := by
+  rw [demoState_alice_rft_balance]
+  norm_num
+
+/-- A successful guarded burn is the underlying proved transition. -/
+theorem executeBurn20_returns_expected :
+    executeBurn demoState .alice .rft 20 alice_rft_can_burn_20 =
+      afterBurn := by
+  rfl
+
+/-- The proof-carrying burn preserves reconciliation. -/
 theorem executeBurn20_preserves_reconciliation :
-    ∀ next,
-      executeBurn demoState .alice .rft 20 = some next →
-        HoldingsInvariant next :=
+    HoldingsInvariant
+      (executeBurn demoState .alice .rft 20 alice_rft_can_burn_20) :=
   executeBurn_preserves_invariant demoState demoState_reconciled
-    .alice .rft 20
+    .alice .rft 20 alice_rft_can_burn_20
+
 
 /-- The founder genesis allocation is an exact integer calculation. -/
 theorem founderAllocation_example :

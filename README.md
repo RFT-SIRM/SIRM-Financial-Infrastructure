@@ -10,7 +10,7 @@ The protocol is specified in Lean 4 first. Implementations must be deterministic
 
 - `SIRM/FinancialCore.lean` defines the supply equation, issuance and burn transitions, and exact founder genesis allocation.
 - `SIRM/Accounting.lean` defines signed double-entry postings and per-asset conservation for balanced general-ledger journal entries.
-- `SIRM/Holdings.lean` links nonnegative per-account, per-asset holdings to outstanding supply and proves preservation under funded transfers, holder issuance and holder burns. Guarded transfer and burn commands return no next state when their arithmetic preconditions fail.
+- `SIRM/Holdings.lean` links nonnegative per-account, per-asset holdings to outstanding supply and proves preservation under funded transfers, holder issuance and holder burns. Guarded transfer and burn transitions require explicit proofs of their arithmetic preconditions; an invalid request has no admissible transition term.
 - `SIRM/StateMachine.lean` derives reachable-state safety from initial-state and transition-preservation obligations.
 - `SIRMTests.lean` contains concrete theorem-level regression scenarios; `lake test` is configured to build this dedicated test library.
 - `docs/` defines the financial model, network requirements, governance, security assumptions, migration boundaries and staged release gates.
