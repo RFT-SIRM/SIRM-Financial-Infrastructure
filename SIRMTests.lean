@@ -247,7 +247,7 @@ theorem demoHolderSubledgerAgreement :
       issueToHolder, emptyHoldingsState]
 
 def demoBridgeAfterHoldings : HoldingsState DemoAccount DemoAsset :=
-  transferBetweenHolders demoState .alice .bob .rft 40
+  executeTransfer demoState .alice .bob .rft 40 transfer40_is_funded
 
 def demoBridgeAfterLedger : Ledger DemoLedgerAccount DemoAsset :=
   postJournal demoBridgeLedger

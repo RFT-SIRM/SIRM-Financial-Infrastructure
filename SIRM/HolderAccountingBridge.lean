@@ -120,7 +120,7 @@ theorem holderSubledgerAgreement_transfer
     (source destination : Holder) (asset : Asset) (amount : Nat)
     (_hAllowed : TransferAllowed holdings source destination asset amount) :
     HolderSubledgerAgreement mapping
-      (transferBetweenHolders holdings source destination asset amount)
+      (executeTransfer holdings source destination asset amount _hAllowed)
       (postJournal ledger
         (holderTransferJournal mapping source destination asset amount)) := by
   intro holder currentAsset
