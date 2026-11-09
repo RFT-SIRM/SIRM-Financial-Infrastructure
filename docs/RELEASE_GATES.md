@@ -1,7 +1,7 @@
 # Release Gates
 
 ## A — Formal accounting
-Pinned reproducible build; actual SIRM target compiled; issuance, burn, journal and account invariants; no sorry or unreviewed axioms in normative proofs.
+Pinned reproducible build; actual SIRM target compiled; `lake test` has a real test driver and passes; issuance, burn, journal and account invariants; no sorry or unreviewed axioms in normative proofs. Runtime/property tests and linting remain separate follow-up requirements.
 
 ## B — Reference execution
 Rust implementation, canonical serialization, checked arithmetic, atomic failure, differential/property/fuzz/replay tests, migration tests and independent audit.

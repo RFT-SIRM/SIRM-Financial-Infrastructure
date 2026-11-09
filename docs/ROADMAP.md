@@ -6,7 +6,9 @@
 - [x] Add supply accounting and 1.309% founder allocation.
 - [x] Add first balanced-journal theorem.
 - [x] Configure explicit Lean library target.
-- [ ] Verify expanded core in CI.
+- [x] Verify the expanded holdings core in Lean CI.
+- [x] Configure a theorem-level regression library as the `lake test` driver.
+- [ ] Add runtime/property tests and a dedicated linter driver.
 
 ## Phase 1 — accounting kernel
 - typed assets, accounts and account classes;
@@ -14,7 +16,8 @@
 - transfer, fees, escrow, settlement and reversals;
 - pending pools, dust and rounding;
 - issuance, burn, redemption, liability accounting and supply caps;
-- reachable-state safety theorem.
+- reachable-state safety theorem;
+- concrete theorem-level regression suite wired into `lake test`.
 
 ## Phase 2 — protocol
 - reconcile global field with individual accounts;

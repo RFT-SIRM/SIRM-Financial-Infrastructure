@@ -1,22 +1,22 @@
-# RFT Network — Native Network Design
+# RFT Network
 
-RFT Network is the planned independent network for deterministic execution and settlement of SIRM Protocol. It is not Solana with a renamed program and not the old Rift code with strings changed.
+RFT Network is the planned independent sovereign execution and settlement network for SIRM Protocol. The current repository specifies requirements; it does not yet contain a production node or consensus implementation.
 
-## Required components
-- canonical transaction format, signatures, nonce/replay rules, authorization and fees;
-- deterministic execution engine, checked arithmetic and atomic failure;
-- ordered durable ledger, block format, replay, snapshots and state commitment;
-- mempool, admission checks, resource limits and anti-spam;
-- validator identity, admission, rotation and monitoring;
-- consensus, safety, liveness, finality and validator fault model;
-- peer discovery, authenticated transport, gossip and state synchronization;
-- RPC, wallet protocol, indexer, explorer and institutional APIs.
+## Required properties
 
-## Stages
-R0: single-node deterministic ledger and replay, no distributed consensus claim.
-R1: multi-node devnet, validator identities and state sync, valueless test assets.
-R2: adversarial testnet covering partitions, equivocation, restart, divergence, recovery and upgrades.
-R3: institutional pilot after independent audit and legal review.
-R4: public network only after formal, implementation, consensus, security and operational gates.
+- independent node software and a documented validator role;
+- canonical, signed transactions and deterministic state execution;
+- consensus with explicit safety, liveness, and Byzantine assumptions;
+- reproducible state commitments and transaction inclusion proofs;
+- data availability, state synchronization, archival, and recovery;
+- permissionless public verification, subject to the selected validator/governance model;
+- transparent protocol upgrades and no hidden unilateral history rewrite;
+- privacy-preserving treatment of personal and institutional data.
 
-No consensus algorithm is selected until validator count, Byzantine assumptions, network synchrony, finality, recovery, data availability, censorship and incentive requirements are documented. No throughput claim is made without end-to-end measurements.
+## Native asset
+
+RFT is the planned network asset. Its total genesis supply, decimals, fee utility, validator utility, vesting, custody, transfer rules, and any legal/economic rights remain unselected except for the founder's one-time 1.309% genesis-rate policy. A token name or allocation formula is not a deployment, a market listing, a reserve claim, or an investment promise.
+
+## Historical relationship to Solana
+
+Rift-Network used Solana/Anchor because an independent network did not yet exist. The new network is not a rename of the Solana program. The old program is a migration reference; only behavior re-specified and proven in SIRM Protocol may be carried forward.

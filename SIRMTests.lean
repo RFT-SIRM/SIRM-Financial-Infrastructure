@@ -1,0 +1,161 @@
+import SIRM
+
+/-!
+# SIRM theorem-level regression suite
+
+These concrete scenarios exercise the public Lean transition theorems.
+The suite is a Lake test-driver library: `lake test` must compile this file.
+It is intentionally separate from the normative `SIRM` library.
+-/
+
+namespace SIRMTests
+
+open SIRM
+
+inductive DemoAccount
+  | alice
+  | bob
+  | treasury
+  deriving DecidableEq, Repr
+
+/-- An explicit finite enumeration avoids relying on generated enum internals. -/
+instance : Fintype DemoAccount :=
+  Fintype.ofList [DemoAccount.alice, DemoAccount.bob, DemoAccount.treasury] (by
+    intro account
+    cases account <;> simp)
+
+inductive DemoAsset
+  | rft
+  | usd
+  deriving DecidableEq, Repr
+
+/-- The complete two-asset test universe is explicit as well. -/
+instance : Fintype DemoAsset :=
+  Fintype.ofList [DemoAsset.rft, DemoAsset.usd] (by
+    intro asset
+    cases asset <;> simp)
+
+/-- A fully reconciled example with two distinct assets. -/
+def demoState : HoldingsState DemoAccount DemoAsset where
+  balance := fun account asset =>
+    match account, asset with
+    | .alice, .rft => 100
+    | .bob, .rft => 25
+    | .treasury, .rft => 75
+    | .alice, .usd => 1000
+    | .bob, .usd => 0
+    | .treasury, .usd => 0
+  supply := fun asset =>
+    match asset with
+    | .rft => ⟨200, 0, 200⟩
+    | .usd => ⟨1000, 0, 1000⟩
+
+theorem demoState_reconciled : HoldingsInvariant demoState := by
+  intro asset
+  cases asset <;> decide
+
+/-- A funded RFT transfer moves 40 units from Alice to Bob. -/
+def afterTransfer : HoldingsState DemoAccount DemoAsset :=
+  transferBetweenHolders demoState .alice .bob .rft 40
+
+theorem transfer40_is_funded :
+    TransferAllowed demoState .alice .bob .rft 40 := by
+  exact Or.inr (by decide)
+
+theorem transfer40_preserves_reconciliation :
+    HoldingsInvariant afterTransfer := by
+  exact transferBetweenHolders_preserves_invariant demoState
+    demoState_reconciled .alice .bob .rft 40 transfer40_is_funded
+
+theorem transfer40_expected_balances :
+    afterTransfer.balance .alice .rft = 60 ∧
+    afterTransfer.balance .bob .rft = 65 ∧
+    afterTransfer.balance .treasury .rft = 75 ∧
+    afterTransfer.supply .rft = demoState.supply .rft := by
+  decide
+
+theorem transfer40_leaves_other_asset_unchanged :
+    afterTransfer.balance .alice .usd = demoState.balance .alice .usd ∧
+    afterTransfer.supply .usd = demoState.supply .usd := by
+  decide
+
+/-- Overspending is rejected by the transfer precondition. -/
+theorem transfer101_is_not_funded :
+    ¬ TransferAllowed demoState .alice .bob .rft 101 := by
+  intro hAllowed
+  change DemoAccount.alice = DemoAccount.bob ∨
+    (101 : Int) ≤ demoState.balance DemoAccount.alice DemoAsset.rft at hAllowed
+  rcases hAllowed with hSame | hFunds
+  · cases hSame
+  · norm_num [demoState] at hFunds
+
+/-- A self-transfer is permitted and leaves the account balances unchanged. -/
+def afterSelfTransfer : HoldingsState DemoAccount DemoAsset :=
+  transferBetweenHolders demoState .alice .alice .rft 999
+
+theorem selfTransfer_is_allowed :
+    TransferAllowed demoState .alice .alice .rft 999 := by
+  exact Or.inl rfl
+
+theorem selfTransfer_preserves_reconciliation :
+    HoldingsInvariant afterSelfTransfer := by
+  exact transferBetweenHolders_preserves_invariant demoState
+    demoState_reconciled .alice .alice .rft 999 selfTransfer_is_allowed
+
+theorem selfTransfer_is_a_noop :
+    afterSelfTransfer.balance .alice .rft = demoState.balance .alice .rft ∧
+    afterSelfTransfer.supply .rft = demoState.supply .rft := by
+  decide
+
+/-- Issuance credits the recipient and the outstanding supply equally. -/
+def afterIssue : HoldingsState DemoAccount DemoAsset :=
+  issueToHolder demoState .treasury .rft 15
+
+theorem issue15_preserves_reconciliation :
+    HoldingsInvariant afterIssue :=
+  issueToHolder_preserves_invariant demoState demoState_reconciled
+    .treasury .rft 15
+
+theorem issue15_expected_state :
+    afterIssue.balance .treasury .rft = 90 ∧
+    afterIssue.supply .rft = ⟨215, 0, 215⟩ := by
+  decide
+
+/-- Burning is bounded by the selected holder's own balance. -/
+def afterBurn : HoldingsState DemoAccount DemoAsset :=
+  burnFromHolder demoState .alice .rft 20
+
+theorem burn20_preserves_reconciliation :
+    HoldingsInvariant afterBurn :=
+  burnFromHolder_preserves_invariant demoState demoState_reconciled
+    .alice .rft 20 (by decide)
+
+theorem burn20_expected_state :
+    afterBurn.balance .alice .rft = 80 ∧
+    afterBurn.supply .rft = ⟨200, 20, 180⟩ := by
+  decide
+
+/-- The founder genesis allocation is an exact integer calculation. -/
+theorem founderAllocation_example :
+    founderAllocation 1_000_000_000_000 = 13_090_000_000 := by
+  norm_num [founderAllocation, founderRatePpm, ppmScale]
+
+theorem genesisPool_reconciles :
+    GenesisAllocationInvariant (initialGenesisAllocation 1_000_000_000_000) :=
+  initialGenesisAllocation_balanced _
+
+/-- The balanced journal constructor is available for concrete finite types. -/
+def demoLedger : Ledger DemoAccount DemoAsset :=
+  ⟨fun _ _ => 0⟩
+
+def demoJournal : JournalEntry DemoAccount DemoAsset :=
+  transferJournal .alice .bob .rft 40
+
+theorem journalTransfer_preserves_total :
+    ∀ asset,
+      totalSignedBalance (postJournal demoLedger demoJournal) asset =
+        totalSignedBalance demoLedger asset := by
+  intro asset
+  exact totalSignedBalance_postJournal demoLedger demoJournal asset
+
+end SIRMTests
