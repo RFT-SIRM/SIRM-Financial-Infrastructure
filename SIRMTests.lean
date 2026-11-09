@@ -204,4 +204,87 @@ theorem journalTransfer_preserves_total :
   intro asset
   exact totalSignedBalance_postJournal demoLedger demoJournal asset
 
+
+inductive DemoLedgerAccount
+  | aliceSubledger
+  | bobSubledger
+  | treasurySubledger
+  | control
+  deriving DecidableEq, Repr
+
+/-- An unmapped control account remains outside the holder projection. -/
+instance : Fintype DemoLedgerAccount :=
+  Fintype.ofList
+    [.aliceSubledger, .bobSubledger, .treasurySubledger, .control] (by
+      intro account
+      cases account <;> simp)
+
+def demoHolderLedgerMap : HolderLedgerMap DemoAccount DemoLedgerAccount where
+  ledgerAccount
+    | .alice => .aliceSubledger
+    | .bob => .bobSubledger
+    | .treasury => .treasurySubledger
+  injective_ledgerAccount := by
+    intro left right h
+    cases left <;> cases right <;> simp_all
+
+def demoBridgeLedger : Ledger DemoLedgerAccount DemoAsset :=
+  ⟨fun account asset =>
+    match account, asset with
+    | .aliceSubledger, .rft => 100
+    | .bobSubledger, .rft => 25
+    | .treasurySubledger, .rft => 75
+    | .aliceSubledger, .usd => 1000
+    | .bobSubledger, .usd => 0
+    | .treasurySubledger, .usd => 0
+    | .control, _ => 0⟩
+
+theorem demoHolderSubledgerAgreement :
+    HolderSubledgerAgreement demoHolderLedgerMap demoState demoBridgeLedger := by
+  intro holder asset
+  cases holder <;> cases asset <;>
+    simp [demoHolderLedgerMap, demoBridgeLedger, demoState,
+      issueToHolder, emptyHoldingsState]
+
+def demoBridgeAfterHoldings : HoldingsState DemoAccount DemoAsset :=
+  transferBetweenHolders demoState .alice .bob .rft 40
+
+def demoBridgeAfterLedger : Ledger DemoLedgerAccount DemoAsset :=
+  postJournal demoBridgeLedger
+    (holderTransferJournal demoHolderLedgerMap .alice .bob .rft 40)
+
+theorem demoBridgeTransfer_preserves_subledger_agreement :
+    HolderSubledgerAgreement demoHolderLedgerMap
+      demoBridgeAfterHoldings demoBridgeAfterLedger :=
+  holderSubledgerAgreement_transfer demoHolderLedgerMap demoState demoBridgeLedger
+    demoHolderSubledgerAgreement .alice .bob .rft 40 transfer40_is_funded
+
+theorem demoBridgeTransfer_preserves_total_signed_balance :
+    ∀ asset,
+      totalSignedBalance demoBridgeAfterLedger asset =
+        totalSignedBalance demoBridgeLedger asset := by
+  intro asset
+  exact holderTransferJournal_preserves_totalSignedBalance
+    demoHolderLedgerMap demoBridgeLedger .alice .bob .rft asset 40
+
+theorem demoBridgeTransfer_journal_balanced :
+    ∀ asset,
+      (∑ account : DemoLedgerAccount,
+        (holderTransferJournal demoHolderLedgerMap .alice .bob .rft 40).posting
+          account asset) = 0 := by
+  intro asset
+  exact holderTransferJournal_balanced
+    demoHolderLedgerMap .alice .bob .rft asset 40
+
+theorem demoBridge_alice_subledger_matches :
+    demoBridgeAfterLedger.balance .aliceSubledger .rft =
+      demoBridgeAfterHoldings.balance .alice .rft :=
+  demoBridgeTransfer_preserves_subledger_agreement .alice .rft
+
+theorem demoBridge_bob_subledger_matches :
+    demoBridgeAfterLedger.balance .bobSubledger .rft =
+      demoBridgeAfterHoldings.balance .bob .rft :=
+  demoBridgeTransfer_preserves_subledger_agreement .bob .rft
+
+
 end SIRMTests

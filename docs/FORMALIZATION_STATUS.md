@@ -13,6 +13,8 @@ This file separates Lean declarations present in source from protocol properties
 - Generic finite-account, per-asset signed general-ledger model.
 - Per-asset balance-conservation theorem for any journal entry carrying its balance proof.
 - A balanced transfer-journal constructor for the signed general-ledger view.
+- An injective holder-to-subledger mapping and a pointwise agreement relation for the designated ledger accounts.
+- A theorem that a holder transfer and its matching per-asset journal preserve the subledger agreement and aggregate signed-ledger balance.
 - Per-asset holder holdings indexed by account and asset.
 - A reconciliation invariant requiring nonnegative holder balances whose total equals outstanding supply.
 - A theorem bounding each nonnegative holder balance by total holdings.
@@ -30,7 +32,7 @@ This file separates Lean declarations present in source from protocol properties
 - Authorization of issuance, burn permissions, freeze/closure rules and signer thresholds.
 - A canonical finite account universe and concrete genesis assignment covering founder, treasury, validator, ecosystem, community and unallocated pools.
 - A unified transaction object with signer rules, nonce, expiry, replay prevention, fees and atomic failure semantics.
-- A complete link between holder movements and signed general-ledger journal postings, including custody and customer-liability accounting.
+- A complete production posting policy for custody, customer-liability, control, and other non-holder general-ledger accounts.
 - Freeze, escrow, fees, settlement, reversals, credit lines and account restrictions.
 - Multi-asset FX, valuation and rounding-residual policies.
 - Redemption obligations and their legal/operational preconditions.

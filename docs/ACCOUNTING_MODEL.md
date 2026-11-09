@@ -23,6 +23,21 @@ A funded transfer debits one holder and credits another without changing supply.
 
 The current Lean model uses signed integers for holder balances so that debit/credit arithmetic is explicit. Its invariant requires every holder balance to be nonnegative. Amounts are natural-number base units; no floating point is used.
 
+## Holder-to-subledger bridge
+
+The Lean bridge uses an explicit injective map from each holder to one
+designated general-ledger subledger account. For those designated accounts,
+the model states a pointwise agreement between the signed ledger projection
+and the holder-balance projection. A holder transfer is paired with a
+per-asset balanced journal posting to the mapped source and destination
+accounts; the agreement theorem proves that both projections move together.
+
+The mapping is deliberately not onto the whole general-ledger account
+universe. Control, asset, liability, equity, income, expense, custody, and
+clearing accounts can remain separate. The current bridge does not yet
+formalize their account classes, normal-balance conventions, external
+obligations, or a complete production journal policy.
+
 ## Journal entries
 
 For each asset independently, a journal entry contains signed postings whose sum across the finite account universe is zero. Applying a balanced journal preserves the aggregate signed balance for that asset. The current Lean theorem is stated at this generic level.

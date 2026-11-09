@@ -21,7 +21,8 @@ The CI workflow pins Lean 4.33.1 and Mathlib v4.33.1 and explicitly runs:
 - issuance and corresponding outstanding-supply increase;
 - a holder-bounded burn and corresponding supply decrease;
 - exact founder-allocation arithmetic;
-- a concrete use of the balanced journal conservation theorem.
+- a concrete use of the balanced journal conservation theorem;
+- a separate four-account general ledger (including an unmapped control account), with holder/subledger agreement preserved by a matching transfer journal.
 
 Because the test driver is a Lean library, `lake test` succeeds only if these statements and proof terms compile. The tests are theorem-level regression checks, not a runtime node test or a randomized fuzz campaign.
 
