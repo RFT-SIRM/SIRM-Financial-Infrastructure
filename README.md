@@ -57,7 +57,7 @@ The initial formal core and its documentation are being introduced incrementally
 
 ## Development status
 
-<badge-placeholder>
+**Status:** foundational specification phase
 
 The repository is in its foundational specification phase. Early proofs concern the aggregate accounting model only; they do not yet prove correctness of participant-level account storage, token issuance, a ledger implementation, or a network.
 
