@@ -29,30 +29,26 @@ inductive DemoAsset
   | usd
   deriving DecidableEq, Repr
 
-/-- The complete two-asset test universe is explicit as well. -/
-instance : Fintype DemoAsset :=
-  Fintype.ofList [DemoAsset.rft, DemoAsset.usd] (by
-    intro asset
-    cases asset <;> simp)
+/-- A two-asset state constructed only through the verified issuance transition. -/
+def demoState : HoldingsState DemoAccount DemoAsset :=
+  issueToHolder
+    (issueToHolder
+      (issueToHolder
+        (issueToHolder
+          (emptyHoldingsState DemoAccount DemoAsset)
+          .alice .rft 100)
+        .bob .rft 25)
+      .treasury .rft 75)
+    .alice .usd 1000
 
-/-- A fully reconciled example with two distinct assets. -/
-def demoState : HoldingsState DemoAccount DemoAsset where
-  balance := fun account asset =>
-    match account, asset with
-    | .alice, .rft => 100
-    | .bob, .rft => 25
-    | .treasury, .rft => 75
-    | .alice, .usd => 1000
-    | .bob, .usd => 0
-    | .treasury, .usd => 0
-  supply := fun asset =>
-    match asset with
-    | .rft => ⟨200, 0, 200⟩
-    | .usd => ⟨1000, 0, 1000⟩
-
+/-- Reconciliation follows compositionally from the verified issuance theorem. -/
 theorem demoState_reconciled : HoldingsInvariant demoState := by
-  intro asset
-  cases asset <;> decide
+  unfold demoState
+  apply issueToHolder_preserves_invariant
+  apply issueToHolder_preserves_invariant
+  apply issueToHolder_preserves_invariant
+  apply issueToHolder_preserves_invariant
+  exact emptyHoldingsState_invariant
 
 /-- A funded RFT transfer moves 40 units from Alice to Bob. -/
 def afterTransfer : HoldingsState DemoAccount DemoAsset :=
