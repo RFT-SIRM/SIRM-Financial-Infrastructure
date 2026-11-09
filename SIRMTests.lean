@@ -91,7 +91,27 @@ theorem transfer101_is_not_funded :
   · rw [demoState_alice_rft_balance] at hFunds
     norm_num at hFunds
 
-/-- A self-transfer is permitted and leaves the account balances unchanged. -/
+
+/-- The guarded command returns the exact state for a funded transfer. -/
+theorem executeTransfer40_returns_expected :
+    executeTransfer demoState .alice .bob .rft 40 = some afterTransfer := by
+  simp [executeTransfer, transfer40_is_funded, afterTransfer]
+
+/-- The guarded command produces no state for an over-funded transfer. -/
+theorem executeTransfer101_is_rejected :
+    executeTransfer demoState .alice .bob .rft 101 = none :=
+  executeTransfer_rejects_unfunded demoState .alice .bob .rft 101
+    transfer101_is_not_funded
+
+/-- Every successful invocation in the concrete test state remains reconciled. -/
+theorem executeTransfer40_preserves_reconciliation :
+    ∀ next,
+      executeTransfer demoState .alice .bob .rft 40 = some next →
+        HoldingsInvariant next :=
+  executeTransfer_preserves_invariant demoState demoState_reconciled
+    .alice .bob .rft 40
+
+/-- A self-transfer is permitted and leaves the account balances unchanged. -//-- A self-transfer is permitted and leaves the account balances unchanged. -/
 def afterSelfTransfer : HoldingsState DemoAccount DemoAsset :=
   transferBetweenHolders demoState .alice .alice .rft 999
 
@@ -137,7 +157,31 @@ theorem burn20_expected_state :
     afterBurn.supply .rft = ⟨200, 20, 180⟩ := by
   decide
 
-/-- The founder genesis allocation is an exact integer calculation. -/
+
+/-- The guarded command returns the exact state for a holder-funded burn. -/
+theorem executeBurn20_returns_expected :
+    executeBurn demoState .alice .rft 20 = some afterBurn := by
+  have hEnough : (20 : Int) ≤ demoState.balance .alice .rft := by
+    rw [demoState_alice_rft_balance]
+    norm_num
+  simp [executeBurn, hEnough, afterBurn]
+
+/-- The guarded command rejects a burn larger than Alice's holdings. -/
+theorem executeBurn101_is_rejected :
+    executeBurn demoState .alice .rft 101 = none := by
+  apply executeBurn_rejects_excess
+  rw [demoState_alice_rft_balance]
+  norm_num
+
+/-- Every successful holder-burn invocation in the test state remains reconciled. -/
+theorem executeBurn20_preserves_reconciliation :
+    ∀ next,
+      executeBurn demoState .alice .rft 20 = some next →
+        HoldingsInvariant next :=
+  executeBurn_preserves_invariant demoState demoState_reconciled
+    .alice .rft 20
+
+/-- The founder genesis allocation is an exact integer calculation. -//-- The founder genesis allocation is an exact integer calculation. -/
 theorem founderAllocation_example :
     founderAllocation 1_000_000_000_000 = 13_090_000_000 := by
   norm_num [founderAllocation, founderRatePpm, ppmScale]

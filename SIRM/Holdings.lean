@@ -143,6 +143,49 @@ theorem transferBetweenHolders_preserves_invariant {Account Asset : Type}
   · simpa [transferBetweenHolders, hAsset, totalHoldings] using
       hInvariant currentAsset
 
+
+/--
+Execute a transfer only when its arithmetic precondition is satisfied.
+An invalid request produces no next state; a valid request produces
+the corresponding holder-balance state.
+This wrapper does not yet model signer or account-role authorization.
+-/
+def executeTransfer {Account Asset : Type}
+    [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (source destination : Account) (asset : Asset) (amount : Nat) :
+    Option (HoldingsState Account Asset) :=
+  if TransferAllowed state source destination asset amount then
+    some (transferBetweenHolders state source destination asset amount)
+  else none
+
+/-- Every successfully executed guarded transfer preserves the invariant. -/
+theorem executeTransfer_preserves_invariant {Account Asset : Type}
+    [Fintype Account] [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (hInvariant : HoldingsInvariant state)
+    (source destination : Account) (asset : Asset) (amount : Nat) :
+    ∀ next,
+      executeTransfer state source destination asset amount = some next →
+        HoldingsInvariant next := by
+  intro next hNext
+  by_cases hAllowed : TransferAllowed state source destination asset amount
+  · have hEq : transferBetweenHolders state source destination asset amount = next := by
+      simpa [executeTransfer, hAllowed] using hNext
+    rw [← hEq]
+    exact transferBetweenHolders_preserves_invariant state hInvariant
+      source destination asset amount hAllowed
+  · simp [executeTransfer, hAllowed] at hNext
+
+/-- A transfer whose precondition fails is rejected without a next state. -/
+theorem executeTransfer_rejects_unfunded {Account Asset : Type}
+    [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (source destination : Account) (asset : Asset) (amount : Nat)
+    (hNotAllowed : ¬ TransferAllowed state source destination asset amount) :
+    executeTransfer state source destination asset amount = none := by
+  simp [executeTransfer, hNotAllowed]
+
 /--
 Issue new units directly to one holder. Both the holder's balance and the
 asset's supply book increase by the same amount.
@@ -267,4 +310,47 @@ theorem burnFromHolder_preserves_invariant {Account Asset : Type}
   · simpa [burnFromHolder, hAsset, totalHoldings] using
       hInvariant currentAsset
 
+
+/--
+Execute a holder burn only when the holder owns enough units. An invalid
+request returns no next state. Signer/role authorization remains a separate
+protocol obligation.
+-/
+def executeBurn {Account Asset : Type}
+    [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (holder : Account) (asset : Asset) (amount : Nat) :
+    Option (HoldingsState Account Asset) :=
+  if (amount : Int) ≤ state.balance holder asset then
+    some (burnFromHolder state holder asset amount)
+  else none
+
+/-- Every successfully executed holder burn preserves the invariant. -/
+theorem executeBurn_preserves_invariant {Account Asset : Type}
+    [Fintype Account] [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (hInvariant : HoldingsInvariant state)
+    (holder : Account) (asset : Asset) (amount : Nat) :
+    ∀ next,
+      executeBurn state holder asset amount = some next →
+        HoldingsInvariant next := by
+  intro next hNext
+  by_cases hEnough : (amount : Int) ≤ state.balance holder asset
+  · have hEq : burnFromHolder state holder asset amount = next := by
+      simpa [executeBurn, hEnough] using hNext
+    rw [← hEq]
+    exact burnFromHolder_preserves_invariant state hInvariant
+      holder asset amount hEnough
+  · simp [executeBurn, hEnough] at hNext
+
+/-- A holder burn exceeding its balance is rejected without a next state. -/
+theorem executeBurn_rejects_excess {Account Asset : Type}
+    [DecidableEq Account] [DecidableEq Asset]
+    (state : HoldingsState Account Asset)
+    (holder : Account) (asset : Asset) (amount : Nat)
+    (hNotEnough : ¬ (amount : Int) ≤ state.balance holder asset) :
+    executeBurn state holder asset amount = none := by
+  simp [executeBurn, hNotEnough]
+
+end SIRM
 end SIRM

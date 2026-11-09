@@ -19,6 +19,7 @@ This file separates Lean declarations present in source from protocol properties
 - A funded holder-transfer transition preserving balances, nonnegativity and supply reconciliation; self-transfer is a no-op.
 - An issuance-to-holder transition that increases the holder balance and outstanding supply equally.
 - A burn-from-holder transition bounded by that holder's balance, with a proof that this bound also protects aggregate outstanding supply.
+- Guarded transfer and holder-burn command wrappers: failed numeric preconditions return no next state, while every successful result preserves the holdings invariant.- A burn-from-holder transition bounded by that holder's balance, with a proof that this bound also protects aggregate outstanding supply.
 - Generic reachable-state invariant theorem for a state machine whose initial and transition safety obligations are supplied.
 - A dedicated `SIRMTests` Lake test-driver library covering a reconciled two-asset example, funded transfer, overspending rejection, self-transfer, issuance, holder burn, founder allocation arithmetic and journal conservation.
 
@@ -26,6 +27,7 @@ This file separates Lean declarations present in source from protocol properties
 
 - A canonical typed asset registry with decimals, precision, issuer, status, network identifier and migration rules.
 - Account metadata, ownership, account classes, authorization keys and account lifecycle.
+- Authorization of issuance, burn permissions, freeze/closure rules and signer thresholds.- Account metadata, ownership, account classes, authorization keys and account lifecycle.
 - A canonical finite account universe and concrete genesis assignment covering founder, treasury, validator, ecosystem, community and unallocated pools.
 - A unified transaction object with signer rules, nonce, expiry, replay prevention, fees and atomic failure semantics.
 - A complete link between holder movements and signed general-ledger journal postings, including custody and customer-liability accounting.
