@@ -52,6 +52,7 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.Authorization` provides abstract, state-dependent authorization predicates and guarded transfer, issue, and burn operations. Issuance authorization explicitly distinguishes the issuer account from the recipient.
 - `SIRM.AuthorityRegistry` stores finite static grants binding a principal, exact operation scope, asset, and maximum amount. An issue grant binds both issuer and recipient.
 - `SIRM.AccountControl` defines a separate finite principal/account control relation. The combined policy requires control of the transfer source, issue issuer, or burn holder, as well as the exact operation grant. The recipient need not be controlled by the issuing principal when the grant explicitly authorizes that recipient.
+- `SIRM.TypedRegistry` defines distinct finite account and asset identifier types, total metadata registries, account classes and lifecycle statuses, and asset decimal precision, issuer, status, and network metadata. The asset registry carries a proof that each issuer is on the asset's declared network.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
 

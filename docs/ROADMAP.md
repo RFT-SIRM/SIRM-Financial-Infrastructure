@@ -11,7 +11,8 @@
 - [ ] Add runtime/property tests and a dedicated linter driver.
 
 ## Phase 1 — accounting kernel
-- typed assets, accounts and account classes;
+- [x] finite typed account/asset identifier domains, account classes, lifecycle metadata, asset decimal precision and issuer/network coherence;
+- [ ] asset migration rules, cross-network conversion ratios and rounding/residual policy;
 - balanced journals, account ownership and authorization;
 - transfer, fees, escrow, settlement and reversals;
 - pending pools, dust and rounding;

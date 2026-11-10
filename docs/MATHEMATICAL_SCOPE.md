@@ -22,6 +22,14 @@ This document describes what the current Lean declarations establish, the assump
 - `SIRM.StateMachine`: a generic theorem deriving an invariant for reachable states from an invariant initial state and transition-preservation obligation.
 - `SIRM.AuthorizedStateMachine`: an authorization-gated holder transition relation and reachable-state preservation of the holdings invariant.
 
+### Typed finite account and asset registries
+
+- `SIRM.TypedRegistry` defines distinct finite account and asset identifier types, so an account identifier cannot be supplied where an asset identifier is required.
+- The account registry is total over its finite account universe and records account class, lifecycle status, and network.
+- The asset registry is total over its finite asset universe and records symbol, decimal precision, issuer, lifecycle status, and network.
+- A registry proof enforces that each asset's issuer account belongs to the same declared network. Registry-level issuance eligibility requires both the asset and issuer account to be active.
+- These metadata predicates do not prove identity, ownership, key custody, or authority. The existing authority-grant and account-control gates remain independent. Cross-network migration and conversion are not yet formalized.
+
 ### Combined authorized financial machine
 
 - `SIRM.AuthorizedFinancialMachine`: one abstract financial state containing both holder balances and the signed general ledger.
@@ -38,7 +46,7 @@ That result does **not** yet provide a production transaction processor. The cur
 ## 3. Not established by the current declarations
 
 - Completeness or legal correctness of the account universe; it is an explicit assumption of holdings reconciliation.
-- A concrete principal-to-account ownership map, account metadata, cryptographic signatures, private-key custody, production roles, signer thresholds, or permission-policy administration.
+- A concrete principal-to-account legal-ownership map, production identity verification, cryptographic signatures, private-key custody, lifecycle transition policy, production role semantics, signer thresholds, or permission-policy administration. Typed account metadata is descriptive and does not by itself establish these properties.
 - A complete genesis assignment to actual founder, treasury, validator, ecosystem, community, and other accounts.
 - A production posting policy for custody, customer-liability, control, and other non-holder GL accounts.
 - Freeze, escrow, fees, settlement, reversals, credit lines, account restrictions, and multi-asset FX/valuation rules.
