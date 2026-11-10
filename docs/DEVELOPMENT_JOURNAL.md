@@ -103,3 +103,55 @@ Do not commit until the target module, full `SIRM` build, theorem-level test dri
 - Selecting a concrete 32-bit/64-bit or platform-specific runtime integer bound.
 - Rust checked-arithmetic implementation and Lean-to-Rust refinement proof.
 - Fees, FX, migration, residual rounding, and signed-value parsing.
+
+
+## Work block: exact cross-network migration arithmetic and residual accounting
+
+### Verified starting point
+
+- Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
+- Working branch: `foundation/exact-asset-migration-dust-2026-11-10`.
+- Exact starting commit after the preceding squash merge: `7655d68e104b1d0def05135b72b3070897c546a4`.
+- The remote branch was created from that exact `main` SHA after confirming `main` matched it.
+
+### Objective and adopted arithmetic
+
+A route supplies a positive rate `numerator / denominator`, interpreted as target base units per source base unit. For source amount `s`, conversion proves:
+
+```text
+s * numerator = targetBaseUnits * denominator + dustNumerator
+0 <= dustNumerator < denominator
+```
+
+No floating point, implicit rounding, or silent residual loss is permitted. A cumulative accumulator adds new scaled source value to the previously carried residual, emits only completed target base units, and retains the new residual. The accumulator is indexed by the exact rate and an explicit accounting partition; different rates or partitions cannot share a state by definitional equality. A shared partition, where deliberately chosen, remains an explicit policy decision.
+
+A route connects distinct registered asset IDs on distinct network IDs. Route eligibility requires both endpoint assets and both issuer accounts to be active. This is deliberately only route metadata and exact arithmetic: source redemption/burn, destination issuance, authority, custody, replay/idempotency, bridge finality, rollback, and asset-collision policy remain unformalized.
+
+No production exchange rate, asset decimals, dust pooling rule, or economic valuation is selected.
+
+### Expected source changes
+
+- Add `SIRM/AssetMigration.lean` and import it from `SIRM.lean`.
+- Add generic quotient/remainder and cumulative dust-conservation definitions/theorems.
+- Add a route structure tied to the typed registry with distinct-asset and cross-network proofs plus active endpoint/issuer eligibility.
+- Add synthetic-rate regression tests and update the architecture decision, roadmap, mathematical scope, formalization status, README, testing notes, and journal.
+
+### Verification sequence
+
+```bash
+lake build SIRM.AssetMigration
+lake build SIRM
+lake test
+python3 scripts/ci_audit.py all
+git diff --check
+```
+
+Do not commit until the target module, full `SIRM` build, theorem-level test driver, all 17 static audits, and diff checks pass. Inspect the full staged Lean diff before one commit, one push, and one PR against `main`.
+
+### Explicitly deferred
+
+- Production exchange rates, FX/market pricing, and denomination policy.
+- Pooling residuals across beneficiaries or different routes/rates.
+- Source token burn/redemption and destination mint/issuance transactions.
+- Authorization, custody proofs, bridge finality, replay/idempotency, rollback, asset collision and insolvency policy.
+- Rust implementation and Lean-to-Rust refinement.

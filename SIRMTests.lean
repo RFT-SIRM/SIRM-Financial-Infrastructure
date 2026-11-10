@@ -1646,4 +1646,145 @@ theorem typedRegistry_base_units_above_explicit_bound_are_rejected :
   norm_num [AssetMetadata.toBaseUnitsWithin?, AssetMetadata.toBaseUnits?,
     typedDemoAssetMetadata]
 
+/-! ## Exact cross-network migration and dust regressions -/
+
+def demoAssetMigrationRate : AssetMigrationRate where
+  numerator := 2
+  denominator := 3
+  numerator_pos := by decide
+  denominator_pos := by decide
+
+inductive DemoMigrationPartition where
+  | alice
+  | bob
+  deriving DecidableEq, Repr
+
+def demoAliceMigrationDustAfterOne :
+    AssetMigrationDustState demoAssetMigrationRate
+      DemoMigrationPartition .alice :=
+  (AssetMigrationDustState.empty demoAssetMigrationRate
+    DemoMigrationPartition.alice).addSource 1
+
+def demoAliceMigrationDustAfterTwo :
+    AssetMigrationDustState demoAssetMigrationRate
+      DemoMigrationPartition .alice :=
+  demoAliceMigrationDustAfterOne.addSource 1
+
+def demoBobMigrationDustAfterOne :
+    AssetMigrationDustState demoAssetMigrationRate
+      DemoMigrationPartition .bob :=
+  (AssetMigrationDustState.empty demoAssetMigrationRate
+    DemoMigrationPartition.bob).addSource 1
+
+theorem migration_single_source_unit_keeps_fractional_dust :
+    demoAliceMigrationDustAfterOne.totalTargetBaseUnits = 0 ∧
+      demoAliceMigrationDustAfterOne.dustNumerator = 2 := by
+  norm_num [demoAliceMigrationDustAfterOne,
+    AssetMigrationDustState.addSource, AssetMigrationDustState.empty,
+    demoAssetMigrationRate]
+
+theorem migration_second_source_unit_releases_one_target_unit :
+    demoAliceMigrationDustAfterTwo.totalTargetBaseUnits = 1 ∧
+      demoAliceMigrationDustAfterTwo.dustNumerator = 1 := by
+  norm_num [demoAliceMigrationDustAfterTwo,
+    demoAliceMigrationDustAfterOne, AssetMigrationDustState.addSource,
+    AssetMigrationDustState.empty, demoAssetMigrationRate]
+
+theorem migration_cumulative_scaled_value_is_conserved :
+    demoAliceMigrationDustAfterTwo.totalSourceBaseUnits * 2 =
+      demoAliceMigrationDustAfterTwo.totalTargetBaseUnits * 3 +
+        demoAliceMigrationDustAfterTwo.dustNumerator := by
+  exact demoAliceMigrationDustAfterTwo.scaled_conservation
+
+theorem migration_dust_is_bounded_by_rate_denominator :
+    demoAliceMigrationDustAfterTwo.dustNumerator < 3 := by
+  exact demoAliceMigrationDustAfterTwo.dust_lt_denominator
+
+theorem migration_bob_has_an_independent_dust_partition :
+    demoBobMigrationDustAfterOne.totalTargetBaseUnits = 0 ∧
+      demoBobMigrationDustAfterOne.dustNumerator = 2 := by
+  norm_num [demoBobMigrationDustAfterOne,
+    AssetMigrationDustState.addSource, AssetMigrationDustState.empty,
+    demoAssetMigrationRate]
+
+/-- A synthetic second network and issuer for route-eligibility regressions. -/
+def demoMigrationOtherNetwork : NetworkId := ⟨8⟩
+
+def demoMigrationAccountRegistry : AccountRegistry 2 where
+  metadata := fun account =>
+    if account = typedDemoTreasury then
+      { accountKind := .treasury
+        status := .active
+        network := typedDemoNetwork }
+    else
+      { accountKind := .holder
+        status := .active
+        network := demoMigrationOtherNetwork }
+
+def demoMigrationSourceMetadata : AssetMetadata 2 :=
+  typedDemoAssetMetadata
+
+def demoMigrationDestinationMetadata : AssetMetadata 2 where
+  symbol := "DST"
+  decimals := 3
+  issuer := typedDemoCustomer
+  status := .active
+  network := demoMigrationOtherNetwork
+
+def demoMigrationAssetRegistry :
+    AssetRegistry 2 2 demoMigrationAccountRegistry where
+  metadata := fun asset =>
+    if asset.index.val = 0 then
+      demoMigrationSourceMetadata
+    else
+      demoMigrationDestinationMetadata
+  issuer_network_matches := by
+    intro asset
+    rcases asset with ⟨i⟩
+    fin_cases i
+    · simp [demoMigrationSourceMetadata, typedDemoAssetMetadata,
+        demoMigrationAccountRegistry, typedDemoTreasury, typedDemoNetwork]
+    · simp [demoMigrationDestinationMetadata,
+        demoMigrationAccountRegistry, typedDemoTreasury, typedDemoCustomer,
+        demoMigrationOtherNetwork]
+
+def demoMigrationSourceAsset : AssetId 2 := ⟨0⟩
+def demoMigrationDestinationAsset : AssetId 2 := ⟨1⟩
+
+def demoCrossNetworkMigrationRoute :
+    AssetMigrationRoute demoMigrationAssetRegistry where
+  sourceAsset := demoMigrationSourceAsset
+  destinationAsset := demoMigrationDestinationAsset
+  rate := demoAssetMigrationRate
+  assets_distinct := by decide
+  networks_distinct := by
+    change
+      (demoMigrationAssetRegistry.metadata (⟨0⟩ : AssetId 2)).network ≠
+        (demoMigrationAssetRegistry.metadata (⟨1⟩ : AssetId 2)).network
+    decide
+
+theorem migration_demo_route_connects_distinct_networks :
+    (demoMigrationAssetRegistry.metadata
+      demoCrossNetworkMigrationRoute.sourceAsset).network ≠
+    (demoMigrationAssetRegistry.metadata
+      demoCrossNetworkMigrationRoute.destinationAsset).network :=
+  demoCrossNetworkMigrationRoute.networks_distinct
+
+theorem migration_demo_route_requires_active_endpoints :
+    demoCrossNetworkMigrationRoute.endpointsEnabled := by
+  change
+    (((demoMigrationAssetRegistry.metadata demoMigrationSourceAsset).status =
+        AssetStatus.active) ∧
+      ((demoMigrationAccountRegistry.metadata
+        (demoMigrationAssetRegistry.metadata demoMigrationSourceAsset).issuer).status =
+          AccountStatus.active)) ∧
+    (((demoMigrationAssetRegistry.metadata demoMigrationDestinationAsset).status =
+        AssetStatus.active) ∧
+      ((demoMigrationAccountRegistry.metadata
+        (demoMigrationAssetRegistry.metadata demoMigrationDestinationAsset).issuer).status =
+          AccountStatus.active))
+  constructor
+  · constructor <;> rfl
+  · constructor <;> rfl
+
 end SIRMTests

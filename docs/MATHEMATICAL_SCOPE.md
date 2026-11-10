@@ -36,6 +36,14 @@ This document describes what the current Lean declarations establish, the assump
 - Whole-unit conversion uses the registry metadata scale `10^d`. The `Fin (maxBaseUnits + 1)` adapter separately enforces an explicit inclusive range bound. Lean's `Nat` is mathematically unbounded; this generic bound does not select or prove a concrete Rust/C machine integer width, and runtime overflow behavior remains a downstream refinement obligation.
 - No production asset decimal precision, target integer width, floating-point representation, or rounding policy is selected by these definitions.
 
+### Exact cross-network migration arithmetic
+
+- `SIRM.AssetMigration` represents a positive rational rate as `numerator / denominator`, interpreted as target base units per source base unit. Both values are explicit parameters; no production rate or market price is selected.
+- For source amount `s`, the proof-carrying conversion establishes `s * numerator = targetBaseUnits * denominator + dustNumerator`, with `dustNumerator < denominator`. The remainder is an exact fraction of one target base unit, not a rounded-away value.
+- `AssetMigrationDustState` carries that numerator into subsequent conversions. Its type is indexed by the exact rate and an accounting partition, preventing accidental combination of dust from different rates or different partitions. A caller choosing one shared partition is making an explicit pooling-policy choice outside the theorem.
+- A route requires distinct asset identifiers and distinct registered network identifiers. `endpointsEnabled` additionally requires both assets and both issuer accounts to be active.
+- This is arithmetic and route eligibility only. It does not establish authority to migrate, source burn/redemption, destination issuance, custody, bridge finality, replay/idempotency, rollback, asset-collision policy, or real-world backing. The conservation equation is a scaled integer identity, not by itself a legal or economic valuation theorem.
+
 ### Registry-aware issuance eligibility
 
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with `AssetRegistry.issuanceEnabled`. A new issue is admitted only when the original policy authorizes the principal, issuer, recipient, asset, and amount, and the asset plus its issuer account are active.
