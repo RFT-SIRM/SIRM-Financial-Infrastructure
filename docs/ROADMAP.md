@@ -14,7 +14,8 @@
 - [x] finite typed account/asset identifier domains, account classes, lifecycle metadata, asset decimal precision and issuer/network coherence;
 - [x] compose typed asset/issuer lifecycle eligibility with the authorized financial machine's issuance gate;
 - [x] exact decimal-to-base-unit conversion with rejection of nonrepresentable precision and a separately parameterized range bound;
-- [ ] asset migration rules, cross-network conversion ratios and rounding/residual policy;
+- [x] exact rational cross-network base-unit conversion with a conserved, rate- and partition-scoped residual accumulator;
+- [ ] end-to-end migration authorization, source redemption, destination issuance, replay/idempotency and asset-collision policy;
 - balanced journals, account ownership and authorization;
 - transfer, fees, escrow, settlement and reversals;
 - pending pools, dust and rounding;

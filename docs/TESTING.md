@@ -91,3 +91,17 @@ The `SIRMTests.lean` suite compiles these exact-conversion cases:
 - a caller-supplied inclusive maximum is enforced by returning `Fin (maxBaseUnits + 1)` or `none` when out of range.
 
 The range proof is parameterized by a natural-number maximum. It does not select a machine integer width or claim runtime overflow safety for a Rust implementation. Production decimals remain unselected.
+
+
+## Exact cross-network migration arithmetic regressions
+
+The `SIRMTests.lean` suite compiles synthetic-rate examples and generic theorems:
+
+- a positive rational rate decomposes source-scaled units into target units times the denominator plus a strictly smaller residual numerator;
+- a residual that cannot yet form one target base unit is retained;
+- later source input consumes the carried residual and releases the exact accumulated target amount;
+- the cumulative scaled-value equation remains invariant after every accrual;
+- accumulator types are scoped to a rate and a partition, so different owners or rate configurations cannot silently share dust state;
+- a route connects distinct assets on distinct registered networks, and route eligibility requires both assets and both issuer accounts to be active.
+
+The rate values in regressions are synthetic. These proofs do not implement migration authorization, burning, minting, bridge settlement, replay protection, or production custody.

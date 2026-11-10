@@ -7,6 +7,7 @@ import SIRM.AccountControl
 import SIRM.HolderAccountingBridge
 import SIRM.TypedRegistry
 import SIRM.AssetUnits
+import SIRM.AssetMigration
 import SIRM.StateMachine
 import SIRM.AuthorizedStateMachine
 import SIRM.AuthorizedFinancialMachine
