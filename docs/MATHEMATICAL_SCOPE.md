@@ -6,11 +6,14 @@
 - `SIRM.Accounting`: a generic finite-account, per-asset signed general ledger; journal entries carrying a balance proof per asset; aggregate signed-balance preservation for balanced entries; and a balanced transfer-journal constructor.
 - `SIRM.Holdings`: nonnegative integer holder balances indexed by account and asset; exact per-asset reconciliation with outstanding supply; funded transfers; issuance to a holder; and holder-bounded burns with preservation theorems.
 - `SIRM.StateMachine`: a generic reachable-state theorem deriving safety from initial-state and transition-preservation obligations.
+- `SIRM.AuthorizedStateMachine`: an authorization-gated holder transition relation, an invariant initial state, and a theorem that every reachable state preserves holdings/supply reconciliation.
+- `SIRM.AuthorizedFinancialMachine`: one combined state containing holder balances and the signed GL; authorized transfer, issuance and burn steps update both projections together. Its stronger machine invariant preserves holder reconciliation, mapped subledger agreement and aggregate signed GL balance relative to the opening ledger.
+- `SIRM.HolderAccountingBridge`: matching balanced general-ledger journals for holder transfers, issuance and burn; pointwise subledger-agreement preservation for all three operations under an unmapped counterpart-account assumption.
 
 ## Not proved by these declarations
 
 - Completeness or legal correctness of the account universe; it is an explicit assumption of the holdings reconciliation statement.
-- Account ownership, signatures, authorization, custody or key security.
+- A concrete principal-to-account ownership map, cryptographic signatures, key custody, roles, signer thresholds or a production authorization policy; the authorization predicates are abstract policy inputs.
 - A complete genesis assignment to real founder, treasury, validator and other accounts.
 - A unified posting transaction that atomically updates holder balances and the signed general ledger.
 - Reserve backing, solvency, par redemption or external asset existence.

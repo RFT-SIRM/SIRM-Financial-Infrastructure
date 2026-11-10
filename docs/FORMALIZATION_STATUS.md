@@ -15,6 +15,7 @@ This file separates Lean declarations present in source from protocol properties
 - A balanced transfer-journal constructor for the signed general-ledger view.
 - An injective holder-to-subledger mapping and a pointwise agreement relation for the designated ledger accounts.
 - A theorem that a holder transfer and its matching per-asset journal preserve the subledger agreement and aggregate signed-ledger balance.
+- Balanced holder-issuance and holder-burn journals using an explicitly unmapped counterpart account; their mapped subledger effects preserve pointwise holder/GL agreement, and each journal preserves aggregate signed-ledger balance.
 - Per-asset holder holdings indexed by account and asset.
 - A reconciliation invariant requiring nonnegative holder balances whose total equals outstanding supply.
 - A theorem bounding each nonnegative holder balance by total holdings.
@@ -22,14 +23,14 @@ This file separates Lean declarations present in source from protocol properties
 - An issuance-to-holder transition that increases the holder balance and outstanding supply equally.
 - A burn-from-holder transition bounded by that holder's balance, with a proof that this bound also protects aggregate outstanding supply.
 - Proof-carrying transfer and holder-burn transitions: numeric preconditions are explicit proof arguments, so invalid requests have no admissible transition term; every resulting state preserves the holdings invariant.
-- Generic reachable-state invariant theorem for a state machine whose initial and transition safety obligations are supplied.
+- Generic reachable-state invariant theorem, instantiated by an authorization-gated holder state machine and a combined authorized financial machine. The combined machine updates holder balances and corresponding GL journals together; a stronger reachable-state theorem also preserves aggregate signed GL balance for every asset relative to the opening ledger.
 - A dedicated `SIRMTests` Lake test-driver library covering a reconciled two-asset example, funded transfer, overspending rejection, self-transfer, issuance, holder burn, founder allocation arithmetic and journal conservation.
 
 ## Not yet formalized
 
 - A canonical typed asset registry with decimals, precision, issuer, status, network identifier and migration rules.
-- Account metadata, ownership, account classes, authorization keys and account lifecycle.
-- Authorization of issuance, burn permissions, freeze/closure rules and signer thresholds.
+- Concrete account metadata, principal-to-account ownership, account classes, key registry and custody, signer thresholds, permission administration, and account lifecycle. The authorization module supplies abstract state-dependent permission predicates and guarded transitions, but selects no production identity or cryptographic scheme.
+- Cryptographic signature validation, concrete role and threshold policy, freeze/closure rules, and permission-policy administration.
 - A canonical finite account universe and concrete genesis assignment covering founder, treasury, validator, ecosystem, community and unallocated pools.
 - A unified transaction object with signer rules, nonce, expiry, replay prevention, fees and atomic failure semantics.
 - A complete production posting policy for custody, customer-liability, control, and other non-holder general-ledger accounts.

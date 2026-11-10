@@ -22,9 +22,12 @@ The CI workflow pins Lean 4.33.1 and Mathlib v4.33.1 and explicitly runs:
 - a holder-bounded burn and corresponding supply decrease;
 - exact founder-allocation arithmetic;
 - a concrete use of the balanced journal conservation theorem;
-- a separate four-account general ledger (including an unmapped control account), with holder/subledger agreement preserved by a matching transfer journal.
+- a separate four-account general ledger (including an unmapped control account), with holder/subledger agreement preserved by a matching transfer journal;
+- an authorized transfer → issuance → burn trace, with a reachability proof and final holdings/supply reconciliation theorem;
+- holder issuance and burn journal tests using the unmapped demo control account, checking per-asset journal balance, aggregate signed-ledger conservation, mapped subledger agreement, and the exact control-account postings;
+- an integrated financial-machine trace executing transfer → issuance → burn, proving reachability, holder/supply reconciliation, mapped subledger agreement, aggregate signed-ledger conservation relative to the opening ledger, and exact Alice, treasury and control balances.
 
-Because the test driver is a Lean library, `lake test` succeeds only if these statements and proof terms compile. The tests are theorem-level regression checks, not a runtime node test or a randomized fuzz campaign.
+Because the test driver is a Lean library, `lake test` succeeds only if these statements and proof terms compile. The tests are theorem-level regression checks, not a runtime node test or a randomized fuzz campaign. The demo authorization policy is illustrative only; it does not select a production ownership, key, role, threshold, or governance scheme.
 
 ## Lint and runtime tests
 

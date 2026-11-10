@@ -287,4 +287,567 @@ theorem demoBridge_bob_subledger_matches :
   demoBridgeTransfer_preserves_subledger_agreement .bob .rft
 
 
+/-! ## Issuance and burn general-ledger bridge regression tests -/
+
+/-- The demo control account is outside the image of every holder subledger. -/
+theorem demoControlIsUnmapped :
+    ∀ holder : DemoAccount,
+      DemoLedgerAccount.control ≠ demoHolderLedgerMap.ledgerAccount holder := by
+  intro holder
+  cases holder <;> simp [demoHolderLedgerMap]
+
+def demoBridgeAfterIssueHoldings : HoldingsState DemoAccount DemoAsset :=
+  issueToHolder demoBridgeAfterHoldings .treasury DemoAsset.rft 15
+
+def demoBridgeAfterIssueLedger : Ledger DemoLedgerAccount DemoAsset :=
+  postJournal demoBridgeAfterLedger
+    (holderIssuanceJournal demoHolderLedgerMap
+      .control .treasury DemoAsset.rft 15)
+
+theorem demoBridgeAfterIssue_preserves_subledger_agreement :
+    HolderSubledgerAgreement demoHolderLedgerMap
+      demoBridgeAfterIssueHoldings demoBridgeAfterIssueLedger :=
+  holderSubledgerAgreement_issue
+    demoHolderLedgerMap
+    demoBridgeAfterHoldings
+    demoBridgeAfterLedger
+    demoBridgeTransfer_preserves_subledger_agreement
+    .control
+    demoControlIsUnmapped
+    .treasury DemoAsset.rft 15
+
+theorem demoBridgeAfterIssue_journal_balanced :
+    ∀ asset,
+      (∑ account : DemoLedgerAccount,
+        (holderIssuanceJournal demoHolderLedgerMap
+          .control .treasury DemoAsset.rft 15).posting account asset) = 0 := by
+  intro asset
+  exact holderIssuanceJournal_balanced
+    demoHolderLedgerMap .control .treasury DemoAsset.rft asset 15
+
+theorem demoBridgeAfterIssue_preserves_total_signed_balance :
+    ∀ asset,
+      totalSignedBalance demoBridgeAfterIssueLedger asset =
+        totalSignedBalance demoBridgeAfterLedger asset := by
+  intro asset
+  exact totalSignedBalance_postJournal demoBridgeAfterLedger
+    (holderIssuanceJournal demoHolderLedgerMap .control .treasury DemoAsset.rft 15)
+    asset
+
+theorem demoBridgeAfterTransfer_treasury_balance :
+    demoBridgeAfterHoldings.balance DemoAccount.treasury DemoAsset.rft = 75 := by
+  change afterTransfer.balance DemoAccount.treasury DemoAsset.rft = 75
+  exact transfer40_expected_balances.2.2.1
+
+theorem demoBridgeAfterIssue_treasury_balance :
+    demoBridgeAfterIssueLedger.balance .treasurySubledger DemoAsset.rft = 90 := by
+  have hAgreement :
+      demoBridgeAfterIssueLedger.balance .treasurySubledger DemoAsset.rft =
+        demoBridgeAfterIssueHoldings.balance DemoAccount.treasury DemoAsset.rft := by
+    simpa [demoHolderLedgerMap] using
+      (demoBridgeAfterIssue_preserves_subledger_agreement
+        DemoAccount.treasury DemoAsset.rft)
+  rw [hAgreement]
+  change (issueToHolder demoBridgeAfterHoldings
+    DemoAccount.treasury DemoAsset.rft 15).balance
+      DemoAccount.treasury DemoAsset.rft = 90
+  simp [issueToHolder, demoBridgeAfterTransfer_treasury_balance]
+
+theorem demoBridgeAfterIssue_control_balance :
+    demoBridgeAfterIssueLedger.balance .control DemoAsset.rft = -15 := by
+  decide
+
+theorem demoBridgeAfterIssue_alice_balance :
+    demoBridgeAfterIssueHoldings.balance DemoAccount.alice DemoAsset.rft = 60 := by
+  change (issueToHolder demoBridgeAfterHoldings
+    DemoAccount.treasury DemoAsset.rft 15).balance
+      DemoAccount.alice DemoAsset.rft = 60
+  have hAlice :
+      demoBridgeAfterHoldings.balance DemoAccount.alice DemoAsset.rft = 60 := by
+    change afterTransfer.balance DemoAccount.alice DemoAsset.rft = 60
+    exact transfer40_expected_balances.1
+  simp [issueToHolder, hAlice]
+
+def demoBridgeAfterBurnHoldings : HoldingsState DemoAccount DemoAsset :=
+  burnFromHolder demoBridgeAfterIssueHoldings .alice DemoAsset.rft 20
+
+def demoBridgeAfterBurnLedger : Ledger DemoLedgerAccount DemoAsset :=
+  postJournal demoBridgeAfterIssueLedger
+    (holderBurnJournal demoHolderLedgerMap
+      .control .alice DemoAsset.rft 20)
+
+theorem demoBridgeAfterBurn_preserves_subledger_agreement :
+    HolderSubledgerAgreement demoHolderLedgerMap
+      demoBridgeAfterBurnHoldings demoBridgeAfterBurnLedger :=
+  holderSubledgerAgreement_burn
+    demoHolderLedgerMap
+    demoBridgeAfterIssueHoldings
+    demoBridgeAfterIssueLedger
+    demoBridgeAfterIssue_preserves_subledger_agreement
+    .control
+    demoControlIsUnmapped
+    .alice DemoAsset.rft 20
+
+theorem demoBridgeAfterBurn_journal_balanced :
+    ∀ asset,
+      (∑ account : DemoLedgerAccount,
+        (holderBurnJournal demoHolderLedgerMap
+          .control .alice DemoAsset.rft 20).posting account asset) = 0 := by
+  intro asset
+  exact holderBurnJournal_balanced
+    demoHolderLedgerMap .control .alice DemoAsset.rft asset 20
+
+theorem demoBridgeAfterBurn_preserves_total_signed_balance :
+    ∀ asset,
+      totalSignedBalance demoBridgeAfterBurnLedger asset =
+        totalSignedBalance demoBridgeAfterIssueLedger asset := by
+  intro asset
+  exact totalSignedBalance_postJournal demoBridgeAfterIssueLedger
+    (holderBurnJournal demoHolderLedgerMap .control .alice DemoAsset.rft 20)
+    asset
+
+theorem demoBridgeAfterBurn_alice_balance :
+    demoBridgeAfterBurnLedger.balance .aliceSubledger DemoAsset.rft = 40 := by
+  have hAgreement :
+      demoBridgeAfterBurnLedger.balance .aliceSubledger DemoAsset.rft =
+        demoBridgeAfterBurnHoldings.balance DemoAccount.alice DemoAsset.rft := by
+    simpa [demoHolderLedgerMap] using
+      (demoBridgeAfterBurn_preserves_subledger_agreement
+        DemoAccount.alice DemoAsset.rft)
+  rw [hAgreement]
+  change (burnFromHolder demoBridgeAfterIssueHoldings
+    DemoAccount.alice DemoAsset.rft 20).balance
+      DemoAccount.alice DemoAsset.rft = 40
+  norm_num [burnFromHolder, demoBridgeAfterIssue_alice_balance]
+
+theorem demoBridgeAfterBurn_control_balance :
+    demoBridgeAfterBurnLedger.balance .control DemoAsset.rft = 5 := by
+  decide
+
+
+/-! ## Abstract authorization policy regression examples
+
+This small policy is intentionally illustrative. It demonstrates the shape
+of the authorization gate; it does not select production ownership, key,
+role, threshold, or governance rules.
+-/
+
+inductive DemoPrincipal
+  | alice
+  | bob
+  | treasury
+  | auditor
+  deriving DecidableEq, Repr
+
+def demoAuthorizationPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset where
+  mayTransfer := fun _state principal source _destination _asset _amount =>
+    match principal, source with
+    | DemoPrincipal.alice, DemoAccount.alice => True
+    | DemoPrincipal.bob, DemoAccount.bob => True
+    | DemoPrincipal.treasury, DemoAccount.treasury => True
+    | _, _ => False
+  mayIssue := fun _state principal _recipient _asset _amount =>
+    principal = DemoPrincipal.treasury
+  mayBurn := fun _state principal holder _asset _amount =>
+    (principal = DemoPrincipal.alice ∧ holder = DemoAccount.alice) ∨
+    (principal = DemoPrincipal.bob ∧ holder = DemoAccount.bob) ∨
+    (principal = DemoPrincipal.treasury ∧ holder = DemoAccount.treasury)
+
+theorem demoAliceMayTransferFromAlice :
+    demoAuthorizationPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob DemoAsset.rft 40 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoTreasuryCannotTransferFromAlice :
+    ¬ demoAuthorizationPolicy.mayTransfer demoState
+      DemoPrincipal.treasury DemoAccount.alice DemoAccount.bob DemoAsset.rft 40 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoTreasuryMayIssue :
+    demoAuthorizationPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoAliceCannotIssue :
+    ¬ demoAuthorizationPolicy.mayIssue demoState
+      DemoPrincipal.alice DemoAccount.treasury DemoAsset.rft 15 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoAliceMayBurnOwn :
+    demoAuthorizationPolicy.mayBurn demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoBobCannotBurnAlice :
+    ¬ demoAuthorizationPolicy.mayBurn demoState
+      DemoPrincipal.bob DemoAccount.alice DemoAsset.rft 20 := by
+  simp [demoAuthorizationPolicy]
+
+def demoAuthorizedAfterTransfer : HoldingsState DemoAccount DemoAsset :=
+  executeAuthorizedTransfer demoAuthorizationPolicy demoState
+    DemoPrincipal.alice DemoAccount.alice DemoAccount.bob DemoAsset.rft 40
+    demoAliceMayTransferFromAlice transfer40_is_funded
+
+theorem demoAuthorizedTransfer_preserves_reconciliation :
+    HoldingsInvariant demoAuthorizedAfterTransfer :=
+  executeAuthorizedTransfer_preserves_invariant
+    demoAuthorizationPolicy demoState demoState_reconciled
+    DemoPrincipal.alice DemoAccount.alice DemoAccount.bob DemoAsset.rft 40
+    demoAliceMayTransferFromAlice transfer40_is_funded
+
+theorem demoAuthorizedTransfer_matches_existing :
+    demoAuthorizedAfterTransfer = afterTransfer := by
+  rfl
+
+def demoAuthorizedAfterIssue : HoldingsState DemoAccount DemoAsset :=
+  executeAuthorizedIssue demoAuthorizationPolicy demoState
+    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    demoTreasuryMayIssue
+
+theorem demoAuthorizedIssue_preserves_reconciliation :
+    HoldingsInvariant demoAuthorizedAfterIssue :=
+  executeAuthorizedIssue_preserves_invariant
+    demoAuthorizationPolicy demoState demoState_reconciled
+    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    demoTreasuryMayIssue
+
+theorem demoAuthorizedIssue_matches_existing :
+    demoAuthorizedAfterIssue = afterIssue := by
+  rfl
+
+def demoAuthorizedAfterBurn : HoldingsState DemoAccount DemoAsset :=
+  executeAuthorizedBurn demoAuthorizationPolicy demoState
+    DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20
+    demoAliceMayBurnOwn alice_rft_can_burn_20
+
+theorem demoAuthorizedBurn_preserves_reconciliation :
+    HoldingsInvariant demoAuthorizedAfterBurn :=
+  executeAuthorizedBurn_preserves_invariant
+    demoAuthorizationPolicy demoState demoState_reconciled
+    DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20
+    demoAliceMayBurnOwn alice_rft_can_burn_20
+
+theorem demoAuthorizedBurn_matches_existing :
+    demoAuthorizedAfterBurn = afterBurn := by
+  rfl
+
+
+
+/-! ## Reachability through the authorized holder state machine -/
+
+theorem demoTreasuryMayIssueAfterTransfer :
+    demoAuthorizationPolicy.mayIssue demoAuthorizedAfterTransfer
+      DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15 := by
+  simp [demoAuthorizationPolicy]
+
+def demoAuthorizedAfterTransferAndIssue :
+    HoldingsState DemoAccount DemoAsset :=
+  executeAuthorizedIssue demoAuthorizationPolicy demoAuthorizedAfterTransfer
+    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    demoTreasuryMayIssueAfterTransfer
+
+theorem demoAliceMayBurnAfterTransferAndIssue :
+    demoAuthorizationPolicy.mayBurn demoAuthorizedAfterTransferAndIssue
+      DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20 := by
+  simp [demoAuthorizationPolicy]
+
+theorem demoAliceHasFundsAfterTransferAndIssue :
+    (20 : Int) ≤
+      demoAuthorizedAfterTransferAndIssue.balance
+        DemoAccount.alice DemoAsset.rft := by
+  change (20 : Int) ≤
+    (issueToHolder afterTransfer DemoAccount.treasury DemoAsset.rft 15).balance
+      DemoAccount.alice DemoAsset.rft
+  have hUnchanged :
+      (issueToHolder afterTransfer DemoAccount.treasury DemoAsset.rft 15).balance
+          DemoAccount.alice DemoAsset.rft =
+        afterTransfer.balance DemoAccount.alice DemoAsset.rft := by
+    simp [issueToHolder]
+  rw [hUnchanged, transfer40_expected_balances.1]
+  norm_num
+
+def demoAuthorizedTraceFinalState :
+    HoldingsState DemoAccount DemoAsset :=
+  executeAuthorizedBurn demoAuthorizationPolicy
+    demoAuthorizedAfterTransferAndIssue
+    DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20
+    demoAliceMayBurnAfterTransferAndIssue
+    demoAliceHasFundsAfterTransferAndIssue
+
+theorem demoAuthorizedTransfer_is_step :
+    AuthorizedHolderStep demoAuthorizationPolicy
+      demoState demoAuthorizedAfterTransfer := by
+  exact Or.inl ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAccount.bob,
+    DemoAsset.rft,
+    40,
+    demoAliceMayTransferFromAlice,
+    transfer40_is_funded,
+    rfl
+  ⟩
+
+theorem demoAuthorizedIssue_is_step :
+    AuthorizedHolderStep demoAuthorizationPolicy
+      demoAuthorizedAfterTransfer demoAuthorizedAfterTransferAndIssue := by
+  exact Or.inr (Or.inl ⟨
+    DemoPrincipal.treasury,
+    DemoAccount.treasury,
+    DemoAsset.rft,
+    15,
+    demoTreasuryMayIssueAfterTransfer,
+    rfl
+  ⟩)
+
+theorem demoAuthorizedBurn_is_step :
+    AuthorizedHolderStep demoAuthorizationPolicy
+      demoAuthorizedAfterTransferAndIssue demoAuthorizedTraceFinalState := by
+  exact Or.inr (Or.inr ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAsset.rft,
+    20,
+    demoAliceMayBurnAfterTransferAndIssue,
+    demoAliceHasFundsAfterTransferAndIssue,
+    rfl
+  ⟩)
+
+def demoAuthorizedHolderMachine :
+    VerifiedStateMachine (HoldingsState DemoAccount DemoAsset) :=
+  authorizedHolderMachine demoAuthorizationPolicy
+    demoState demoState_reconciled
+
+theorem demoAuthorizedInitial_reachable :
+    Reachable demoAuthorizedHolderMachine demoState :=
+  Reachable.initial rfl
+
+theorem demoAuthorizedTransfer_reachable :
+    Reachable demoAuthorizedHolderMachine demoAuthorizedAfterTransfer :=
+  Reachable.step demoAuthorizedInitial_reachable
+    demoAuthorizedTransfer_is_step
+
+theorem demoAuthorizedIssue_reachable :
+    Reachable demoAuthorizedHolderMachine demoAuthorizedAfterTransferAndIssue :=
+  Reachable.step demoAuthorizedTransfer_reachable
+    demoAuthorizedIssue_is_step
+
+theorem demoAuthorizedTrace_reachable :
+    Reachable demoAuthorizedHolderMachine demoAuthorizedTraceFinalState :=
+  Reachable.step demoAuthorizedIssue_reachable
+    demoAuthorizedBurn_is_step
+
+theorem demoAuthorizedTrace_preserves_reconciliation :
+    HoldingsInvariant demoAuthorizedTraceFinalState :=
+  holdingsInvariant_of_authorized_reachable
+    demoAuthorizationPolicy demoState demoState_reconciled
+    demoAuthorizedTrace_reachable
+
+
+/-! ## Integrated authorized financial state-machine regression -/
+
+/-- Initial state contains both the holder projection and its GL ledger. -/
+def demoInitialFinancialState :
+    FinancialState DemoAccount DemoLedgerAccount DemoAsset :=
+  { holdings := demoState
+    ledger := demoBridgeLedger }
+
+theorem demoInitialFinancialState_invariant :
+    FinancialInvariant demoHolderLedgerMap demoInitialFinancialState :=
+  ⟨demoState_reconciled, demoHolderSubledgerAgreement⟩
+
+/-- The transfer transition updates holder balances and the matching GL journal. -/
+def demoFinancialAfterTransfer :
+    FinancialState DemoAccount DemoLedgerAccount DemoAsset :=
+  { holdings := demoBridgeAfterHoldings
+    ledger := demoBridgeAfterLedger }
+
+theorem demoFinancialTransfer_is_authorized_step :
+    AuthorizedFinancialStep demoAuthorizationPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoInitialFinancialState demoFinancialAfterTransfer := by
+  exact Or.inl ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAccount.bob,
+    DemoAsset.rft,
+    40,
+    demoAliceMayTransferFromAlice,
+    transfer40_is_funded,
+    rfl
+  ⟩
+
+/-- The issuance transition updates the recipient subledger and counterpart. -/
+def demoFinancialAfterIssue :
+    FinancialState DemoAccount DemoLedgerAccount DemoAsset :=
+  { holdings := demoBridgeAfterIssueHoldings
+    ledger := demoBridgeAfterIssueLedger }
+
+theorem demoFinancialIssue_is_authorized_step :
+    AuthorizedFinancialStep demoAuthorizationPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoFinancialAfterTransfer demoFinancialAfterIssue := by
+  exact Or.inr (Or.inl ⟨
+    DemoPrincipal.treasury,
+    DemoAccount.treasury,
+    DemoAsset.rft,
+    15,
+    demoTreasuryMayIssueAfterTransfer,
+    demoControlIsUnmapped,
+    rfl
+  ⟩)
+
+/-- The burn transition updates the holder balance and the same GL ledger. -/
+def demoFinancialAfterBurn :
+    FinancialState DemoAccount DemoLedgerAccount DemoAsset :=
+  { holdings := demoBridgeAfterBurnHoldings
+    ledger := demoBridgeAfterBurnLedger }
+
+theorem demoFinancialBurn_is_authorized_step :
+    AuthorizedFinancialStep demoAuthorizationPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoFinancialAfterIssue demoFinancialAfterBurn := by
+  exact Or.inr (Or.inr ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAsset.rft,
+    20,
+    demoAliceMayBurnAfterTransferAndIssue,
+    demoAliceHasFundsAfterTransferAndIssue,
+    demoControlIsUnmapped,
+    rfl
+  ⟩)
+
+/-- One machine admits exactly the three previously checked financial steps. -/
+def demoIntegratedFinancialMachine :
+    VerifiedStateMachine
+      (FinancialState DemoAccount DemoLedgerAccount DemoAsset) :=
+  authorizedFinancialMachine
+    demoAuthorizationPolicy
+    demoHolderLedgerMap
+    DemoLedgerAccount.control
+    demoInitialFinancialState
+    demoInitialFinancialState_invariant
+
+theorem demoFinancialInitial_reachable :
+    Reachable demoIntegratedFinancialMachine demoInitialFinancialState :=
+  Reachable.initial rfl
+
+theorem demoFinancialTransfer_reachable :
+    Reachable demoIntegratedFinancialMachine demoFinancialAfterTransfer :=
+  Reachable.step demoFinancialInitial_reachable
+    demoFinancialTransfer_is_authorized_step
+
+theorem demoFinancialIssue_reachable :
+    Reachable demoIntegratedFinancialMachine demoFinancialAfterIssue :=
+  Reachable.step demoFinancialTransfer_reachable
+    demoFinancialIssue_is_authorized_step
+
+theorem demoFinancialBurn_reachable :
+    Reachable demoIntegratedFinancialMachine demoFinancialAfterBurn :=
+  Reachable.step demoFinancialIssue_reachable
+    demoFinancialBurn_is_authorized_step
+
+/--
+The final state of the integrated transfer -> issuance -> burn trace
+satisfies both holdings/supply reconciliation and holder/GL subledger agreement.
+-/
+theorem demoFinancialTrace_preserves_both_invariants :
+    FinancialInvariant demoHolderLedgerMap demoFinancialAfterBurn :=
+  financialInvariant_of_authorized_reachable
+    demoAuthorizationPolicy
+    demoHolderLedgerMap
+    DemoLedgerAccount.control
+    demoInitialFinancialState
+    demoInitialFinancialState_invariant
+    demoFinancialBurn_reachable
+
+/-- The three balanced journals leave aggregate signed GL totals unchanged. -/
+theorem demoFinancialTrace_preserves_total_signed_balance :
+    ∀ asset,
+      totalSignedBalance demoFinancialAfterBurn.ledger asset =
+        totalSignedBalance demoInitialFinancialState.ledger asset := by
+  intro asset
+  change totalSignedBalance demoBridgeAfterBurnLedger asset =
+    totalSignedBalance demoBridgeLedger asset
+  calc
+    totalSignedBalance demoBridgeAfterBurnLedger asset =
+        totalSignedBalance demoBridgeAfterIssueLedger asset :=
+      demoBridgeAfterBurn_preserves_total_signed_balance asset
+    _ = totalSignedBalance demoBridgeAfterLedger asset :=
+      demoBridgeAfterIssue_preserves_total_signed_balance asset
+    _ = totalSignedBalance demoBridgeLedger asset :=
+      demoBridgeTransfer_preserves_total_signed_balance asset
+
+/-- The final Alice subledger has the expected post-burn amount. -/
+theorem demoFinancialTrace_alice_balance :
+    demoFinancialAfterBurn.ledger.balance
+        DemoLedgerAccount.aliceSubledger DemoAsset.rft = 40 := by
+  exact demoBridgeAfterBurn_alice_balance
+
+/-- The final treasury subledger includes the authorized issuance. -/
+theorem demoFinancialTrace_treasury_balance :
+    demoFinancialAfterBurn.ledger.balance
+        DemoLedgerAccount.treasurySubledger DemoAsset.rft = 90 := by
+  exact demoBridgeAfterIssue_treasury_balance
+
+/-- The counterpart reflects the net issuance and burn postings. -/
+theorem demoFinancialTrace_control_balance :
+    demoFinancialAfterBurn.ledger.balance
+        DemoLedgerAccount.control DemoAsset.rft = 5 := by
+  exact demoBridgeAfterBurn_control_balance
+
+
+/-! ## Reachable-state aggregate GL conservation -/
+
+def demoIntegratedConservativeFinancialMachine :
+    VerifiedStateMachine
+      (FinancialState DemoAccount DemoLedgerAccount DemoAsset) :=
+  authorizedFinancialMachineWithConservation
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    demoInitialFinancialState demoInitialFinancialState_invariant
+
+theorem demoConservativeInitial_reachable :
+    Reachable demoIntegratedConservativeFinancialMachine
+      demoInitialFinancialState :=
+  Reachable.initial rfl
+
+theorem demoConservativeTransfer_reachable :
+    Reachable demoIntegratedConservativeFinancialMachine
+      demoFinancialAfterTransfer :=
+  Reachable.step demoConservativeInitial_reachable
+    demoFinancialTransfer_is_authorized_step
+
+theorem demoConservativeIssue_reachable :
+    Reachable demoIntegratedConservativeFinancialMachine
+      demoFinancialAfterIssue :=
+  Reachable.step demoConservativeTransfer_reachable
+    demoFinancialIssue_is_authorized_step
+
+theorem demoConservativeBurn_reachable :
+    Reachable demoIntegratedConservativeFinancialMachine
+      demoFinancialAfterBurn :=
+  Reachable.step demoConservativeIssue_reachable
+    demoFinancialBurn_is_authorized_step
+
+/--
+The full transfer -> issuance -> burn trace preserves all three invariants:
+holder/supply reconciliation, mapped subledger agreement, and aggregate
+signed-ledger conservation for every asset.
+-/
+theorem demoFinancialTrace_preserves_complete_invariant :
+    FinancialConservationInvariant demoHolderLedgerMap
+      demoInitialFinancialState.ledger demoFinancialAfterBurn :=
+  financialConservationInvariant_of_authorized_reachable
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    demoInitialFinancialState demoInitialFinancialState_invariant
+    demoConservativeBurn_reachable
+
+theorem demoFinancialTrace_GL_total_from_machine :
+    ∀ asset,
+      totalSignedBalance demoFinancialAfterBurn.ledger asset =
+        totalSignedBalance demoInitialFinancialState.ledger asset :=
+  demoFinancialTrace_preserves_complete_invariant.2
+
 end SIRMTests

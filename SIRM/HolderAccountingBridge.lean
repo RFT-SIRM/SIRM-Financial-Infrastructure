@@ -174,4 +174,244 @@ theorem holderTransferJournal_preserves_totalSignedBalance
     (holderTransferJournal mapping source destination asset amount)
     currentAsset
 
+
+/-!
+## Issuance and burn journal bridges
+
+Issuance and burn require a balancing general-ledger counterpart account
+outside the holder-subledger mapping. Its accounting classification is
+intentionally left open; these definitions specify only the balanced
+double-entry mechanics.
+-/
+
+/--
+Issue units to a holder's designated subledger by crediting that subledger
+and debiting a designated non-holder counterpart account.
+-/
+def holderIssuanceJournal
+    {Holder LedgerAccount Asset : Type}
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (recipient : Holder) (asset : Asset) (amount : Nat) :
+    JournalEntry LedgerAccount Asset :=
+  transferJournal counterpart (mapping.ledgerAccount recipient) asset amount
+
+/-- A holder issuance journal is balanced independently for every asset. -/
+theorem holderIssuanceJournal_balanced
+    {Holder LedgerAccount Asset : Type}
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (recipient : Holder) (asset currentAsset : Asset) (amount : Nat) :
+    (∑ account : LedgerAccount,
+      (holderIssuanceJournal mapping counterpart recipient asset amount).posting
+        account currentAsset) = 0 :=
+  (holderIssuanceJournal mapping counterpart recipient asset amount).balanced
+    currentAsset
+
+/--
+At any mapped holder account, an issuance journal posts exactly the matching
+holder credit. The unmapped counterpart cannot alter a holder subledger.
+-/
+theorem holderIssuanceJournal_posting
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [Fintype LedgerAccount]
+    [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (recipient holder : Holder) (asset currentAsset : Asset)
+    (amount : Nat) :
+    (holderIssuanceJournal mapping counterpart recipient asset amount).posting
+        (mapping.ledgerAccount holder) currentAsset =
+      if currentAsset = asset then
+        (if holder = recipient then (amount : Int) else 0)
+      else 0 := by
+  classical
+  have hMapped :
+      mapping.ledgerAccount holder = mapping.ledgerAccount recipient ↔
+        holder = recipient := by
+    constructor
+    · intro h
+      exact mapping.injective_ledgerAccount h
+    · intro h
+      cases h
+      rfl
+  have hNotCounterpart :
+      mapping.ledgerAccount holder ≠ counterpart :=
+    Ne.symm (hCounterpart holder)
+  by_cases hAsset : currentAsset = asset
+  · subst currentAsset
+    simp [holderIssuanceJournal, transferJournal, hMapped, hNotCounterpart]
+  · simp [holderIssuanceJournal, transferJournal, hAsset]
+
+/-- Pointwise ledger effect of a holder issuance at a mapped subledger. -/
+theorem postJournal_holderIssuance_balance
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [Fintype LedgerAccount]
+    [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (ledger : Ledger LedgerAccount Asset)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (recipient holder : Holder) (asset currentAsset : Asset)
+    (amount : Nat) :
+    (postJournal ledger
+      (holderIssuanceJournal mapping counterpart recipient asset amount)).balance
+        (mapping.ledgerAccount holder) currentAsset =
+      ledger.balance (mapping.ledgerAccount holder) currentAsset +
+        (if currentAsset = asset then
+          (if holder = recipient then (amount : Int) else 0)
+        else 0) := by
+  change ledger.balance (mapping.ledgerAccount holder) currentAsset +
+    (holderIssuanceJournal mapping counterpart recipient asset amount).posting
+      (mapping.ledgerAccount holder) currentAsset = _
+  rw [holderIssuanceJournal_posting mapping counterpart hCounterpart
+    recipient holder asset currentAsset amount]
+
+/--
+A holder issuance and its matching journal preserve the pointwise agreement
+between holder balances and designated general-ledger subaccounts.
+-/
+theorem holderSubledgerAgreement_issue
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [DecidableEq Asset]
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (holdings : HoldingsState Holder Asset)
+    (ledger : Ledger LedgerAccount Asset)
+    (hAgreement : HolderSubledgerAgreement mapping holdings ledger)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (recipient : Holder) (asset : Asset) (amount : Nat) :
+    HolderSubledgerAgreement mapping
+      (issueToHolder holdings recipient asset amount)
+      (postJournal ledger
+        (holderIssuanceJournal mapping counterpart recipient asset amount)) := by
+  intro holder currentAsset
+  rw [postJournal_holderIssuance_balance mapping ledger counterpart
+    hCounterpart recipient holder asset currentAsset amount]
+  rw [hAgreement holder currentAsset]
+  by_cases hAsset : currentAsset = asset
+  · subst currentAsset
+    simp [issueToHolder]
+  · simp [issueToHolder, hAsset]
+
+/--
+Burn units from a holder's designated subledger by debiting that subledger
+and crediting the designated unmapped counterpart account.
+-/
+def holderBurnJournal
+    {Holder LedgerAccount Asset : Type}
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (holder : Holder) (asset : Asset) (amount : Nat) :
+    JournalEntry LedgerAccount Asset :=
+  transferJournal (mapping.ledgerAccount holder) counterpart asset amount
+
+/-- A holder burn journal is balanced independently for every asset. -/
+theorem holderBurnJournal_balanced
+    {Holder LedgerAccount Asset : Type}
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (holder : Holder) (asset currentAsset : Asset) (amount : Nat) :
+    (∑ account : LedgerAccount,
+      (holderBurnJournal mapping counterpart holder asset amount).posting
+        account currentAsset) = 0 :=
+  (holderBurnJournal mapping counterpart holder asset amount).balanced
+    currentAsset
+
+/--
+At any mapped holder account, a burn journal posts exactly the matching
+holder debit. The unmapped counterpart cannot alter a holder subledger.
+-/
+theorem holderBurnJournal_posting
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [Fintype LedgerAccount]
+    [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (burnedHolder holder : Holder) (asset currentAsset : Asset)
+    (amount : Nat) :
+    (holderBurnJournal mapping counterpart burnedHolder asset amount).posting
+        (mapping.ledgerAccount holder) currentAsset =
+      if currentAsset = asset then
+        (if holder = burnedHolder then -(amount : Int) else 0)
+      else 0 := by
+  classical
+  have hMapped :
+      mapping.ledgerAccount holder = mapping.ledgerAccount burnedHolder ↔
+        holder = burnedHolder := by
+    constructor
+    · intro h
+      exact mapping.injective_ledgerAccount h
+    · intro h
+      cases h
+      rfl
+  have hNotCounterpart :
+      mapping.ledgerAccount holder ≠ counterpart :=
+    Ne.symm (hCounterpart holder)
+  by_cases hAsset : currentAsset = asset
+  · subst currentAsset
+    simp [holderBurnJournal, transferJournal, hMapped, hNotCounterpart]
+  · simp [holderBurnJournal, transferJournal, hAsset]
+
+/-- Pointwise ledger effect of a holder burn at a mapped subledger. -/
+theorem postJournal_holderBurn_balance
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [Fintype LedgerAccount]
+    [DecidableEq LedgerAccount] [DecidableEq Asset]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (ledger : Ledger LedgerAccount Asset)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (burnedHolder holder : Holder) (asset currentAsset : Asset)
+    (amount : Nat) :
+    (postJournal ledger
+      (holderBurnJournal mapping counterpart burnedHolder asset amount)).balance
+        (mapping.ledgerAccount holder) currentAsset =
+      ledger.balance (mapping.ledgerAccount holder) currentAsset +
+        (if currentAsset = asset then
+          (if holder = burnedHolder then -(amount : Int) else 0)
+        else 0) := by
+  change ledger.balance (mapping.ledgerAccount holder) currentAsset +
+    (holderBurnJournal mapping counterpart burnedHolder asset amount).posting
+      (mapping.ledgerAccount holder) currentAsset = _
+  rw [holderBurnJournal_posting mapping counterpart hCounterpart
+    burnedHolder holder asset currentAsset amount]
+
+/--
+A holder burn and its matching journal preserve the pointwise agreement
+between holder balances and designated general-ledger subaccounts.
+-/
+theorem holderSubledgerAgreement_burn
+    {Holder LedgerAccount Asset : Type}
+    [DecidableEq Holder] [DecidableEq Asset]
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount]
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (holdings : HoldingsState Holder Asset)
+    (ledger : Ledger LedgerAccount Asset)
+    (hAgreement : HolderSubledgerAgreement mapping holdings ledger)
+    (counterpart : LedgerAccount)
+    (hCounterpart : ∀ holder, counterpart ≠ mapping.ledgerAccount holder)
+    (holder : Holder) (asset : Asset) (amount : Nat) :
+    HolderSubledgerAgreement mapping
+      (burnFromHolder holdings holder asset amount)
+      (postJournal ledger
+        (holderBurnJournal mapping counterpart holder asset amount)) := by
+  intro currentHolder currentAsset
+  rw [postJournal_holderBurn_balance mapping ledger counterpart
+    hCounterpart holder currentHolder asset currentAsset amount]
+  rw [hAgreement currentHolder currentAsset]
+  by_cases hAsset : currentAsset = asset
+  · subst currentAsset
+    by_cases hHolder : currentHolder = holder
+    · simp [burnFromHolder, hHolder]; omega
+    · simp [burnFromHolder, hHolder]
+  · simp [burnFromHolder, hAsset]
+
 end SIRM
