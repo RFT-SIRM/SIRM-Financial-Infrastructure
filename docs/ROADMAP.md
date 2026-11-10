@@ -16,6 +16,7 @@
 - [x] exact decimal-to-base-unit conversion with rejection of nonrepresentable precision and a separately parameterized range bound;
 - [x] exact rational cross-network base-unit conversion with a conserved, rate- and partition-scoped residual accumulator;
 - [x] one-step authorized cross-network migration: exact source burn, target issuance, paired balanced journals, and route/source/recipient-scoped dust carry-forward;
+- [x] per-principal sequential nonce guard for migration: reject stale/future nonces and advance the accepted nonce atomically with the paired migration state;
 - [ ] replay/idempotency, external bridge settlement/finality, asset-collision policy, and production migration execution;
 - balanced journals, account ownership and authorization;
 - transfer, fees, escrow, settlement and reversals;

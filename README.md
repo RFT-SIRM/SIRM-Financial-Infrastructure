@@ -56,6 +56,7 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.AssetUnits` converts explicit nonnegative decimal coefficients into integer asset base units without floating point or rounding. Excess decimal precision is accepted only when the excess digits are zero; a separate `Fin`-bounded adapter enforces a caller-supplied maximum without selecting a production machine width.
 - `SIRM.AssetMigration` models explicit cross-network routes and positive rational base-unit rates. Quotient/remainder conversion is exact; residual dust is carried in a rate- and partition-indexed accumulator, never silently discarded or pooled across partitions. This is arithmetic and route eligibility, not a complete bridge transaction.
 - `SIRM.AuthorizedAssetMigration` defines one proof-carrying transition that atomically burns source units, issues the target amount released by route-specific dust, posts both balanced holder/GL journals, and preserves the combined financial invariant. The dust claim subledger is scoped to one route, source holder, and recipient.
+- `SIRM.ReplayProtectedAssetMigration` wraps that transition in a per-principal sequential nonce gate: only the exact next nonce is accepted, and the nonce advances in the same abstract state as the migration.
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with typed-asset issuance eligibility. Issuance requires an active asset and active issuer; transfer and burn authorization predicates remain unchanged. The adapter reuses the combined financial conservation theorem.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
@@ -165,6 +166,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 - [Testing](docs/TESTING.md) — pinned build and theorem-level regression scope.
 - [Release Gates](docs/RELEASE_GATES.md) — staged proof, implementation, network, and production gates.
 - [Roadmap](docs/ROADMAP.md) — development phases and incomplete work.
+- [Session Workflow](docs/SESSION_WORKFLOW.md) — mandatory handoff, Lean debugging, and verification protocol for future sessions.
 
 ### Governance, security, and operation
 
