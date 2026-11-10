@@ -1,18 +1,36 @@
-# RFT Tokenomics — Initial Policy
+# RFT Tokenomics: Initial Policy Record
 
-## Founder allocation
-The old Rift prototype's 3.14% founder parameter is superseded by a one-time **1.309% genesis allocation**.
+## Selected founder genesis allocation
+
+The founder allocation is **1.309% of the total genesis supply**, replacing the legacy Rift prototype's 3.14% value.
 
 Exact representation:
-- 1.309% = 0.01309 = 13,090 / 1,000,000;
-- integer representation: 13,090 ppm;
-- for genesis supply G: founder = floor(G × 13,090 / 1,000,000);
-- remaining pool = G − founder.
 
-The Lean core proves the allocation is bounded by G and that founder plus remainder equals G. The rounding convention is floor in the smallest integer accounting unit.
+- 1.309% = 0.01309;
+- 0.01309 = 13,090 / 1,000,000;
+- integer rate = 13,090 ppm;
+- founder units for genesis supply `G` = `floor(G * 13_090 / 1_000_000)`;
+- unallocated remainder = `G - founder`.
 
-This is a one-time genesis allocation. It grants no ongoing share of future issuance, fees, reserves, treasury assets, customer deposits, equity, or protocol administration. Creator address, custody, vesting, transferability, total supply, decimals, and all other pools require explicit decisions before genesis.
+The floor is taken in the smallest integer accounting unit. The result cannot exceed `G`, and founder allocation plus remainder equals `G`; these properties are included in the Lean model.
 
-The remaining 98.691% is not silently assigned. It remains an explicit unallocated pool until validator, treasury, community and ecosystem allocations are designed and approved.
+Example only: for `G = 1,000,000,000,000` base units, founder allocation is `13,090,000,000` base units. This example does not select the actual genesis supply or token decimals.
 
-The nearby Phi-Genesis spectral value is a separate mathematical research quantity. This tokenomics policy uses 1.309% as the requested policy input; it does not claim the spectral result proves economic optimality.
+## Scope
+
+This is a one-time genesis allocation. It does not grant automatic rights to future issuance, transaction fees, reserves, treasury assets, customer deposits, governance control, validator rewards, or protocol administration.
+
+## Explicitly unresolved
+
+- total genesis supply and token decimals;
+- founder receiving address and custody arrangements;
+- vesting, lock-up, transferability, and lost-key recovery;
+- treasury, validator, ecosystem, community, and reserve allocations;
+- fee schedule, burn policy, future issuance, and any supply cap;
+- whether RFT is only a network utility asset or has any other defined legal/economic rights.
+
+The remaining 98.691% is an explicit unallocated pool in the initial model. It is not silently transferred to the treasury or community.
+
+## Spectral-value separation
+
+Phi-Genesis contains a distinct numerical spectral quantity near `1.309128920280813…`. Its exact limit and closed form are not established in the cited research note. It is not the same object as the 1.309% policy rate and does not establish economic optimality.

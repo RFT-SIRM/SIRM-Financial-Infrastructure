@@ -2,6 +2,9 @@ name = "SIRMFinancialInfrastructure"
 version = "0.1.0"
 defaultTargets = ["SIRM"]
 
+# Make the theorem-level regression suite an actual Lake test driver.
+testDriver = "SIRMTests"
+
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
@@ -9,3 +12,6 @@ rev = "v4.33.1"
 
 [[lean_lib]]
 name = "SIRM"
+
+[[lean_lib]]
+name = "SIRMTests"

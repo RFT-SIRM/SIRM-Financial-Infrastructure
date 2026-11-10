@@ -1,22 +1,26 @@
-# Architecture Decisions
+# Architecture Decision Record
 
-## ADR-001 — Naming
-SIRM Financial Infrastructure is the whole platform; SIRM Protocol is the formal model; RFT Network is the planned independent network; RFT is its planned native asset. Ticker/trademark clearance remains outstanding.
+## Adopted in this foundational branch
 
-## ADR-002 — Lean
-Lean 4 is the normative mathematical specification. Implementations must conform.
+1. **Project identity:** SIRM Financial Infrastructure is the project; SIRM Protocol is the normative financial protocol; RFT Network is the planned independent network; RFT is the planned native asset.
+2. **Normative language:** Lean 4 is used for mathematical definitions and proofs. Rust is the planned execution implementation, not the source of protocol truth.
+3. **Founder allocation:** one-time 1.309% genesis allocation, represented as 13,090 ppm and rounded down in the smallest base unit. It replaces the legacy 3.14% prototype field.
+4. **Other genesis pools:** explicitly unallocated until separately decided. No total supply, token decimals, vesting, founder address, or reserve policy is inferred.
+5. **Financial semantics:** signed double-entry conservation is distinct from natural-number supply accounting. They must not be conflated.
+6. **Legacy field model:** not normative until its aggregate variables are given an account-level meaning and the optimized state is proved to refine direct account transitions.
+7. **Network direction:** target an independent RFT network. Solana remains a historical prototype host and is not silently embedded as a permanent dependency.
+8. **Public source license:** Apache License 2.0 is selected for this new repository. It does not automatically relicense the two older Rift repositories or third-party dependencies.
 
-## ADR-003 — Native network
-RFT Network is independent. Solana is an optional external adapter, not the base protocol.
+## Not yet decided
 
-## ADR-004 — Founder allocation
-The historical 3.14% is replaced with a one-time 1.309% genesis allocation, represented as 13,090 ppm. This is an explicit project policy; Lean proves arithmetic, not economic optimality.
+- total genesis supply, decimals, and final allocation table;
+- founder wallet, custody, vesting, and lock policy;
+- consensus algorithm and validator participation model;
+- network fee schedule, inflation, burn, staking, and reward policy;
+- legal entity, regulated partners, product jurisdictions, and customer eligibility;
+- privacy model and selective-disclosure mechanism;
+- exact Rust implementation strategy and proof/refinement approach.
 
-## ADR-005 — Open token parameters
-Total supply, decimals, inflation, validator rewards and distribution of the remaining 98.691% are not invented.
+## Change control
 
-## ADR-006 — Consensus
-No algorithm is selected before a threat model and validator requirements.
-
-## ADR-007 — Old Rift code
-The prototypes are design inputs, not normative behavior. Account-level semantics, dust and global-field effects must be re-derived.
+Any change to an adopted decision must update this record, the relevant Lean definitions, the specification, and tests together. No code-level constant may silently override the normative record.
