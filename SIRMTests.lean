@@ -1787,4 +1787,342 @@ theorem migration_demo_route_requires_active_endpoints :
   · constructor <;> rfl
   · constructor <;> rfl
 
+
+
+/-! ## Authorized atomic cross-network migration regressions -/
+
+def demoAuthorizedMigrationPartition :
+    AuthorizedAssetMigrationPartition demoMigrationAssetRegistry where
+  route := demoCrossNetworkMigrationRoute
+  sourceHolder := typedDemoTreasury
+  recipient := typedDemoCustomer
+  source_holder_on_source_network := by
+    simp [demoMigrationAssetRegistry, demoMigrationSourceAsset,
+      demoMigrationSourceMetadata, typedDemoAssetMetadata,
+      demoMigrationAccountRegistry, typedDemoTreasury, typedDemoNetwork,
+      demoCrossNetworkMigrationRoute]
+  recipient_on_destination_network := by
+    simp [demoMigrationAssetRegistry, demoMigrationDestinationAsset,
+      demoMigrationDestinationMetadata, demoMigrationAccountRegistry,
+      typedDemoTreasury, typedDemoCustomer, demoMigrationOtherNetwork,
+      demoCrossNetworkMigrationRoute]
+
+def demoAuthorizedMigrationHolderLedgerMap :
+    HolderLedgerMap (AccountId 2) (Option (AccountId 2)) where
+  ledgerAccount := some
+  injective_ledgerAccount := by
+    intro left right h
+    injection h
+
+def demoAuthorizedMigrationInitialHoldings :
+    HoldingsState (AccountId 2) (AssetId 2) :=
+  issueToHolder (emptyHoldingsState (AccountId 2) (AssetId 2))
+    typedDemoTreasury demoMigrationSourceAsset 2
+
+def demoAuthorizedMigrationInitialLedger :
+    Ledger (Option (AccountId 2)) (AssetId 2) :=
+  ⟨fun ledgerAccount asset =>
+    if ledgerAccount = some typedDemoTreasury ∧
+        asset = demoMigrationSourceAsset then 2 else 0⟩
+
+def demoAuthorizedMigrationInitialFinancial :
+    FinancialState (AccountId 2) (Option (AccountId 2)) (AssetId 2) :=
+  { holdings := demoAuthorizedMigrationInitialHoldings
+    ledger := demoAuthorizedMigrationInitialLedger }
+
+theorem demoAuthorizedMigrationInitialFinancial_invariant :
+    FinancialInvariant demoAuthorizedMigrationHolderLedgerMap
+      demoAuthorizedMigrationInitialFinancial := by
+  constructor
+  · exact issueToHolder_preserves_invariant
+      (emptyHoldingsState (AccountId 2) (AssetId 2))
+      (emptyHoldingsState_invariant)
+      typedDemoTreasury demoMigrationSourceAsset 2
+  · intro holder asset
+    rcases holder with ⟨holderIndex⟩
+    rcases asset with ⟨assetIndex⟩
+    fin_cases holderIndex <;> fin_cases assetIndex <;>
+      simp [demoAuthorizedMigrationInitialFinancial,
+        demoAuthorizedMigrationInitialHoldings,
+        demoAuthorizedMigrationInitialLedger,
+        demoAuthorizedMigrationHolderLedgerMap,
+        demoMigrationSourceAsset, typedDemoTreasury,
+        issueToHolder, emptyHoldingsState]
+
+def demoAuthorizedMigrationBurnGrant :
+    AuthorityGrant DemoPrincipal (AccountId 2) (AssetId 2) :=
+  { principal := .treasury
+    scope := .burn typedDemoTreasury
+    asset := demoMigrationSourceAsset
+    maxAmount := 2 }
+
+def demoAuthorizedMigrationIssueGrant :
+    AuthorityGrant DemoPrincipal (AccountId 2) (AssetId 2) :=
+  { principal := .treasury
+    scope := .issue typedDemoCustomer typedDemoCustomer
+    asset := demoMigrationDestinationAsset
+    maxAmount := 1 }
+
+def demoAuthorizedMigrationAuthority :
+    AuthorityRegistry DemoPrincipal (AccountId 2) (AssetId 2) where
+  grants := [demoAuthorizedMigrationBurnGrant, demoAuthorizedMigrationIssueGrant]
+  unique_scope := by
+    intro left right hLeftMem hRightMem _hPrincipal hScope _hAsset
+    rcases List.mem_cons.mp hLeftMem with hLeftBurn | hLeftTail
+    · cases hLeftBurn
+      rcases List.mem_cons.mp hRightMem with hRightBurn | hRightTail
+      · cases hRightBurn
+        rfl
+      · have hRightIssue : right = demoAuthorizedMigrationIssueGrant := by
+          simpa using hRightTail
+        cases hRightIssue
+        cases hScope
+    · have hLeftIssue : left = demoAuthorizedMigrationIssueGrant := by
+        simpa using hLeftTail
+      cases hLeftIssue
+      rcases List.mem_cons.mp hRightMem with hRightBurn | hRightTail
+      · cases hRightBurn
+        cases hScope
+      · have hRightIssue : right = demoAuthorizedMigrationIssueGrant := by
+          simpa using hRightTail
+        cases hRightIssue
+        rfl
+
+
+def demoAuthorizedMigrationControl :
+    AccountControlRegistry DemoPrincipal (AccountId 2) where
+  entries := [
+    (DemoPrincipal.treasury, typedDemoTreasury),
+    (DemoPrincipal.treasury, typedDemoCustomer)
+  ]
+
+theorem demoAuthorizedMigrationBurnAllowed
+    (holdings : HoldingsState (AccountId 2) (AssetId 2)) :
+    (toControlledAuthorizationPolicy demoAuthorizedMigrationControl
+      demoAuthorizedMigrationAuthority).mayBurn holdings
+        DemoPrincipal.treasury typedDemoTreasury demoMigrationSourceAsset 1 := by
+  change AccountControlRegistry.controls demoAuthorizedMigrationControl
+      DemoPrincipal.treasury typedDemoTreasury ∧
+    AuthorityRegistry.allows demoAuthorizedMigrationAuthority
+      DemoPrincipal.treasury (.burn typedDemoTreasury)
+      demoMigrationSourceAsset 1
+  constructor
+  · simp [AccountControlRegistry.controls, demoAuthorizedMigrationControl]
+  · exact ⟨demoAuthorizedMigrationBurnGrant,
+      by simp [demoAuthorizedMigrationAuthority], rfl, rfl, rfl, by decide⟩
+
+theorem demoAuthorizedMigrationIssueAllowed
+    (holdings : HoldingsState (AccountId 2) (AssetId 2))
+    (amount : Nat) (hAmount : amount ≤ 1) :
+    (toControlledAuthorizationPolicy demoAuthorizedMigrationControl
+      demoAuthorizedMigrationAuthority).mayIssue holdings
+        DemoPrincipal.treasury typedDemoCustomer typedDemoCustomer
+        demoMigrationDestinationAsset amount := by
+  change AccountControlRegistry.controls demoAuthorizedMigrationControl
+      DemoPrincipal.treasury typedDemoCustomer ∧
+    AuthorityRegistry.allows demoAuthorizedMigrationAuthority
+      DemoPrincipal.treasury
+      (.issue typedDemoCustomer typedDemoCustomer)
+      demoMigrationDestinationAsset amount
+  constructor
+  · simp [AccountControlRegistry.controls, demoAuthorizedMigrationControl]
+  · exact ⟨demoAuthorizedMigrationIssueGrant,
+      by simp [demoAuthorizedMigrationAuthority], rfl, rfl, rfl, hAmount⟩
+
+theorem demoAuthorizedMigrationCounterpart_unmapped :
+    ∀ holder : AccountId 2,
+      (none : Option (AccountId 2)) ≠
+        demoAuthorizedMigrationHolderLedgerMap.ledgerAccount holder := by
+  intro holder
+  simp [demoAuthorizedMigrationHolderLedgerMap]
+
+def demoAuthorizedMigrationInitialState :
+    AuthorizedAssetMigrationState demoAuthorizedMigrationPartition
+      (Option (AccountId 2)) :=
+  initialAuthorizedAssetMigrationState demoAuthorizedMigrationPartition
+    demoAuthorizedMigrationInitialFinancial
+
+def demoAuthorizedMigrationAfterFirst :
+    AuthorizedAssetMigrationState demoAuthorizedMigrationPartition
+      (Option (AccountId 2)) :=
+  applyAuthorizedAssetMigration demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationPartition
+    demoAuthorizedMigrationInitialState 1
+
+def demoAuthorizedMigrationAfterSecond :
+    AuthorizedAssetMigrationState demoAuthorizedMigrationPartition
+      (Option (AccountId 2)) :=
+  applyAuthorizedAssetMigration demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationPartition
+    demoAuthorizedMigrationAfterFirst 1
+
+theorem demoAuthorizedMigration_route_is_enabled :
+    demoAuthorizedMigrationPartition.route.endpointsEnabled :=
+  migration_demo_route_requires_active_endpoints
+
+theorem demoAuthorizedMigration_source_holder_is_active :
+    AccountRegistry.isActive demoMigrationAccountRegistry typedDemoTreasury := by
+  simp [AccountRegistry.isActive, demoMigrationAccountRegistry,
+    typedDemoTreasury]
+
+theorem demoAuthorizedMigration_recipient_is_active :
+    AccountRegistry.isActive demoMigrationAccountRegistry typedDemoCustomer := by
+  simp [AccountRegistry.isActive, demoMigrationAccountRegistry,
+    typedDemoTreasury, typedDemoCustomer]
+
+theorem demoAuthorizedMigration_first_step :
+    AuthorizedAssetMigrationStep demoAuthorizedMigrationControl
+      demoAuthorizedMigrationAuthority demoAuthorizedMigrationHolderLedgerMap
+      (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+      demoAuthorizedMigrationPartition DemoPrincipal.treasury 1
+      demoAuthorizedMigrationInitialState demoAuthorizedMigrationAfterFirst := by
+  have hReleased :
+      demoAuthorizedMigrationInitialState.dust.targetBaseUnitsReleased 1 = 0 := by
+    norm_num [demoAuthorizedMigrationInitialState,
+      initialAuthorizedAssetMigrationState,
+      AssetMigrationDustState.targetBaseUnitsReleased,
+      AssetMigrationDustState.empty, AssetMigrationDustState.addSource,
+      demoAssetMigrationRate, demoAuthorizedMigrationPartition,
+      demoCrossNetworkMigrationRoute]
+  have hIssue :
+      (toControlledAuthorizationPolicy demoAuthorizedMigrationControl
+        demoAuthorizedMigrationAuthority).mayIssue
+          demoAuthorizedMigrationInitialState.financial.holdings
+          DemoPrincipal.treasury
+          (demoMigrationAssetRegistry.metadata
+            demoAuthorizedMigrationPartition.route.destinationAsset).issuer
+          demoAuthorizedMigrationPartition.recipient
+          demoAuthorizedMigrationPartition.route.destinationAsset 0 := by
+    simpa [demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute,
+      demoMigrationAssetRegistry, demoMigrationDestinationAsset,
+      demoMigrationDestinationMetadata, typedDemoCustomer] using
+      (demoAuthorizedMigrationIssueAllowed
+        demoAuthorizedMigrationInitialState.financial.holdings 0 (by decide))
+  have hEnough :
+      (1 : Int) ≤ demoAuthorizedMigrationInitialState.financial.holdings.balance
+        demoAuthorizedMigrationPartition.sourceHolder
+        demoAuthorizedMigrationPartition.route.sourceAsset := by
+    norm_num [demoAuthorizedMigrationInitialState,
+      initialAuthorizedAssetMigrationState,
+      demoAuthorizedMigrationInitialFinancial,
+      demoAuthorizedMigrationInitialHoldings,
+      demoMigrationSourceAsset, typedDemoTreasury,
+      issueToHolder, emptyHoldingsState,
+      demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute]
+  refine ⟨by decide,
+    demoAuthorizedMigration_source_holder_is_active,
+    demoAuthorizedMigration_recipient_is_active,
+    demoAuthorizedMigration_route_is_enabled,
+    demoAuthorizedMigrationBurnAllowed _,
+    ?_, hEnough, rfl⟩
+  simpa [hReleased] using hIssue
+
+theorem demoAuthorizedMigration_second_step :
+    AuthorizedAssetMigrationStep demoAuthorizedMigrationControl
+      demoAuthorizedMigrationAuthority demoAuthorizedMigrationHolderLedgerMap
+      (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+      demoAuthorizedMigrationPartition DemoPrincipal.treasury 1
+      demoAuthorizedMigrationAfterFirst demoAuthorizedMigrationAfterSecond := by
+  have hReleased :
+      demoAuthorizedMigrationAfterFirst.dust.targetBaseUnitsReleased 1 = 1 := by
+    norm_num [demoAuthorizedMigrationAfterFirst, applyAuthorizedAssetMigration,
+      demoAuthorizedMigrationInitialState, initialAuthorizedAssetMigrationState,
+      AssetMigrationDustState.targetBaseUnitsReleased,
+      AssetMigrationDustState.empty, AssetMigrationDustState.addSource,
+      demoAuthorizedMigrationInitialFinancial,
+      demoAuthorizedMigrationInitialHoldings, demoMigrationSourceAsset,
+      typedDemoTreasury, demoAssetMigrationRate, issueToHolder,
+      burnFromHolder, emptyHoldingsState,
+      demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute]
+  have hIssue :
+      (toControlledAuthorizationPolicy demoAuthorizedMigrationControl
+        demoAuthorizedMigrationAuthority).mayIssue
+          demoAuthorizedMigrationAfterFirst.financial.holdings
+          DemoPrincipal.treasury
+          (demoMigrationAssetRegistry.metadata
+            demoAuthorizedMigrationPartition.route.destinationAsset).issuer
+          demoAuthorizedMigrationPartition.recipient
+          demoAuthorizedMigrationPartition.route.destinationAsset 1 := by
+    simpa [demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute,
+      demoMigrationAssetRegistry, demoMigrationDestinationAsset,
+      demoMigrationDestinationMetadata, typedDemoCustomer] using
+      (demoAuthorizedMigrationIssueAllowed
+        demoAuthorizedMigrationAfterFirst.financial.holdings 1 (by decide))
+  have hEnough :
+      (1 : Int) ≤ demoAuthorizedMigrationAfterFirst.financial.holdings.balance
+        demoAuthorizedMigrationPartition.sourceHolder
+        demoAuthorizedMigrationPartition.route.sourceAsset := by
+    norm_num [demoAuthorizedMigrationAfterFirst, applyAuthorizedAssetMigration,
+      demoAuthorizedMigrationInitialState, initialAuthorizedAssetMigrationState,
+      demoAuthorizedMigrationInitialFinancial, demoAuthorizedMigrationInitialHoldings,
+      demoMigrationSourceAsset, demoMigrationDestinationAsset,
+      typedDemoTreasury, typedDemoCustomer, demoAssetMigrationRate,
+      issueToHolder, burnFromHolder, emptyHoldingsState,
+      AssetMigrationDustState.addSource,
+      AssetMigrationDustState.targetBaseUnitsReleased,
+      demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute]
+  refine ⟨by decide,
+    demoAuthorizedMigration_source_holder_is_active,
+    demoAuthorizedMigration_recipient_is_active,
+    demoAuthorizedMigration_route_is_enabled,
+    demoAuthorizedMigrationBurnAllowed _,
+    ?_, hEnough, rfl⟩
+  simpa [hReleased] using hIssue
+
+def demoAuthorizedMigrationMachine :
+    VerifiedStateMachine
+      (AuthorizedAssetMigrationState demoAuthorizedMigrationPartition
+        (Option (AccountId 2))) :=
+  authorizedAssetMigrationMachine demoAuthorizedMigrationControl
+    demoAuthorizedMigrationAuthority demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+    demoAuthorizedMigrationPartition demoAuthorizedMigrationInitialFinancial
+    demoAuthorizedMigrationInitialFinancial_invariant
+
+theorem demoAuthorizedMigration_initial_reachable :
+    Reachable demoAuthorizedMigrationMachine demoAuthorizedMigrationInitialState :=
+  Reachable.initial rfl
+
+theorem demoAuthorizedMigration_after_first_reachable :
+    Reachable demoAuthorizedMigrationMachine demoAuthorizedMigrationAfterFirst :=
+  Reachable.step demoAuthorizedMigration_initial_reachable
+    ⟨DemoPrincipal.treasury, 1, demoAuthorizedMigration_first_step⟩
+
+theorem demoAuthorizedMigration_after_second_reachable :
+    Reachable demoAuthorizedMigrationMachine demoAuthorizedMigrationAfterSecond :=
+  Reachable.step demoAuthorizedMigration_after_first_reachable
+    ⟨DemoPrincipal.treasury, 1, demoAuthorizedMigration_second_step⟩
+
+theorem demoAuthorizedMigration_two_step_result :
+    demoAuthorizedMigrationAfterSecond.financial.holdings.balance
+        typedDemoTreasury demoMigrationSourceAsset = 0 ∧
+    demoAuthorizedMigrationAfterSecond.financial.holdings.balance
+        typedDemoCustomer demoMigrationDestinationAsset = 1 ∧
+    demoAuthorizedMigrationAfterSecond.dust.totalSourceBaseUnits = 2 ∧
+    demoAuthorizedMigrationAfterSecond.dust.totalTargetBaseUnits = 1 ∧
+    demoAuthorizedMigrationAfterSecond.dust.dustNumerator = 1 := by
+  norm_num [demoAuthorizedMigrationAfterSecond, applyAuthorizedAssetMigration,
+    demoAuthorizedMigrationAfterFirst, demoAuthorizedMigrationInitialState,
+    initialAuthorizedAssetMigrationState, demoAuthorizedMigrationInitialFinancial,
+    demoAuthorizedMigrationInitialHoldings, demoMigrationSourceAsset,
+    demoMigrationDestinationAsset, typedDemoTreasury, typedDemoCustomer,
+    demoAssetMigrationRate, issueToHolder, burnFromHolder, emptyHoldingsState,
+    AssetMigrationDustState.empty,
+    AssetMigrationDustState.addSource,
+    AssetMigrationDustState.targetBaseUnitsReleased,
+    demoAuthorizedMigrationPartition, demoCrossNetworkMigrationRoute]
+
+theorem demoAuthorizedMigration_preserves_complete_invariant :
+    AuthorizedAssetMigrationInvariant demoAuthorizedMigrationHolderLedgerMap
+      demoAuthorizedMigrationInitialFinancial.ledger
+      demoAuthorizedMigrationAfterSecond :=
+  authorizedAssetMigrationInvariant_of_reachable
+    demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+    demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+    demoAuthorizedMigrationPartition demoAuthorizedMigrationInitialFinancial
+    demoAuthorizedMigrationInitialFinancial_invariant
+    demoAuthorizedMigration_after_second_reachable
+
+
 end SIRMTests

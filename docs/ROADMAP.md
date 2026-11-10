@@ -15,7 +15,8 @@
 - [x] compose typed asset/issuer lifecycle eligibility with the authorized financial machine's issuance gate;
 - [x] exact decimal-to-base-unit conversion with rejection of nonrepresentable precision and a separately parameterized range bound;
 - [x] exact rational cross-network base-unit conversion with a conserved, rate- and partition-scoped residual accumulator;
-- [ ] end-to-end migration authorization, source redemption, destination issuance, replay/idempotency and asset-collision policy;
+- [x] one-step authorized cross-network migration: exact source burn, target issuance, paired balanced journals, and route/source/recipient-scoped dust carry-forward;
+- [ ] replay/idempotency, external bridge settlement/finality, asset-collision policy, and production migration execution;
 - balanced journals, account ownership and authorization;
 - transfer, fees, escrow, settlement and reversals;
 - pending pools, dust and rounding;
