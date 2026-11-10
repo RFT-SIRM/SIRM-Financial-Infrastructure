@@ -1313,4 +1313,113 @@ theorem registryFinancialTrace_preserves_complete_invariant :
     demoInitialFinancialState_invariant
     registryFinancialBurn_reachable
 
+
+/-! ## Typed account and asset registry regressions -/
+
+def typedDemoNetwork : NetworkId := ⟨7⟩
+
+def typedDemoTreasury : AccountId 2 := ⟨0⟩
+
+def typedDemoCustomer : AccountId 2 := ⟨1⟩
+
+def typedDemoAccountRegistry : AccountRegistry 2 where
+  metadata := fun account =>
+    if account = typedDemoTreasury then
+      { accountKind := .treasury
+        status := .active
+        network := typedDemoNetwork }
+    else
+      { accountKind := .holder
+        status := .active
+        network := typedDemoNetwork }
+
+def typedDemoAsset : AssetId 1 := ⟨0⟩
+
+def typedDemoAssetMetadata : AssetMetadata 2 where
+  symbol := "TST"
+  decimals := 2
+  issuer := typedDemoTreasury
+  status := .active
+  network := typedDemoNetwork
+
+def typedDemoAssetRegistry :
+    AssetRegistry 2 1 typedDemoAccountRegistry where
+  metadata := fun _ => typedDemoAssetMetadata
+  issuer_network_matches := by
+    intro asset
+    simp [typedDemoAssetMetadata, typedDemoAccountRegistry,
+      typedDemoTreasury]
+
+theorem typedRegistry_treasury_class_is_preserved :
+    typedDemoAccountRegistry.classOf typedDemoTreasury =
+      AccountClass.treasury := by
+  simp [AccountRegistry.classOf, typedDemoAccountRegistry,
+    typedDemoTreasury]
+
+theorem typedRegistry_asset_uses_demo_decimal_scale :
+    typedDemoAssetMetadata.baseUnitsPerWhole = 100 := by
+  norm_num [AssetMetadata.baseUnitsPerWhole, typedDemoAssetMetadata]
+
+theorem typedRegistry_asset_issuer_network_matches :
+    (typedDemoAssetRegistry.metadata typedDemoAsset).network =
+      (typedDemoAccountRegistry.metadata
+        (typedDemoAssetRegistry.metadata typedDemoAsset).issuer).network :=
+  typedDemoAssetRegistry.issuer_network_matches typedDemoAsset
+
+theorem typedRegistry_active_asset_and_issuer_enable_issuance :
+    typedDemoAssetRegistry.issuanceEnabled typedDemoAsset := by
+  simp [AssetRegistry.issuanceEnabled, AssetRegistry.isActive,
+    AccountRegistry.isActive, typedDemoAssetRegistry,
+    typedDemoAssetMetadata, typedDemoAccountRegistry,
+    typedDemoTreasury]
+
+def typedDemoDraftAssetMetadata : AssetMetadata 2 :=
+  { typedDemoAssetMetadata with status := .draft }
+
+def typedDemoDraftAssetRegistry :
+    AssetRegistry 2 1 typedDemoAccountRegistry where
+  metadata := fun _ => typedDemoDraftAssetMetadata
+  issuer_network_matches := by
+    intro asset
+    simp [typedDemoDraftAssetMetadata, typedDemoAssetMetadata,
+      typedDemoAccountRegistry, typedDemoTreasury]
+
+theorem typedRegistry_draft_asset_blocks_issuance :
+    ¬ typedDemoDraftAssetRegistry.issuanceEnabled typedDemoAsset := by
+  simp [AssetRegistry.issuanceEnabled, AssetRegistry.isActive,
+    AccountRegistry.isActive, typedDemoDraftAssetRegistry,
+    typedDemoDraftAssetMetadata, typedDemoAssetMetadata,
+    typedDemoAccountRegistry, typedDemoTreasury]
+
+def typedDemoFrozenIssuerAccounts : AccountRegistry 2 where
+  metadata := fun account =>
+    if account = typedDemoTreasury then
+      { accountKind := .treasury
+        status := .frozen
+        network := typedDemoNetwork }
+    else
+      { accountKind := .holder
+        status := .active
+        network := typedDemoNetwork }
+
+def typedDemoFrozenIssuerAssets :
+    AssetRegistry 2 1 typedDemoFrozenIssuerAccounts where
+  metadata := fun _ => typedDemoAssetMetadata
+  issuer_network_matches := by
+    intro asset
+    simp [typedDemoAssetMetadata, typedDemoFrozenIssuerAccounts,
+      typedDemoTreasury]
+
+theorem typedRegistry_frozen_issuer_blocks_issuance :
+    ¬ typedDemoFrozenIssuerAssets.issuanceEnabled typedDemoAsset := by
+  simp [AssetRegistry.issuanceEnabled, AssetRegistry.isActive,
+    AccountRegistry.isActive, typedDemoFrozenIssuerAssets,
+    typedDemoFrozenIssuerAccounts, typedDemoAssetMetadata,
+    typedDemoTreasury]
+
+theorem typedRegistry_empty_holdings_preserves_existing_model :
+    HoldingsInvariant
+      (emptyHoldingsState (AccountId 2) (AssetId 1)) :=
+  typedEmptyHoldingsState_invariant 2 1
+
 end SIRMTests

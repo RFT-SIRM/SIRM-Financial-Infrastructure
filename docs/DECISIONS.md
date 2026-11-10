@@ -11,6 +11,8 @@
 7. **Network direction:** target an independent RFT network. Solana remains a historical prototype host and is not silently embedded as a permanent dependency.
 8. **Public source license:** Apache License 2.0 is selected for this new repository. It does not automatically relicense the two older Rift repositories or third-party dependencies.
 
+9. **Typed identifiers and registries:** account and asset identifiers use separate finite index types. Each finite registry is total over its declared identifier universe. Account class/status metadata is descriptive and does not itself grant authority. An asset's issuer must be in the account universe and on the asset's declared network. Asset migration and conversion rules remain separate future decisions.
+
 ## Not yet decided
 
 - total genesis supply, decimals, and final allocation table;

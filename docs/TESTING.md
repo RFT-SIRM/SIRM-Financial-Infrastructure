@@ -53,3 +53,17 @@ The following theorem-level regressions are compiled by `lake test`:
 - `registryGrantWithoutAccountControlIsDenied` rejects an authority grant when the principal does not control the relevant account.
 - `registryAccountControlWithoutGrantIsDenied` rejects account control when the exact operation grant is absent.
 - `controlledTreasuryMayIssueToUncontrolledAlice` permits the explicitly granted Treasury-to-Alice issuance without requiring Treasury to control Alice's recipient account.
+
+## Typed registry regression cases
+
+The `SIRMTests.lean` suite additionally compiles the following cases:
+
+- account and asset identifiers are distinct finite types and instantiate the existing holdings model;
+- account classification is retrievable from the typed account registry;
+- asset decimal metadata determines a positive base-unit scale (the two-decimal test fixture is non-normative);
+- each asset's issuer account is proven to share its declared network;
+- issuance eligibility holds for an active asset with an active issuer;
+- issuance eligibility fails when the issuer account is frozen.
+- issuance eligibility fails when the asset is not active (the draft-status case).
+
+These tests do not select production RFT decimals, a production network identifier, or cross-network migration semantics.
