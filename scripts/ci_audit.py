@@ -164,6 +164,7 @@ def docs_and_ci_topology():
     formal = load("docs/FORMALIZATION_STATUS.md")
     security = load("docs/SECURITY_MODEL.md")
     replay = load("SIRM/ReplayProtectedAssetMigration.lean")
+    fees = load("SIRM/FeeAccounting.lean")
     umbrella = load("SIRM.lean")
     regression = load("SIRMTests.lean")
     workflow = load(".github/workflows/lean.yml")
@@ -180,6 +181,18 @@ def docs_and_ci_topology():
          "FORMALIZATION_STATUS.md does not describe static account control and issuer scope")
     need("recipient" in security.lower() and "static" in security.lower(),
          "SECURITY_MODEL.md does not describe the static authorization boundary")
+    need("SIRM.FeeAccounting" in umbrella and "SIRM.FeeAccounting" in readme,
+         "fee accounting module is not integrated/documented")
+    need("feeTransferStep_preserves_conservation" in fees and
+         "FeeAuthorizationPolicy" in fees and "feeTransferJournal" in fees,
+         "fee accounting lacks separate authorization, combined journal, or conservation theorem")
+    for theorem in (
+        "feeAccounting_gross_splits_into_net_and_fee",
+        "feeAccounting_zero_fee_preserves_gross_amount",
+        "feeAccounting_full_fee_leaves_zero_net",
+        "feeAccounting_fee_above_gross_is_not_admissible",
+    ):
+        need(theorem in regression, f"SIRMTests.lean missing {theorem}")
     need("SIRM.ReplayProtectedAssetMigration" in umbrella and
          "SIRM.ReplayProtectedAssetMigration" in readme,
          "replay-protected migration module is not integrated/documented")

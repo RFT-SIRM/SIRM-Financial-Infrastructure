@@ -94,3 +94,8 @@ That result does **not** yet provide a production transaction processor. The mig
 A theorem applies only to its formal statement and assumptions. A successful pinned `lake build SIRM` and `lake test` establish that the relevant source and theorem-level regression library compile under the configured toolchain; they do not prove that an unimplemented runtime, network, institution, or external asset behaves as modeled.
 
 Implementation claims require a documented refinement/conformance argument plus appropriate differential tests, property/fuzz testing, independent security review, and operational evidence. Network, institutional, legal, reserve, and regulatory claims require their own separate evidence.
+
+
+## Fee accounting boundary
+
+The initial fee model treats a fee as an internal transfer of already-issued base units: gross is split exactly into net beneficiary credit plus fee-collector credit. The collector is an explicit holder, and fee authorization is independent of ordinary transfer authorization. No units are minted or burned by the fee transition. The model does not yet classify a non-holder revenue account, define a tariff schedule, rounding/minimum/maximum rules, tax treatment, refunds, fee changes, or production revenue recognition.
