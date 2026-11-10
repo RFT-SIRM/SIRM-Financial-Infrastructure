@@ -34,20 +34,60 @@ The ambition is long-term, but progress must remain measurable. No destination i
 
 ## 3. What We Are Building — Eight Layers
 
-<p align="center"><img src="docs/assets/overview/eight-layers.svg" alt="Eight illustrated layers of SIRM Financial Infrastructure: financial state and accounting; authority and account control; typed registries and assets; exact asset units; cross-network mathematics; authorized atomic migration; migration replay protection; and Lean formal verification with CI." width="100%"/></p>
+The cards below are a visual guide to the formal Lean foundation. Each illustration is an independent, repository-local SVG asset, so it can be rendered and reviewed separately.
 
-The illustration is a visual guide to the formal Lean foundation. Its eight layers describe defined mathematical scope and theorem-level regression coverage, not a claim that production infrastructure is already deployed.
+<table>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/financial-state.svg" width="88" height="88" alt="Ledger and accounting scales"/></p>
+<strong>1. Financial State &amp; Accounting</strong><br/>
+Balances, supply reconciliation, balanced journals and aggregate ledger conservation.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/authority-control.svg" width="88" height="88" alt="Shield and key"/></p>
+<strong>2. Authority &amp; Account Control</strong><br/>
+Operation grants and principal/account control are separate requirements.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/registries-assets.svg" width="88" height="88" alt="Typed registries database"/></p>
+<strong>3. Typed Registries &amp; Assets</strong><br/>
+Finite account and asset registries carry lifecycle, issuer, precision and network metadata.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/precise-units.svg" width="88" height="88" alt="Exact arithmetic calculator"/></p>
+<strong>4. Exact Asset Units</strong><br/>
+Integer base-unit conversion avoids floating point and silent nonzero rounding.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/cross-network-math.svg" width="88" height="88" alt="Connected network units"/></p>
+<strong>5. Cross-Network Mathematics</strong><br/>
+Exact rational conversion carries residuals in rate- and partition-scoped accumulators.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/atomic-migration.svg" width="88" height="88" alt="Paired migration arrows"/></p>
+<strong>6. Authorized Atomic Migration</strong><br/>
+One abstract transition pairs source burn, destination issuance, both journals and residual update.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/replay-protection.svg" width="88" height="88" alt="Replay protection shield"/></p>
+<strong>7. Migration Replay Protection</strong><br/>
+Each principal has an independent expected nonce, advanced with the migration state.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof document"/></p>
+<strong>8. Formal Verification &amp; CI</strong><br/>
+Lean checks definitions and theorem regressions; PR CI adds 17 static audits.
+</td>
+</tr>
+</table>
 
-- **Financial state and accounting:** holder balances, supply reconciliation, balanced journals and aggregate ledger conservation.
-- **Authority and control:** separate operation grants and principal/account-control requirements.
-- **Typed registries and assets:** finite account and asset registries with lifecycle, issuer, precision and network metadata.
-- **Exact units:** integer base-unit conversion without floating-point arithmetic or silent nonzero rounding.
-- **Cross-network mathematics:** rational conversion with exact quotient/remainder arithmetic and partition-scoped residual carry-forward.
-- **Atomic migration:** an abstract authorized transition pairing source burn, destination issuance, both journals and residual update.
-- **Replay protection:** a migration-scoped sequential nonce per principal, advanced in the same abstract transition.
-- **Formal verification:** Lean definitions and theorem regressions, with 17 independent static CI audits.
-
-**Current boundary:** the Rust reference implementation, production transaction processor, independent RFT Network, custody, reserves and institutional services remain future work with separate evidence gates.
+**Current boundary:** these cards describe the formal Lean model and its theorem regressions, not a deployed production service. The Rust reference implementation, production transaction processor, independent RFT Network, custody, reserves and institutional services remain future work with separate evidence gates.
 
 ## 4. Mission and development principle
 
