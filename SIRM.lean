@@ -2,6 +2,7 @@ import SIRM.FinancialCore
 import SIRM.Accounting
 import SIRM.Holdings
 import SIRM.Authorization
+import SIRM.AuthorityRegistry
 import SIRM.HolderAccountingBridge
 import SIRM.StateMachine
 import SIRM.AuthorizedStateMachine

@@ -850,4 +850,325 @@ theorem demoFinancialTrace_GL_total_from_machine :
         totalSignedBalance demoInitialFinancialState.ledger asset :=
   demoFinancialTrace_preserves_complete_invariant.2
 
+
+
+/-! ## Authority Registry v1 regression
+
+The registry below gives three exact operation grants:
+Alice may transfer Alice -> Bob, Treasury may issue to Treasury,
+and Alice may burn from Alice. The amount limits are per operation.
+-/
+
+def registryTransferGrant :
+    AuthorityGrant DemoPrincipal DemoAccount DemoAsset :=
+  { principal := .alice
+    scope := .transfer .alice .bob
+    asset := .rft
+    maxAmount := 100 }
+
+def registryIssueGrant :
+    AuthorityGrant DemoPrincipal DemoAccount DemoAsset :=
+  { principal := .treasury
+    scope := .issue .treasury
+    asset := .rft
+    maxAmount := 50 }
+
+def registryBurnGrant :
+    AuthorityGrant DemoPrincipal DemoAccount DemoAsset :=
+  { principal := .alice
+    scope := .burn .alice
+    asset := .rft
+    maxAmount := 20 }
+
+/--
+A key consists of principal, exact operation scope, and asset.
+The only two grants belonging to Alice have different scopes.
+-/
+def demoAuthorityRegistry :
+    AuthorityRegistry DemoPrincipal DemoAccount DemoAsset where
+  grants := [
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+  unique_scope := by
+    intro left right hLeftMem hRightMem hPrincipal hScope hAsset
+    change left ∈
+      [registryTransferGrant, registryIssueGrant, registryBurnGrant] at hLeftMem
+    change right ∈
+      [registryTransferGrant, registryIssueGrant, registryBurnGrant] at hRightMem
+    simp only [List.mem_cons, List.not_mem_nil] at hLeftMem hRightMem
+    rcases hLeftMem with rfl | rfl | rfl | hLeftFalse
+    all_goals
+      rcases hRightMem with rfl | rfl | rfl | hRightFalse
+    all_goals
+      simp_all [
+        registryTransferGrant,
+        registryIssueGrant,
+        registryBurnGrant
+      ]
+
+def demoRegistryPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
+  AuthorityRegistry.toAuthorizationPolicy demoAuthorityRegistry
+
+/-! ### Positive authorization cases -/
+
+theorem registryAliceMayTransfer :
+    demoRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob
+      DemoAsset.rft 40 := by
+  change AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.transfer .alice .bob) .rft 40
+  exact ⟨
+    registryTransferGrant,
+    by simp [demoAuthorityRegistry],
+    rfl, rfl, rfl,
+    by decide
+  ⟩
+
+theorem registryTreasuryMayIssue :
+    demoRegistryPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.treasury
+      DemoAsset.rft 15 := by
+  change AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.treasury (.issue .treasury) .rft 15
+  exact ⟨
+    registryIssueGrant,
+    by simp [demoAuthorityRegistry],
+    rfl, rfl, rfl,
+    by decide
+  ⟩
+
+theorem registryAliceMayBurn :
+    demoRegistryPolicy.mayBurn demoState
+      DemoPrincipal.alice DemoAccount.alice
+      DemoAsset.rft 20 := by
+  change AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.burn .alice) .rft 20
+  exact ⟨
+    registryBurnGrant,
+    by simp [demoAuthorityRegistry],
+    rfl, rfl, rfl,
+    by decide
+  ⟩
+
+/-! ### Negative authorization cases -/
+
+theorem registryAliceCannotExceedTransferLimit :
+    ¬ demoRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob
+      DemoAsset.rft 101 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.transfer .alice .bob) .rft 101
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryCannotChangeTransferDestination :
+    ¬ demoRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.treasury
+      DemoAsset.rft 40 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.transfer .alice .treasury) .rft 40
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryCannotReverseTransferDirection :
+    ¬ demoRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.bob DemoAccount.alice
+      DemoAsset.rft 40 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.transfer .bob .alice) .rft 40
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryCannotUseAnotherAsset :
+    ¬ demoRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob
+      DemoAsset.usd 40 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.transfer .alice .bob) .usd 40
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryAliceCannotIssue :
+    ¬ demoRegistryPolicy.mayIssue demoState
+      DemoPrincipal.alice DemoAccount.treasury
+      DemoAsset.rft 15 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.issue .treasury) .rft 15
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryTreasuryCannotExceedIssueLimit :
+    ¬ demoRegistryPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.treasury
+      DemoAsset.rft 51 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.treasury (.issue .treasury) .rft 51
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryTreasuryCannotIssueToAlice :
+    ¬ demoRegistryPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.alice
+      DemoAsset.rft 15 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.treasury (.issue .alice) .rft 15
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryBobCannotBurnAlice :
+    ¬ demoRegistryPolicy.mayBurn demoState
+      DemoPrincipal.bob DemoAccount.alice
+      DemoAsset.rft 20 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.bob (.burn .alice) .rft 20
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+theorem registryAliceCannotExceedBurnLimit :
+    ¬ demoRegistryPolicy.mayBurn demoState
+      DemoPrincipal.alice DemoAccount.alice
+      DemoAsset.rft 21 := by
+  change ¬ AuthorityRegistry.allows demoAuthorityRegistry
+    DemoPrincipal.alice (.burn .alice) .rft 21
+  simp [
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+/-! ### Integration with the existing financial state machine -/
+
+theorem registryFinancialTransfer_is_step :
+    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoInitialFinancialState demoFinancialAfterTransfer := by
+  exact Or.inl ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAccount.bob,
+    DemoAsset.rft,
+    40,
+    registryAliceMayTransfer,
+    transfer40_is_funded,
+    rfl
+  ⟩
+
+theorem registryFinancialIssue_is_step :
+    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoFinancialAfterTransfer demoFinancialAfterIssue := by
+  exact Or.inr (Or.inl ⟨
+    DemoPrincipal.treasury,
+    DemoAccount.treasury,
+    DemoAsset.rft,
+    15,
+    registryTreasuryMayIssue,
+    demoControlIsUnmapped,
+    rfl
+  ⟩)
+
+theorem registryFinancialBurn_is_step :
+    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control
+      demoFinancialAfterIssue demoFinancialAfterBurn := by
+  exact Or.inr (Or.inr ⟨
+    DemoPrincipal.alice,
+    DemoAccount.alice,
+    DemoAsset.rft,
+    20,
+    registryAliceMayBurn,
+    demoAliceHasFundsAfterTransferAndIssue,
+    demoControlIsUnmapped,
+    rfl
+  ⟩)
+
+def demoRegistryFinancialMachine :
+    VerifiedStateMachine
+      (FinancialState DemoAccount DemoLedgerAccount DemoAsset) :=
+  authorizedFinancialMachineWithConservation
+    demoRegistryPolicy
+    demoHolderLedgerMap
+    DemoLedgerAccount.control
+    demoInitialFinancialState
+    demoInitialFinancialState_invariant
+
+theorem registryFinancialInitial_reachable :
+    Reachable demoRegistryFinancialMachine demoInitialFinancialState :=
+  Reachable.initial rfl
+
+theorem registryFinancialTransfer_reachable :
+    Reachable demoRegistryFinancialMachine demoFinancialAfterTransfer :=
+  Reachable.step registryFinancialInitial_reachable
+    registryFinancialTransfer_is_step
+
+theorem registryFinancialIssue_reachable :
+    Reachable demoRegistryFinancialMachine demoFinancialAfterIssue :=
+  Reachable.step registryFinancialTransfer_reachable
+    registryFinancialIssue_is_step
+
+theorem registryFinancialBurn_reachable :
+    Reachable demoRegistryFinancialMachine demoFinancialAfterBurn :=
+  Reachable.step registryFinancialIssue_reachable
+    registryFinancialBurn_is_step
+
+/--
+The registry-backed financial trace preserves holder/supply reconciliation,
+mapped subledger agreement, and aggregate signed-ledger conservation.
+-/
+theorem registryFinancialTrace_preserves_complete_invariant :
+    FinancialConservationInvariant demoHolderLedgerMap
+      demoInitialFinancialState.ledger demoFinancialAfterBurn :=
+  financialConservationInvariant_of_authorized_reachable
+    demoRegistryPolicy
+    demoHolderLedgerMap
+    DemoLedgerAccount.control
+    demoInitialFinancialState
+    demoInitialFinancialState_invariant
+    registryFinancialBurn_reachable
+
 end SIRMTests
