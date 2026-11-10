@@ -223,3 +223,13 @@ git diff --check
 ```
 
 Do not commit until the new module, umbrella library, theorem regression suite, all 17 static audits, and complete diff review pass. Then use one commit, one non-force push, one PR, and merge only after all 18 checks pass for the exact PR head. Exact commit/PR/merge SHAs and CI results are to be added to the next verified handoff entry.
+
+
+## Public roadmap, project narrative and visual README overview
+
+- Verified starting `main`: `8588b61401b6eae02510fc5f9772acf47e0dd3e5`, after PR #11 squash merge.
+- PR #11 feature head: `4e95e912898e310d927afcae0de507181eb7dd65`; all 18 CI checks succeeded (one Lean job and 17 static audits).
+- This documentation block adds an English author statement and a repository-local SVG overview of the eight formalized financial layers.
+- Roadmap and scope text distinguish completed Lean properties from open accounting semantics, global transaction idempotency, Rust refinement, RFT Network, institutional and production gates.
+- No Lean definitions or theorem statements are changed. No production deployment, custody, reserves, legal status or Rust implementation is claimed.
+- Verify exact PR head and all 18 checks before merge.

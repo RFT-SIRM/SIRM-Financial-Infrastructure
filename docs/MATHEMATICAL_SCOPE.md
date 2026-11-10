@@ -50,7 +50,7 @@ This document describes what the current Lean declarations establish, the assump
 - A step requires one principal to satisfy the source-holder control relation and exact burn grant, plus control of the destination asset issuer and an exact issue grant for the target amount actually released by the carried residual. Both endpoint assets and their issuers, and both endpoint accounts, must be active.
 - The transition burns source base units, issues the quotient output in destination base units, posts a source burn journal and a destination issuance journal, and advances the residual state in one state value. There is no intermediate state exposing only one side of the operation.
 - The state machine preserves holder/supply reconciliation, mapped holder/GL agreement, aggregate signed GL totals per asset, and the route/source-holder/recipient residual equation. The residual accumulator is a separate exact claim subledger; fractional dust is not posted as an integer-valued GL liability account by this model.
-- This remains an abstract formal transition. It does not provide a transaction nonce, replay/idempotency protection, external bridge settlement/finality, custody, rollback, asset-collision handling, a production valuation policy, or legal/economic backing for the residual claim.
+- This remains an abstract formal transition. `AuthorizedAssetMigration` alone does not provide replay protection, external bridge settlement/finality, custody, rollback, asset-collision handling, production valuation, or legal/economic backing. The separate `ReplayProtectedAssetMigration` wrapper adds only a migration-scoped per-principal sequential nonce; it does not add global transaction idempotency or runtime persistence.
 
 ### Per-principal nonce and replay protection for migration
 
@@ -76,7 +76,7 @@ This document describes what the current Lean declarations establish, the assump
 
 The combined machine **does** formalize a paired state transition: a holder operation and its corresponding general-ledger posting are represented together in one transition of the abstract Lean state. It would therefore be inaccurate to say that no unified holder/ledger transition is formalized.
 
-That result does **not** yet provide a production transaction processor. The current declarations do not specify or implement a complete transaction object, canonical byte encoding, cryptographic signature verification, concrete signer thresholds, nonce and expiry handling, replay protection, event encoding, production failure codes, rollback behavior, or runtime storage/commit atomicity. Nor is a Rust implementation yet proved to refine the Lean transition.
+That result does **not** yet provide a production transaction processor. The migration wrapper proves only an abstract per-principal sequential nonce gate for migration. The current declarations do not specify or implement a complete transaction object, canonical byte encoding, cryptographic signature verification, signer thresholds, expiry, operation-wide nonce handling, idempotent replay responses, event encoding, production failure codes, rollback, or runtime storage/commit atomicity. Nor is Rust proved to refine the Lean transition.
 
 ## 3. Not established by the current declarations
 

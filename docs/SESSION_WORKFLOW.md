@@ -86,3 +86,12 @@ Update this baseline in the next journal entry; do not treat it as permanent sta
 The next implementation branch is `foundation/transaction-replay-guard-2026-11-10`, based on the verified `main` SHA `f6740483006d45bfc82b04fd441f49aac1865e52`. Its goal is a migration-specific, per-principal sequential nonce gate layered over `SIRM.AuthorizedAssetMigration`. The exact accepted nonce must equal the principal's expected nonce; the migration and increment are one abstract state transition. The module, Lean tests, CI audit assertions, roadmap, formalization status, scope, testing guide, decisions, and journal must move together.
 
 This block does not claim global transaction replay protection, request-hash idempotency, signature/expiry handling, persistence, concurrency semantics, or production nonce-width safety. Verify the latest branch and CI state before continuing; do not assume this paragraph means the block is merged.
+
+
+## 8. Completed replay guard and documentation consolidation
+
+- PR #11 feature head: `4e95e912898e310d927afcae0de507181eb7dd65`.
+- PR #11 exact base: `f6740483006d45bfc82b04fd441f49aac1865e52`.
+- PR #11 passed all 18 checks (one Lean job plus 17 static audits); squash merge on `main`: `8588b61401b6eae02510fc5f9772acf47e0dd3e5`.
+- Replay protection is migration-scoped: exact expected nonce per principal, accepted principal advances in the same abstract transition, and other principals remain unchanged. It is not global idempotency or runtime persistence.
+- Documentation consolidation branch: `docs/public-roadmap-status-2026-11-10`, based on that exact merge SHA. Its purpose is the illustrated README overview, author statement, and aligned roadmap/formalization boundaries.

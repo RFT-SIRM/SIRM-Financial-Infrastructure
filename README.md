@@ -18,7 +18,78 @@ SIRM Financial Infrastructure defines financial state, admissible operations, ac
 
 The hub link is a project-navigation and research-lineage relationship. It does not imply a separate legal entity, corporate subsidiary, partnership, institutional endorsement, or deployed financial network. Older Rift repositories are historical prototype sources, not automatic authorities for the new protocol; see [Migration from Rift](docs/MIGRATION_FROM_RIFT.md).
 
-## 2. Mission and development principle
+## 2. A Note on Origin and Purpose
+
+This project does not ask to be judged by the status, reputation, or promises of its author. It asks to be examined through its foundations: where its ideas come from, what principles guide its development, what has been formally established, and what remains to be proven.
+
+SIRM Financial Infrastructure is one workstream within the RFT-SIRM research and engineering programme. Its purpose is to develop a rigorous financial foundation in which rules are explicit, accounting is coherent, authority is constrained, and critical state transitions can be examined mathematically.
+
+The direction is deliberate: define before implementing; prove before claiming; preserve evidence and document assumptions; distinguish mathematical results from engineering, institutional, and legal claims; and make every major step open to independent examination.
+
+The plan is public. The decisions are documented. The results are subject to verification.
+
+The ambition is long-term, but progress must remain measurable. No destination is treated as achieved merely because it has been announced.
+
+**Judge the work by its foundations, its evidence, and the path it is prepared to make visible.**
+
+## 3. What We Are Building — Eight Layers
+
+The cards below are a visual guide to the formal Lean foundation. Each illustration is an independent, repository-local SVG asset, so it can be rendered and reviewed separately.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/financial-state.svg" width="88" height="88" alt="Ledger and accounting scales"/></p>
+<strong>1. Financial State &amp; Accounting</strong><br/>
+Balances, supply reconciliation, balanced journals and aggregate ledger conservation.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/authority-control.svg" width="88" height="88" alt="Shield and key"/></p>
+<strong>2. Authority &amp; Account Control</strong><br/>
+Operation grants and principal/account control are separate requirements.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/registries-assets.svg" width="88" height="88" alt="Typed registries database"/></p>
+<strong>3. Typed Registries &amp; Assets</strong><br/>
+Finite account and asset registries carry lifecycle, issuer, precision and network metadata.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/precise-units.svg" width="88" height="88" alt="Exact arithmetic calculator"/></p>
+<strong>4. Exact Asset Units</strong><br/>
+Integer base-unit conversion avoids floating point and silent nonzero rounding.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/cross-network-math.svg" width="88" height="88" alt="Connected network units"/></p>
+<strong>5. Cross-Network Mathematics</strong><br/>
+Exact rational conversion carries residuals in rate- and partition-scoped accumulators.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/atomic-migration.svg" width="88" height="88" alt="Paired migration arrows"/></p>
+<strong>6. Authorized Atomic Migration</strong><br/>
+One abstract transition pairs source burn, destination issuance, both journals and residual update.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/replay-protection.svg" width="88" height="88" alt="Replay protection shield"/></p>
+<strong>7. Migration Replay Protection</strong><br/>
+Each principal has an independent expected nonce, advanced with the migration state.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof document"/></p>
+<strong>8. Formal Verification &amp; CI</strong><br/>
+Lean checks definitions and theorem regressions; PR CI adds 17 static audits.
+</td>
+</tr>
+</table>
+
+**Current boundary:** these cards describe the formal Lean model and its theorem regressions, not a deployed production service. The Rust reference implementation, production transaction processor, independent RFT Network, custody, reserves and institutional services remain future work with separate evidence gates.
+
+## 4. Mission and development principle
 
 Financial infrastructure needs explicit state and accounting rules, not only application code or operational promises. The project follows this order:
 
@@ -32,7 +103,7 @@ Financial infrastructure needs explicit state and accounting rules, not only app
 
 A theorem applies only to its formal statement and assumptions. A green Lean build does not by itself certify a Rust executable, network, custodian, reserve, legal entity, or production financial service.
 
-## 3. What the Lean model currently covers
+## 5. What the Lean model currently covers
 
 The source is organized by responsibility rather than a wide module table.
 
@@ -69,7 +140,7 @@ The source is organized by responsibility rather than a wide module table.
 
 For theorem-by-theorem status, explicit assumptions, and remaining obligations, see [Formalization Status](docs/FORMALIZATION_STATUS.md) and [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md).
 
-## 4. Genesis allocation policy
+## 6. Genesis allocation policy
 
 > **SELECTED ONE-TIME GENESIS INPUT**
 >
@@ -92,13 +163,13 @@ For example, if `G = 1,000,000,000,000` base units, the founder allocation is `1
 
 The 1.309% rate is an adopted one-time policy input, not a theorem of economic optimality. It grants no automatic right to future issuance, fees, treasury assets, reserves, validator rewards, governance control, or protocol administration. Other genesis pools, the total supply, decimals, receiving address, custody, and vesting remain separate decisions. See [Tokenomics](docs/TOKENOMICS.md) and the [Constants Register](docs/CONSTANTS_REGISTER.md).
 
-## 5. Why Lean 4
+## 7. Why Lean 4
 
 Lean 4 provides a formal language and a small trusted kernel for checking proof terms. Here it is used to express financial state, guarded transitions, arithmetic preconditions, journal balance, reconciliation, authorization predicates, and invariants over reachable states.
 
 Formal proof does not remove the need to review the model. A proof may be correct while the modeled account universe is incomplete, an assumption is too strong, or correspondence to a future implementation has not yet been established. The project therefore keeps present declarations, assumptions, and open obligations visible.
 
-## 6. Target architecture: Lean → Rust → RFT Network
+## 8. Target architecture: Lean → Rust → RFT Network
 
 ```mermaid
 flowchart TB
@@ -116,7 +187,7 @@ The Rust implementation is intended to be a separate implementation of the speci
 
 The RFT Network is a later, independent stage. No consensus algorithm is selected in this foundation. Node identity, validator lifecycle, consensus safety and liveness, data availability, recovery, and network security require their own specifications and evidence. Institutional applications remain a further layer; they cannot turn external custody, reserves, or legal claims into Lean-proved facts.
 
-## 7. Verification and current test scope
+## 9. Verification and current test scope
 
 The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs.
 
@@ -130,7 +201,7 @@ See [Lean CI](.github/workflows/lean.yml) and [Testing and Verification](docs/TE
 
 A passing build is evidence about the exact source revision and pinned toolchain. It is not evidence that the future Rust implementation, consensus protocol, production system, or institutional operations have passed their separate gates.
 
-## 8. What remains outside the current proofs
+## 10. What remains outside the current proofs
 
 The current declarations do **not** yet establish:
 
@@ -138,7 +209,7 @@ The current declarations do **not** yet establish:
 - legal ownership of accounts or a concrete principal-to-account mapping;
 - cryptographic signatures, key custody, signer thresholds, or production permission administration;
 - a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
-- a production transaction envelope with canonical bytes, nonce, expiry, replay prevention, fees, events, and specified failure/rollback behavior;
+- a production-wide transaction envelope with canonical bytes, signer rules, expiry, operation-wide nonce semantics, idempotent replay responses, fees, events, and specified failure/rollback behavior; the current nonce theorem is migration-scoped;
 - production runtime atomicity or Rust/Lean refinement;
 - reserve backing, solvency, redemption, or external asset existence;
 - governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;
@@ -148,7 +219,7 @@ The combined Lean financial machine does model holder and journal updates in one
 
 The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). Passing one gate does not imply that a later gate has passed.
 
-## 9. Documentation map
+## 11. Documentation map
 
 ### Protocol and financial model
 
@@ -185,7 +256,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 - [Contributing](CONTRIBUTING.md) — contribution and review requirements.
 - [Security Policy](SECURITY.md) — responsible vulnerability reporting.
 
-## 10. License, identity, and responsible use
+## 12. License, identity, and responsible use
 
 The repository's formal specification, Lean source, theorem-level tests, and covered documentation are distributed under the **Apache License 2.0**, subject to any file-specific or third-party notices. The root [LICENSE](LICENSE) is authoritative. See [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) for contribution rights, project identifiers, and the treatment of possible future commercial components.
 

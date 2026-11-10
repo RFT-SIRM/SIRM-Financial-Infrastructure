@@ -1,51 +1,76 @@
 # Roadmap and Completion Gates
 
-## Phase 0 — formal foundation
-- [x] Establish SIRM/RFT naming and boundaries.
-- [x] Pin Lean and Mathlib.
-- [x] Add supply accounting and 1.309% founder allocation.
-- [x] Add first balanced-journal theorem.
-- [x] Configure explicit Lean library target.
-- [x] Verify the expanded holdings core in Lean CI.
-- [x] Configure a theorem-level regression library as the `lake test` driver.
-- [ ] Add runtime/property tests and a dedicated linter driver.
+**Verified baseline:** PR #11 is merged into `main` at `8588b61401b6eae02510fc5f9772acf47e0dd3e5`. Its exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
 
-## Phase 1 — accounting kernel
-- [x] finite typed account/asset identifier domains, account classes, lifecycle metadata, asset decimal precision and issuer/network coherence;
-- [x] compose typed asset/issuer lifecycle eligibility with the authorized financial machine's issuance gate;
-- [x] exact decimal-to-base-unit conversion with rejection of nonrepresentable precision and a separately parameterized range bound;
-- [x] exact rational cross-network base-unit conversion with a conserved, rate- and partition-scoped residual accumulator;
-- [x] one-step authorized cross-network migration: exact source burn, target issuance, paired balanced journals, and route/source/recipient-scoped dust carry-forward;
-- [x] per-principal sequential nonce guard for migration: reject stale/future nonces and advance the accepted nonce atomically with the paired migration state;
-- [ ] replay/idempotency, external bridge settlement/finality, asset-collision policy, and production migration execution;
-- balanced journals, account ownership and authorization;
-- transfer, fees, escrow, settlement and reversals;
-- pending pools, dust and rounding;
-- issuance, burn, redemption, liability accounting and supply caps;
-- reachable-state safety theorem;
-- concrete theorem-level regression suite wired into `lake test`.
+**Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
-## Phase 2 — protocol
-- reconcile global field with individual accounts;
-- prove distribution equivalent to account-level postings;
-- rework negative-entropy semantics and debt safety;
-- formalize edge costs, fees, governance and upgrades.
+## Phase 0 — formal development foundation
+- [x] Establish SIRM/RFT naming and repository boundaries.
+- [x] Pin Lean and Mathlib; configure the SIRM library and theorem-level test driver.
+- [x] Configure PR CI: one Lean job and 17 static audits.
+- [ ] Add a dedicated Lean linter driver.
+- [ ] Add runtime/property tests when an executable reference implementation exists.
 
-## Phase 3 — reference implementation
-- Rust state machine, checked arithmetic and canonical serialization;
-- differential/property/fuzz tests, conformance vectors and audit;
-- replay and migration tests.
+## Phase 1 — financial accounting kernel
+
+### Formalized and CI-checked
+- [x] Per-asset supply state, holder balances and holder/supply reconciliation.
+- [x] Balanced per-asset journals, aggregate signed-ledger conservation and mapped subledger agreement under stated assumptions.
+- [x] Guarded transfer, issuance and burn transitions in an abstract combined financial state.
+- [x] Separate finite authority grants and principal/account-control relations.
+- [x] Typed finite account/asset registries, lifecycle metadata and issuer/network coherence.
+- [x] Exact decimal-to-integer base-unit conversion without floating point or nonzero precision truncation.
+- [x] Exact rational cross-network conversion with rate- and partition-indexed residual carry-forward.
+- [x] One abstract authorized migration pairing source burn, destination issuance, two balanced journals and residual update.
+- [x] Migration-scoped per-principal sequential nonce: reject mismatches, advance the accepted nonce with migration state, and preserve other principals' nonces.
+- [x] Reachable-state invariant theorems and theorem regressions wired into `lake test`.
+
+### Still open
+- [ ] Fees and their posting, beneficiary and supply effects.
+- [ ] Escrow, settlement, release, cancellation and reversals.
+- [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
+- [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
+- [ ] Complete posting policy for custody, customer-liability and control accounts.
+- [ ] Production-wide transaction envelope: canonical representation, signatures/thresholds, expiry, operation-wide nonce, idempotent replay responses, deterministic errors and rollback.
+- [ ] Asset-collision, route-change and migration-failure policies.
+
+## Phase 2 — protocol-level semantics
+- [ ] Reconcile global field with individual account states.
+- [ ] Prove distribution equivalence to account-level postings where required.
+- [ ] Formalize negative-entropy semantics and debt safety.
+- [ ] Define edge costs, network fees, governance and upgrade transitions.
+- [ ] Verify that new operations compose without weakening existing invariants.
+
+## Phase 3 — deterministic Rust reference implementation
+- [ ] Implement the stabilized state-transition model separately in Rust.
+- [ ] Define canonical transaction and state serialization.
+- [ ] Use checked integer arithmetic and deterministic failure behavior.
+- [ ] Add differential tests against Lean examples, plus property, fuzz, replay and migration tests.
+- [ ] Document Lean-to-Rust refinement/conformance and obtain independent review.
 
 ## Phase 4 — RFT Network
-- deterministic transaction format, state engine and local ledger;
-- block format, state commitment, RPC and single-node devnet;
-- validator admission, threat model, consensus and finality;
-- multi-node adversarial testnet and recovery.
+- [ ] Specify deterministic execution, block format and state commitments.
+- [ ] Build a single-node local development network before selecting multi-node consensus.
+- [ ] Specify authenticated transport, peer discovery, node identity, validator admission and recovery.
+- [ ] Analyze consensus safety/liveness, finality, censorship, equivocation and data availability.
+- [ ] Run an adversarial multi-node testnet and exercise upgrades and recovery.
+
+No consensus algorithm or production network is claimed as selected or deployed by the current financial foundation.
 
 ## Phase 5 — institutional infrastructure
-- treasury, reserves, custody attestations, settlement and reporting;
-- legal and compliance review per jurisdiction;
-- independent security and operational audits.
+- [ ] Specify treasury, custody, reserve evidence, settlement and reporting interfaces.
+- [ ] Establish legal responsibilities and jurisdiction-specific compliance where applicable.
+- [ ] Obtain independent custody, reserve, security, privacy and operational attestations.
+- [ ] Keep external legal and asset claims separate from properties proved by Lean.
 
-## Phase 6 — production
-No public token sale, customer deposits, real-money settlement or mainnet launch before relevant legal, custody, reserve, security and operational gates are independently satisfied.
+## Phase 6 — production release
+No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
+
+## Recommended execution order
+1. Complete open accounting semantics: fees, escrow, settlement, reversals, redemption and liabilities.
+2. Specify the complete transaction envelope, including global replay/idempotency and deterministic failure behavior.
+3. Implement and test Rust against the stabilized Lean model.
+4. Build a single-node development network; only then design and test consensus.
+5. Proceed to institutional pilots and production gates only after independent reviews.
+
+A network cannot repair an incomplete accounting model, and consensus cannot establish the correctness of an underspecified financial transition.
