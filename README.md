@@ -82,7 +82,7 @@ Each principal has an independent expected nonce, advanced with the migration st
 <td width="50%" valign="top">
 <p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof document"/></p>
 <strong>8. Formal Verification &amp; CI</strong><br/>
-Lean checks definitions and theorem regressions; PR CI adds 17 static audits.
+Lean checks definitions and theorem regressions; the pull-request gate adds 17 independent static audits alongside the Lean build and theorem tests.
 </td>
 </tr>
 </table>
