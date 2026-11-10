@@ -80,9 +80,9 @@ One abstract transition pairs source burn, destination issuance, both journals a
 Each principal has an independent expected nonce, advanced with the migration state.
 </td>
 <td width="50%" valign="top">
-<p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof document"/></p>
-<strong>8. Formal Verification &amp; CI</strong><br/>
-Lean checks definitions and theorem regressions; the pull-request gate adds 17 independent static audits alongside the Lean build and theorem tests.
+<p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof and independent audit checklist"/></p>
+<strong>8. Formal Verification &amp; PR Assurance</strong><br/>
+Lean builds the specification and theorem regressions; the pull-request gate runs 17 independent static audits.
 </td>
 </tr>
 </table>
@@ -171,17 +171,36 @@ Formal proof does not remove the need to review the model. A proof may be correc
 
 ## 8. Target architecture: Lean → Rust → RFT Network
 
-```mermaid
-flowchart TB
-    A["SIRM Protocol<br/>Lean 4 normative specification"]
-    B["Rust reference implementation<br/>planned deterministic execution"]
-    C["RFT Network<br/>planned nodes, consensus and settlement"]
-    D["Institutional applications<br/>future adapters and integrations"]
-
-    A -->|"documented refinement / conformance"| B
-    B -->|"deterministic state execution"| C
-    C -->|"separate application layer"| D
-```
+<table>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Lean 4 normative specification and proof checks"/></p>
+<strong>1. SIRM Protocol — Lean 4</strong><br/>
+<sub><strong>Current · normative specification</strong></sub><br/>
+Formal financial-state and transition model, checked through Lean builds and theorem-level regressions.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/rust-reference.svg" width="88" height="88" alt="Planned deterministic Rust reference implementation"/></p>
+<strong>2. Rust Reference Implementation</strong><br/>
+<sub><strong>Planned · deterministic execution</strong></sub><br/>
+A separate implementation of the specified transitions, with its own refinement and conformance evidence.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/rft-network.svg" width="88" height="88" alt="Future independent RFT network"/></p>
+<strong>3. Independent RFT Network</strong><br/>
+<sub><strong>Future · network and settlement</strong></sub><br/>
+Independent nodes, consensus, data availability and settlement require separate specifications and evidence.
+</td>
+<td width="50%" valign="top">
+<p align="center"><img src="docs/assets/overview/institutional-applications.svg" width="88" height="88" alt="Future institutional applications and integrations"/></p>
+<strong>4. Institutional Applications</strong><br/>
+<sub><strong>Future · external integrations</strong></sub><br/>
+Adapters and institutional services require independent security, custody, reserve, legal and operational gates.
+</td>
+</tr>
+</table>
 
 The Rust implementation is intended to be a separate implementation of the specified transition semantics. It is **not** produced by translating Lean source, and passing tests alone will not make it authoritative. Its workstream must include canonical serialization, checked arithmetic, deterministic failure behavior, differential/property tests, and a documented refinement/conformance argument.
 

@@ -1,1 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112"><title>Lean formal proof and verification</title><defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="#58caff"/><stop offset="1" stop-color="#2854b4"/></linearGradient></defs><circle cx="56" cy="56" r="53" fill="#eef5ff"/><path d="M24 11h49l16 16v73H24Z" fill="#fff" stroke="#4779bf" stroke-width="3"/><path d="M73 11v18h16" fill="#d8eaff" stroke="#4779bf" stroke-width="3"/><path d="M37 44h40M37 57h34M37 70h28" stroke="#6c91c7" stroke-width="4" stroke-linecap="round"/><circle cx="78" cy="84" r="20" fill="url(#a)" stroke="#1e4b9b" stroke-width="3"/><path d="m68 84 7 7 14-16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="112" viewBox="0 0 112 112">
+  <title>Lean formal verification and 17 static assurance checks</title>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#62cfff"/>
+      <stop offset="1" stop-color="#2855b3"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff2c7"/>
+      <stop offset="1" stop-color="#e6a43e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="56" cy="56" r="53" fill="#eef5ff"/>
+
+  <path d="M19 13h43l15 15v69H19Z" fill="#fff" stroke="#4779bf" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M62 13v16h15" fill="#d8eaff" stroke="#4779bf" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="34" cy="34" r="8" fill="url(#blue)" stroke="#24509f" stroke-width="1.5"/>
+  <path d="m30 34 3 3 5-6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M47 31h18M29 51h35M29 64h29M29 77h27" stroke="#8aa9d2" stroke-width="3.5" stroke-linecap="round"/>
+
+  <rect x="64" y="48" width="34" height="43" rx="6" fill="url(#blue)" stroke="#24509f" stroke-width="2.5"/>
+  <rect x="69" y="54" width="24" height="30" rx="3" fill="#f8fcff"/>
+  <g fill="none" stroke="#2b67ad" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m72 60 2 2 3-4M81 60h8"/>
+    <path d="m72 69 2 2 3-4M81 69h8"/>
+    <path d="m72 78 2 2 3-4M81 78h8"/>
+  </g>
+
+  <path d="M82 76 99 82v10c0 7-6 12-17 16-11-4-17-9-17-16V82Z" fill="url(#gold)" stroke="#b77b22" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="m73 94 6 6 12-14" fill="none" stroke="#24509f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
