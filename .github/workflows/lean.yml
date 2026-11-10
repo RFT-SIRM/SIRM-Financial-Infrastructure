@@ -1,4 +1,4 @@
-name: Lean
+name: Lean and Assurance
 
 on:
   push:
@@ -6,12 +6,18 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: sirm-assurance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
-  build:
+  lean:
+    name: Lean / build and theorem tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: leanprover/lean-action@v1
@@ -19,5 +25,54 @@ jobs:
           use-mathlib-cache: true
           build: true
           test: true
-          # Linting remains explicitly disabled until a lint driver is added.
           lint: false
+
+  static-audit:
+    name: Static / ${{ matrix.check.label }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - id: no-proof-holes
+            label: No proof placeholders
+          - id: issue-api-shape
+            label: Issuance API shape
+          - id: issuer-recipient-scope
+            label: Issuer and recipient scope
+          - id: registry-issue-adapter
+            label: Registry issue adapter
+          - id: finite-control-relation
+            label: Finite account-control relation
+          - id: transfer-dual-gate
+            label: Transfer requires control and grant
+          - id: issue-dual-gate
+            label: Issuance requires issuer control and grant
+          - id: burn-dual-gate
+            label: Burn requires holder control and grant
+          - id: issue-credits-recipient
+            label: Issuance credits recipient
+          - id: holder-machine-issuer
+            label: Holder machine carries issuer
+          - id: financial-machine-issuer
+            label: Financial machine carries issuer
+          - id: deny-grant-without-control
+            label: Grant without control is denied
+          - id: deny-control-without-grant
+            label: Control without grant is denied
+          - id: uncontrolled-recipient
+            label: Uncontrolled recipient scenario
+          - id: controlled-financial-trace
+            label: Controlled financial trace
+          - id: pinned-toolchain-and-test-driver
+            label: Pinned toolchain and Lake test driver
+          - id: docs-and-ci-topology
+            label: Documentation and CI topology
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run independent source/documentation audit
+        run: python3 scripts/ci_audit.py "${{ matrix.check.id }}"

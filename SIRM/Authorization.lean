@@ -22,7 +22,7 @@ structure AuthorizationPolicy (Principal Account Asset : Type) where
       Account → Account → Asset → Nat → Prop
   mayIssue :
     HoldingsState Account Asset → Principal →
-      Account → Asset → Nat → Prop
+      Account → Account → Asset → Nat → Prop
   mayBurn :
     HoldingsState Account Asset → Principal →
       Account → Asset → Nat → Prop
@@ -43,15 +43,19 @@ def executeAuthorizedTransfer {Principal Account Asset : Type}
     HoldingsState Account Asset :=
   executeTransfer state source destination asset amount hAllowed
 
-/-- An authorized issuance requires an explicit policy witness. -/
+/--
+An issuance is authorized against an explicit issuer account and recipient.
+The current holdings transition remains a mint-to-recipient operation; it does
+not debit the issuer account.
+-/
 def executeAuthorizedIssue {Principal Account Asset : Type}
     [DecidableEq Account] [DecidableEq Asset]
     (policy : AuthorizationPolicy Principal Account Asset)
     (state : HoldingsState Account Asset)
-    (principal : Principal) (recipient : Account)
+    (principal : Principal) (issuer recipient : Account)
     (asset : Asset) (amount : Nat)
     (_hAuthorized :
-      policy.mayIssue state principal recipient asset amount) :
+      policy.mayIssue state principal issuer recipient asset amount) :
     HoldingsState Account Asset :=
   issueToHolder state recipient asset amount
 
@@ -93,12 +97,12 @@ theorem executeAuthorizedIssue_preserves_invariant
     (policy : AuthorizationPolicy Principal Account Asset)
     (state : HoldingsState Account Asset)
     (hInvariant : HoldingsInvariant state)
-    (principal : Principal) (recipient : Account)
+    (principal : Principal) (issuer recipient : Account)
     (asset : Asset) (amount : Nat)
     (hAuthorized :
-      policy.mayIssue state principal recipient asset amount) :
+      policy.mayIssue state principal issuer recipient asset amount) :
     HoldingsInvariant
-      (executeAuthorizedIssue policy state principal recipient
+      (executeAuthorizedIssue policy state principal issuer recipient
         asset amount hAuthorized) := by
   exact issueToHolder_preserves_invariant state hInvariant
     recipient asset amount

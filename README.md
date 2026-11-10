@@ -49,7 +49,9 @@ The source is organized by responsibility rather than a wide module table.
 
 ### Authorization and reachable-state safety
 
-- `SIRM.Authorization` provides abstract, state-dependent authorization predicates and guarded transfer, issue, and burn operations.
+- `SIRM.Authorization` provides abstract, state-dependent authorization predicates and guarded transfer, issue, and burn operations. Issuance authorization explicitly distinguishes the issuer account from the recipient.
+- `SIRM.AuthorityRegistry` stores finite static grants binding a principal, exact operation scope, asset, and maximum amount. An issue grant binds both issuer and recipient.
+- `SIRM.AccountControl` defines a separate finite principal/account control relation. The combined policy requires control of the transfer source, issue issuer, or burn holder, as well as the exact operation grant. The recipient need not be controlled by the issuing principal when the grant explicitly authorizes that recipient.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
 
@@ -110,7 +112,8 @@ The RFT Network is a later, independent stage. No consensus algorithm is selecte
 
 ## 7. Verification and current test scope
 
-The repository's pinned workflow runs the normative Lean target and the theorem-level test driver:
+The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs.
+
 
 ```bash
 lake build

@@ -24,6 +24,12 @@
 - explicit privacy policy and data minimization;
 - independent reserve evidence and reconciliation where a product makes reserve or redemption claims.
 
+## Formalized authorization boundary
+
+The Lean model now separates two policy inputs. The authority registry grants an exact operation, asset, and amount limit; the account-control registry records a static principal/account relation. The combined policy requires both conditions for the relevant account: transfer source, issue issuer, or burn holder. An issue grant binds both issuer and recipient, while the recipient does not need to appear in the issuer's control relation.
+
+These are mathematical policy inputs, not identity proofs. The static relation does not establish legal title, beneficial ownership, private-key possession, signature validity, enrollment, revocation, or production permission administration. The modeled issuance credits the recipient and increases supply; it does not debit the issuer. The separate general-ledger counterpart posting remains an accounting operation, not evidence that the issuer funded the issuance.
+
 ## What public verification does not guarantee
 
 Open source and a public ledger improve inspectability; they do not make theft or compromise impossible. A formal proof does not establish that private keys remain secret, validators are honest, a software build matches reviewed source, a reserve exists, an off-chain custodian is solvent, or a legal promise is enforceable. Those require operational controls, independent evidence, audits, and enforceable institutional arrangements.
