@@ -67,7 +67,7 @@ No consensus algorithm or production network is claimed as selected or deployed 
 No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
 
 ## Recommended execution order
-1. Complete open accounting semantics: fees, escrow, settlement, reversals, redemption and liabilities.
+1. Complete open accounting semantics: fee accounting is now formally modeled at the exact base-unit transfer layer; next formalize escrow, settlement, reversals, redemption and liabilities. Fee tariff policy and non-holder revenue classification remain open.
 2. Specify the complete transaction envelope, including global replay/idempotency and deterministic failure behavior.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.

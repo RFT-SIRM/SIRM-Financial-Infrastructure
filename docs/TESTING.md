@@ -133,3 +133,19 @@ The `SIRMTests.lean` suite compiles a two-step synthetic migration through the v
 - the reachable-state theorem preserves holder reconciliation, mapped subledger agreement, aggregate GL balance per asset, and exact residual conservation.
 
 The example uses a synthetic 2/3 base-unit rate. The residual is an auxiliary exact claim subledger, not a fractional posting to the integer GL. Replay/idempotency and external bridge execution remain out of scope.
+
+
+## Exact fee-accounting regressions
+
+The fee-accounting module and `SIRMTests.lean` compile theorem-level checks for:
+
+- exact gross = net + fee decomposition in integer base units;
+- zero-fee and full-fee boundary cases;
+- rejection of a fee greater than gross;
+- a generic proof that every admitted fee amount decomposes exactly;
+- separate ordinary-transfer and fee-authorization witnesses;
+- a funded net leg followed by a funded fee leg, with the fee collector credited explicitly;
+- one combined balanced journal for the two legs;
+- preservation of holder/supply reconciliation, mapped holder/GL agreement and aggregate signed GL totals through the verified fee machine.
+
+These are abstract Lean transition proofs, not a production tariff, percentage calculation, tax treatment, revenue-recognition policy, runtime transaction processor or Rust implementation. The collector is a holder in this first model.

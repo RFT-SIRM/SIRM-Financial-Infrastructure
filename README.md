@@ -226,6 +226,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 - [Protocol Specification](docs/PROTOCOL_SPEC.md) — normative transition and determinism requirements.
 - [Architecture](docs/ARCHITECTURE.md) — Lean, Rust, network, and application boundaries.
 - [Accounting Model](docs/ACCOUNTING_MODEL.md) — holder balances and signed-ledger projections.
+- `SIRM.FeeAccounting` — exact gross/net/fee decomposition, separately authorized fee transfers, balanced three-role holder/GL posting, and preservation of holder/supply and aggregate-ledger invariants. The fee collector is explicitly a holder in this initial model; tariff policy and non-holder revenue-account classification remain open.
 - [Tokenomics](docs/TOKENOMICS.md) — founder genesis policy and unresolved supply decisions.
 - [Constants Register](docs/CONSTANTS_REGISTER.md) — adopted, superseded, and unselected parameters.
 - [RFT Network](docs/RFT_NETWORK.md) — intended independent network scope.
@@ -234,7 +235,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 
 - [Formalization Status](docs/FORMALIZATION_STATUS.md) — present Lean declarations and open proof obligations.
 - [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md) — precise theorem scope, assumptions, and limits.
-- [Testing](docs/TESTING.md) — pinned build and theorem-level regression scope.
+- [Testing](docs/TESTING.md) — pinned build and theorem-level regression scope, including exact fee arithmetic.
 - [Release Gates](docs/RELEASE_GATES.md) — staged proof, implementation, network, and production gates.
 - [Roadmap](docs/ROADMAP.md) — development phases and incomplete work.
 - [Session Workflow](docs/SESSION_WORKFLOW.md) — mandatory handoff, Lean debugging, and verification protocol for future sessions.

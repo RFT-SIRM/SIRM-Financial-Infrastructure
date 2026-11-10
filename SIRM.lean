@@ -14,3 +14,4 @@ import SIRM.AuthorizedFinancialMachine
 import SIRM.RegistryAwareFinancialMachine
 import SIRM.AuthorizedAssetMigration
 import SIRM.ReplayProtectedAssetMigration
+import SIRM.FeeAccounting

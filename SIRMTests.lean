@@ -2288,4 +2288,28 @@ theorem demoReplayProtected_preserves_complete_invariant :
     demoReplayProtected_after_second_reachable
 
 
+
+/-! ## Exact fee-accounting arithmetic regressions -/
+
+theorem feeAccounting_gross_splits_into_net_and_fee :
+    feeTransferNetAmount 1000 25 + 25 = 1000 := by
+  norm_num [feeTransferNetAmount]
+
+theorem feeAccounting_zero_fee_preserves_gross_amount :
+    feeTransferNetAmount 1000 0 = 1000 := by
+  rfl
+
+theorem feeAccounting_full_fee_leaves_zero_net :
+    feeTransferNetAmount 1000 1000 = 0 := by
+  rfl
+
+theorem feeAccounting_fee_above_gross_is_not_admissible :
+    ¬ 1001 ≤ 1000 := by
+  decide
+
+theorem feeAccounting_net_and_fee_are_exact_for_any_admissible_fee
+    (gross fee : Nat) (hFee : fee ≤ gross) :
+    feeTransferNetAmount gross fee + fee = gross :=
+  feeTransferNetAmount_add_fee gross fee hFee
+
 end SIRMTests
