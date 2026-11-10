@@ -25,7 +25,7 @@ structure FeeAuthorizationPolicy (Principal Holder Asset : Type) where
 /-- Fee accounting requires a fee no larger than the gross amount and a funded payer. -/
 def FeeTransferAllowed {Holder Asset : Type}
     (state : HoldingsState Holder Asset)
-    (sender recipient feeCollector : Holder)
+    (sender _recipient _feeCollector : Holder)
     (asset : Asset) (grossAmount feeAmount : Nat) : Prop :=
   feeAmount ≤ grossAmount ∧
     (grossAmount : Int) ≤ state.balance sender asset
@@ -189,8 +189,21 @@ theorem postJournal_feeTransferJournal_eq
           (holderTransferJournal mapping sender recipient asset
             (feeTransferNetAmount grossAmount feeAmount)))
         (holderTransferJournal mapping sender feeCollector asset feeAmount) := by
-  ext account currentAsset
-  simp [postJournal, feeTransferJournal]
+  change
+    Ledger.mk (fun account currentAsset =>
+      ledger.balance account currentAsset +
+        (feeTransferJournal mapping sender recipient feeCollector
+          asset grossAmount feeAmount).posting account currentAsset) =
+    Ledger.mk (fun account currentAsset =>
+      (ledger.balance account currentAsset +
+        (holderTransferJournal mapping sender recipient asset
+          (feeTransferNetAmount grossAmount feeAmount)).posting
+            account currentAsset) +
+        (holderTransferJournal mapping sender feeCollector asset feeAmount).posting
+          account currentAsset)
+  apply congrArg Ledger.mk
+  funext account currentAsset
+  simp [feeTransferJournal]
   ring
 
 /-- The combined journal preserves the holder-to-subledger agreement. -/
@@ -249,13 +262,13 @@ def FeeTransferStep
     (before after : FinancialState Holder LedgerAccount Asset) : Prop :=
   ∃ (principal : Principal) (sender recipient feeCollector : Holder)
       (asset : Asset) (grossAmount feeAmount : Nat)
-      (hTransfer :
+      (_hTransfer :
         transferPolicy.mayTransfer before.holdings principal
           sender recipient asset grossAmount)
-      (hFee :
+      (_hFee :
         feePolicy.mayChargeFee before.holdings principal
           sender recipient feeCollector asset grossAmount feeAmount)
-      (hAllowed :
+      (_hAllowed :
         FeeTransferAllowed before.holdings sender recipient feeCollector
           asset grossAmount feeAmount),
       after =
