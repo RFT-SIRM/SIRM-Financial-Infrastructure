@@ -24,11 +24,11 @@ def AuthorizedHolderStep {Principal Account Asset : Type}
       after = executeAuthorizedTransfer policy before principal
         source destination asset amount hAuthorized hAllowed)
   ∨
-  (∃ (principal : Principal) (recipient : Account)
+  (∃ (principal : Principal) (issuer recipient : Account)
       (asset : Asset) (amount : Nat)
       (hAuthorized :
-        policy.mayIssue before principal recipient asset amount),
-      after = executeAuthorizedIssue policy before principal recipient
+        policy.mayIssue before principal issuer recipient asset amount),
+      after = executeAuthorizedIssue policy before principal issuer recipient
         asset amount hAuthorized)
   ∨
   (∃ (principal : Principal) (holder : Account)
@@ -58,10 +58,10 @@ theorem authorizedHolderStep_preserves_invariant
       hAuthorized hAllowed
   · rcases hRest with hIssue | hBurn
     · rcases hIssue with
-        ⟨principal, recipient, asset, amount, hAuthorized, hEq⟩
+        ⟨principal, issuer, recipient, asset, amount, hAuthorized, hEq⟩
       subst after
       exact executeAuthorizedIssue_preserves_invariant
-        policy before hBefore principal recipient asset amount hAuthorized
+        policy before hBefore principal issuer recipient asset amount hAuthorized
     · rcases hBurn with
         ⟨principal, holder, asset, amount, hAuthorized, hEnough, hEq⟩
       subst after

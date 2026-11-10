@@ -26,10 +26,13 @@ This file separates Lean declarations present in source from protocol properties
 - Generic reachable-state invariant theorem, instantiated by an authorization-gated holder state machine and a combined authorized financial machine. The combined machine updates holder balances and corresponding GL journals together; a stronger reachable-state theorem also preserves aggregate signed GL balance for every asset relative to the opening ledger.
 - A dedicated `SIRMTests` Lake test-driver library covering a reconciled two-asset example, funded transfer, overspending rejection, self-transfer, issuance, holder burn, founder allocation arithmetic and journal conservation.
 
+- A finite static account-control relation, independent of authority grants, represented by principal/account pairs. The combined policy requires control of the source for transfers, the issuer for issuance, and the holder for burns, together with an exact grant. Issue grants bind both issuer and recipient; recipient control is not required by this model.
+- A registry-backed authorization adapter and regression theorems for denial when control is absent, denial when the exact grant is absent, and an allowed Treasury-to-Alice issuance where Treasury controls the issuer account but not Alice's recipient account. The holder operation remains mint-to-recipient and does not debit the issuer.
+
 ## Not yet formalized
 
 - A canonical typed asset registry with decimals, precision, issuer, status, network identifier and migration rules.
-- Concrete account metadata, principal-to-account ownership, account classes, key registry and custody, signer thresholds, permission administration, and account lifecycle. The authorization module supplies abstract state-dependent permission predicates and guarded transitions, but selects no production identity or cryptographic scheme.
+- Proof that a static principal/account control entry corresponds to legal ownership, beneficial entitlement, or actual key possession; production identity enrollment and verification, account classes, key custody, signer thresholds, permission administration, revocation, and account lifecycle remain open. The formal control relation is an asserted policy snapshot, not proof of real-world identity or title.
 - Cryptographic signature validation, concrete role and threshold policy, freeze/closure rules, and permission-policy administration.
 - A canonical finite account universe and concrete genesis assignment covering founder, treasury, validator, ecosystem, community and unallocated pools.
 - A unified transaction object with signer rules, nonce, expiry, replay prevention, fees and atomic failure semantics.
@@ -49,3 +52,5 @@ The pinned workflow explicitly invokes `lake build` and `lake test`. The test dr
 ## Assurance rule
 
 No theorem is described as proving more than its exact statement. The holder-supply invariant assumes that the account universe is complete and that each outstanding unit is assigned to exactly one holder/control account. It does not prove legal ownership, private-key custody or external reserves. A later implementation must have a refinement argument; ordinary tests alone do not establish full correspondence.
+
+- The static account-control registry is a general finite many-to-many principal/account relation: a principal may control multiple accounts, and an account may be associated with multiple principals. The relation is a policy input and does not establish real-world ownership or key custody.

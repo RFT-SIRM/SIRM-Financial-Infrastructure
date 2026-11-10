@@ -8,7 +8,7 @@ A transfer is directional: source and destination both matter.
 -/
 inductive AuthorityScope (Account : Type) where
   | transfer (source destination : Account)
-  | issue (recipient : Account)
+  | issue (issuer recipient : Account)
   | burn (holder : Account)
 
 /-- One grant binds a principal, exact scope, asset, and operation limit. -/
@@ -125,9 +125,9 @@ def toAuthorizationPolicy
   mayTransfer := fun _ principal source destination asset amount =>
     allows registry principal
       (.transfer source destination) asset amount
-  mayIssue := fun _ principal recipient asset amount =>
+  mayIssue := fun _ principal issuer recipient asset amount =>
     allows registry principal
-      (.issue recipient) asset amount
+      (.issue issuer recipient) asset amount
   mayBurn := fun _ principal holder asset amount =>
     allows registry principal
       (.burn holder) asset amount
@@ -153,13 +153,13 @@ theorem toAuthorizationPolicy_issue
     (registry : AuthorityRegistry Principal Account Asset)
     (state : HoldingsState Account Asset)
     (principal : Principal)
-    (recipient : Account)
+    (issuer recipient : Account)
     (asset : Asset)
     (amount : Nat) :
     (toAuthorizationPolicy registry).mayIssue
-      state principal recipient asset amount ↔
+      state principal issuer recipient asset amount ↔
     allows registry principal
-      (.issue recipient) asset amount := by
+      (.issue issuer recipient) asset amount := by
   rfl
 
 @[simp]

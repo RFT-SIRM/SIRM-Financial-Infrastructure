@@ -29,6 +29,15 @@ The CI workflow pins Lean 4.33.1 and Mathlib v4.33.1 and explicitly runs:
 
 Because the test driver is a Lean library, `lake test` succeeds only if these statements and proof terms compile. The tests are theorem-level regression checks, not a runtime node test or a randomized fuzz campaign. The demo authorization policy is illustrative only; it does not select a production ownership, key, role, threshold, or governance scheme.
 
+The account-control and issuer-scope regression cases additionally verify:
+
+- authority issue scopes bind the exact issuer and recipient, asset, and amount limit;
+- account control is a separate finite relation and is not inferred from an authority grant;
+- a grant without account control is rejected, and account control without the exact operation grant is rejected;
+- Treasury may issue to Alice under a Treasury-to-Alice grant while Treasury controls only the issuer account;
+- the registry-backed financial trace uses the combined control-plus-grant policy for transfer, issue, and burn;
+- issuance credits the recipient and increases outstanding supply; it does not debit the issuer account.
+
 ## Lint and runtime tests
 
 Linting is explicitly disabled in CI until a linter driver is added. Runtime/property/fuzz tests for an executable reference implementation are not yet present. These are separate requirements and must not be described as passed.
@@ -36,3 +45,11 @@ Linting is explicitly disabled in CI until a linter driver is added. Runtime/pro
 ## Reproducibility
 
 A green run must be tied to the exact commit SHA and pinned toolchain. An absent test driver, skipped test command, or empty build is not accepted as a passing test result.
+
+### Account-control theorem traceability
+
+The following theorem-level regressions are compiled by `lake test`:
+
+- `registryGrantWithoutAccountControlIsDenied` rejects an authority grant when the principal does not control the relevant account.
+- `registryAccountControlWithoutGrantIsDenied` rejects account control when the exact operation grant is absent.
+- `controlledTreasuryMayIssueToUncontrolledAlice` permits the explicitly granted Treasury-to-Alice issuance without requiring Treasury to control Alice's recipient account.

@@ -447,7 +447,7 @@ def demoAuthorizationPolicy :
     | DemoPrincipal.bob, DemoAccount.bob => True
     | DemoPrincipal.treasury, DemoAccount.treasury => True
     | _, _ => False
-  mayIssue := fun _state principal _recipient _asset _amount =>
+  mayIssue := fun _state principal _issuer _recipient _asset _amount =>
     principal = DemoPrincipal.treasury
   mayBurn := fun _state principal holder _asset _amount =>
     (principal = DemoPrincipal.alice ∧ holder = DemoAccount.alice) ∨
@@ -466,12 +466,12 @@ theorem demoTreasuryCannotTransferFromAlice :
 
 theorem demoTreasuryMayIssue :
     demoAuthorizationPolicy.mayIssue demoState
-      DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15 := by
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15 := by
   simp [demoAuthorizationPolicy]
 
 theorem demoAliceCannotIssue :
     ¬ demoAuthorizationPolicy.mayIssue demoState
-      DemoPrincipal.alice DemoAccount.treasury DemoAsset.rft 15 := by
+      DemoPrincipal.alice DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15 := by
   simp [demoAuthorizationPolicy]
 
 theorem demoAliceMayBurnOwn :
@@ -502,14 +502,14 @@ theorem demoAuthorizedTransfer_matches_existing :
 
 def demoAuthorizedAfterIssue : HoldingsState DemoAccount DemoAsset :=
   executeAuthorizedIssue demoAuthorizationPolicy demoState
-    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15
     demoTreasuryMayIssue
 
 theorem demoAuthorizedIssue_preserves_reconciliation :
     HoldingsInvariant demoAuthorizedAfterIssue :=
   executeAuthorizedIssue_preserves_invariant
     demoAuthorizationPolicy demoState demoState_reconciled
-    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15
     demoTreasuryMayIssue
 
 theorem demoAuthorizedIssue_matches_existing :
@@ -538,13 +538,13 @@ theorem demoAuthorizedBurn_matches_existing :
 
 theorem demoTreasuryMayIssueAfterTransfer :
     demoAuthorizationPolicy.mayIssue demoAuthorizedAfterTransfer
-      DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15 := by
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15 := by
   simp [demoAuthorizationPolicy]
 
 def demoAuthorizedAfterTransferAndIssue :
     HoldingsState DemoAccount DemoAsset :=
   executeAuthorizedIssue demoAuthorizationPolicy demoAuthorizedAfterTransfer
-    DemoPrincipal.treasury DemoAccount.treasury DemoAsset.rft 15
+    DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury DemoAsset.rft 15
     demoTreasuryMayIssueAfterTransfer
 
 theorem demoAliceMayBurnAfterTransferAndIssue :
@@ -594,6 +594,7 @@ theorem demoAuthorizedIssue_is_step :
       demoAuthorizedAfterTransfer demoAuthorizedAfterTransferAndIssue := by
   exact Or.inr (Or.inl ⟨
     DemoPrincipal.treasury,
+    DemoAccount.treasury,
     DemoAccount.treasury,
     DemoAsset.rft,
     15,
@@ -690,6 +691,7 @@ theorem demoFinancialIssue_is_authorized_step :
       demoFinancialAfterTransfer demoFinancialAfterIssue := by
   exact Or.inr (Or.inl ⟨
     DemoPrincipal.treasury,
+    DemoAccount.treasury,
     DemoAccount.treasury,
     DemoAsset.rft,
     15,
@@ -869,7 +871,7 @@ def registryTransferGrant :
 def registryIssueGrant :
     AuthorityGrant DemoPrincipal DemoAccount DemoAsset :=
   { principal := .treasury
-    scope := .issue .treasury
+    scope := .issue .treasury .treasury
     asset := .rft
     maxAmount := 50 }
 
@@ -912,6 +914,19 @@ def demoRegistryPolicy :
     AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
   AuthorityRegistry.toAuthorizationPolicy demoAuthorityRegistry
 
+
+def demoAccountControlRegistry :
+    AccountControlRegistry DemoPrincipal DemoAccount where
+  entries := [
+    (DemoPrincipal.alice, DemoAccount.alice),
+    (DemoPrincipal.bob, DemoAccount.bob),
+    (DemoPrincipal.treasury, DemoAccount.treasury)
+  ]
+
+def demoControlledRegistryPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
+  toControlledAuthorizationPolicy demoAccountControlRegistry demoAuthorityRegistry
+
 /-! ### Positive authorization cases -/
 
 theorem registryAliceMayTransfer :
@@ -929,10 +944,10 @@ theorem registryAliceMayTransfer :
 
 theorem registryTreasuryMayIssue :
     demoRegistryPolicy.mayIssue demoState
-      DemoPrincipal.treasury DemoAccount.treasury
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury
       DemoAsset.rft 15 := by
   change AuthorityRegistry.allows demoAuthorityRegistry
-    DemoPrincipal.treasury (.issue .treasury) .rft 15
+    DemoPrincipal.treasury (.issue .treasury .treasury) .rft 15
   exact ⟨
     registryIssueGrant,
     by simp [demoAuthorityRegistry],
@@ -951,6 +966,132 @@ theorem registryAliceMayBurn :
     by simp [demoAuthorityRegistry],
     rfl, rfl, rfl,
     by decide
+  ⟩
+
+/-! ### Independent account-control gate -/
+
+theorem controlledRegistryAliceMayTransfer :
+    demoControlledRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob
+      DemoAsset.rft 40 := by
+  change AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.alice DemoAccount.alice ∧
+    AuthorityRegistry.allows demoAuthorityRegistry
+      DemoPrincipal.alice (.transfer .alice .bob) .rft 40
+  exact ⟨
+    by simp [AccountControlRegistry.controls, demoAccountControlRegistry],
+    registryAliceMayTransfer
+  ⟩
+
+theorem controlledRegistryTreasuryMayIssue :
+    demoControlledRegistryPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury
+      DemoAsset.rft 15 := by
+  change AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.treasury DemoAccount.treasury ∧
+    AuthorityRegistry.allows demoAuthorityRegistry
+      DemoPrincipal.treasury (.issue .treasury .treasury) .rft 15
+  exact ⟨
+    by simp [AccountControlRegistry.controls, demoAccountControlRegistry],
+    registryTreasuryMayIssue
+  ⟩
+
+theorem controlledRegistryAliceMayBurn :
+    demoControlledRegistryPolicy.mayBurn demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAsset.rft 20 := by
+  change AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.alice DemoAccount.alice ∧
+    AuthorityRegistry.allows demoAuthorityRegistry
+      DemoPrincipal.alice (.burn .alice) .rft 20
+  exact ⟨
+    by simp [AccountControlRegistry.controls, demoAccountControlRegistry],
+    registryAliceMayBurn
+  ⟩
+
+def demoEmptyAccountControlRegistry :
+    AccountControlRegistry DemoPrincipal DemoAccount where
+  entries := []
+
+def demoNoControlRegistryPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
+  toControlledAuthorizationPolicy demoEmptyAccountControlRegistry
+    demoAuthorityRegistry
+
+theorem registryGrantWithoutAccountControlIsDenied :
+    ¬ demoNoControlRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.bob
+      DemoAsset.rft 40 := by
+  change ¬ (
+    AccountControlRegistry.controls demoEmptyAccountControlRegistry
+      DemoPrincipal.alice DemoAccount.alice ∧
+    AuthorityRegistry.allows demoAuthorityRegistry
+      DemoPrincipal.alice (.transfer .alice .bob) .rft 40)
+  simp [AccountControlRegistry.controls, demoEmptyAccountControlRegistry]
+
+theorem registryAccountControlWithoutGrantIsDenied :
+    ¬ demoControlledRegistryPolicy.mayTransfer demoState
+      DemoPrincipal.alice DemoAccount.alice DemoAccount.treasury
+      DemoAsset.rft 40 := by
+  change ¬ (
+    AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.alice DemoAccount.alice ∧
+    AuthorityRegistry.allows demoAuthorityRegistry
+      DemoPrincipal.alice (.transfer .alice .treasury) .rft 40)
+  simp [
+    AccountControlRegistry.controls,
+    demoAccountControlRegistry,
+    AuthorityRegistry.allows,
+    demoAuthorityRegistry,
+    registryTransferGrant,
+    registryIssueGrant,
+    registryBurnGrant
+  ]
+
+/-- Treasury controls the issuer account, but not Alice's recipient account. -/
+theorem treasuryDoesNotControlAlice :
+    ¬ AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.treasury DemoAccount.alice := by
+  simp [AccountControlRegistry.controls, demoAccountControlRegistry]
+
+def registryIssueToAliceGrant :
+    AuthorityGrant DemoPrincipal DemoAccount DemoAsset :=
+  { principal := .treasury
+    scope := .issue .treasury .alice
+    asset := .rft
+    maxAmount := 25 }
+
+def demoIssueToAliceAuthorityRegistry :
+    AuthorityRegistry DemoPrincipal DemoAccount DemoAsset where
+  grants := [registryIssueToAliceGrant]
+  unique_scope := by
+    intro left right hLeftMem hRightMem _ _ _
+    have hLeft : left = registryIssueToAliceGrant := by
+      simpa using hLeftMem
+    have hRight : right = registryIssueToAliceGrant := by
+      simpa using hRightMem
+    rw [hLeft, hRight]
+
+def demoTreasuryIssueToUncontrolledRecipientPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
+  toControlledAuthorizationPolicy demoAccountControlRegistry
+    demoIssueToAliceAuthorityRegistry
+
+theorem controlledTreasuryMayIssueToUncontrolledAlice :
+    demoTreasuryIssueToUncontrolledRecipientPolicy.mayIssue demoState
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.alice
+      DemoAsset.rft 15 := by
+  change AccountControlRegistry.controls demoAccountControlRegistry
+      DemoPrincipal.treasury DemoAccount.treasury ∧
+    AuthorityRegistry.allows demoIssueToAliceAuthorityRegistry
+      DemoPrincipal.treasury (.issue .treasury .alice) .rft 15
+  exact ⟨
+    by simp [AccountControlRegistry.controls, demoAccountControlRegistry],
+    ⟨
+      registryIssueToAliceGrant,
+      by simp [demoIssueToAliceAuthorityRegistry],
+      rfl, rfl, rfl,
+      by decide
+    ⟩
   ⟩
 
 /-! ### Negative authorization cases -/
@@ -1013,10 +1154,10 @@ theorem registryCannotUseAnotherAsset :
 
 theorem registryAliceCannotIssue :
     ¬ demoRegistryPolicy.mayIssue demoState
-      DemoPrincipal.alice DemoAccount.treasury
+      DemoPrincipal.alice DemoAccount.treasury DemoAccount.treasury
       DemoAsset.rft 15 := by
   change ¬ AuthorityRegistry.allows demoAuthorityRegistry
-    DemoPrincipal.alice (.issue .treasury) .rft 15
+    DemoPrincipal.alice (.issue .treasury .treasury) .rft 15
   simp [
     AuthorityRegistry.allows,
     demoAuthorityRegistry,
@@ -1027,10 +1168,10 @@ theorem registryAliceCannotIssue :
 
 theorem registryTreasuryCannotExceedIssueLimit :
     ¬ demoRegistryPolicy.mayIssue demoState
-      DemoPrincipal.treasury DemoAccount.treasury
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.treasury
       DemoAsset.rft 51 := by
   change ¬ AuthorityRegistry.allows demoAuthorityRegistry
-    DemoPrincipal.treasury (.issue .treasury) .rft 51
+    DemoPrincipal.treasury (.issue .treasury .treasury) .rft 51
   simp [
     AuthorityRegistry.allows,
     demoAuthorityRegistry,
@@ -1041,10 +1182,10 @@ theorem registryTreasuryCannotExceedIssueLimit :
 
 theorem registryTreasuryCannotIssueToAlice :
     ¬ demoRegistryPolicy.mayIssue demoState
-      DemoPrincipal.treasury DemoAccount.alice
+      DemoPrincipal.treasury DemoAccount.treasury DemoAccount.alice
       DemoAsset.rft 15 := by
   change ¬ AuthorityRegistry.allows demoAuthorityRegistry
-    DemoPrincipal.treasury (.issue .alice) .rft 15
+    DemoPrincipal.treasury (.issue .treasury .alice) .rft 15
   simp [
     AuthorityRegistry.allows,
     demoAuthorityRegistry,
@@ -1084,7 +1225,7 @@ theorem registryAliceCannotExceedBurnLimit :
 /-! ### Integration with the existing financial state machine -/
 
 theorem registryFinancialTransfer_is_step :
-    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+    AuthorizedFinancialStep demoControlledRegistryPolicy demoHolderLedgerMap
       DemoLedgerAccount.control
       demoInitialFinancialState demoFinancialAfterTransfer := by
   exact Or.inl ⟨
@@ -1093,27 +1234,28 @@ theorem registryFinancialTransfer_is_step :
     DemoAccount.bob,
     DemoAsset.rft,
     40,
-    registryAliceMayTransfer,
+    controlledRegistryAliceMayTransfer,
     transfer40_is_funded,
     rfl
   ⟩
 
 theorem registryFinancialIssue_is_step :
-    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+    AuthorizedFinancialStep demoControlledRegistryPolicy demoHolderLedgerMap
       DemoLedgerAccount.control
       demoFinancialAfterTransfer demoFinancialAfterIssue := by
   exact Or.inr (Or.inl ⟨
     DemoPrincipal.treasury,
     DemoAccount.treasury,
+    DemoAccount.treasury,
     DemoAsset.rft,
     15,
-    registryTreasuryMayIssue,
+    controlledRegistryTreasuryMayIssue,
     demoControlIsUnmapped,
     rfl
   ⟩)
 
 theorem registryFinancialBurn_is_step :
-    AuthorizedFinancialStep demoRegistryPolicy demoHolderLedgerMap
+    AuthorizedFinancialStep demoControlledRegistryPolicy demoHolderLedgerMap
       DemoLedgerAccount.control
       demoFinancialAfterIssue demoFinancialAfterBurn := by
   exact Or.inr (Or.inr ⟨
@@ -1121,7 +1263,7 @@ theorem registryFinancialBurn_is_step :
     DemoAccount.alice,
     DemoAsset.rft,
     20,
-    registryAliceMayBurn,
+    controlledRegistryAliceMayBurn,
     demoAliceHasFundsAfterTransferAndIssue,
     demoControlIsUnmapped,
     rfl
@@ -1131,7 +1273,7 @@ def demoRegistryFinancialMachine :
     VerifiedStateMachine
       (FinancialState DemoAccount DemoLedgerAccount DemoAsset) :=
   authorizedFinancialMachineWithConservation
-    demoRegistryPolicy
+    demoControlledRegistryPolicy
     demoHolderLedgerMap
     DemoLedgerAccount.control
     demoInitialFinancialState
@@ -1164,7 +1306,7 @@ theorem registryFinancialTrace_preserves_complete_invariant :
     FinancialConservationInvariant demoHolderLedgerMap
       demoInitialFinancialState.ledger demoFinancialAfterBurn :=
   financialConservationInvariant_of_authorized_reachable
-    demoRegistryPolicy
+    demoControlledRegistryPolicy
     demoHolderLedgerMap
     DemoLedgerAccount.control
     demoInitialFinancialState

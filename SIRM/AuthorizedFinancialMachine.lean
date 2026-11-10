@@ -74,15 +74,15 @@ def AuthorizedFinancialStep
           ledger := postJournal before.ledger
             (holderTransferJournal mapping source destination asset amount) })
   ∨
-  (∃ (principal : Principal) (recipient : Holder)
+  (∃ (principal : Principal) (issuer recipient : Holder)
       (asset : Asset) (amount : Nat)
       (hAuthorized :
-        policy.mayIssue before.holdings principal recipient asset amount)
+        policy.mayIssue before.holdings principal issuer recipient asset amount)
       (_hCounterpart :
         ∀ holder, counterpart ≠ mapping.ledgerAccount holder),
       after =
         { holdings := executeAuthorizedIssue policy before.holdings
-            principal recipient asset amount hAuthorized
+            principal issuer recipient asset amount hAuthorized
           ledger := postJournal before.ledger
             (holderIssuanceJournal mapping counterpart recipient asset amount) })
   ∨
@@ -129,13 +129,13 @@ theorem authorizedFinancialStep_preserves_invariant
         source destination asset amount hAllowed
   · rcases hRest with hIssue | hBurn
     · rcases hIssue with
-        ⟨principal, recipient, asset, amount,
+        ⟨principal, issuer, recipient, asset, amount,
           hAuthorized, hCounterpart, hEq⟩
       subst after
       constructor
       · exact executeAuthorizedIssue_preserves_invariant
           policy before.holdings hBefore.1
-          principal recipient asset amount hAuthorized
+          principal issuer recipient asset amount hAuthorized
       · exact holderSubledgerAgreement_issue
           mapping before.holdings before.ledger hBefore.2
           counterpart hCounterpart recipient asset amount
@@ -241,7 +241,7 @@ theorem authorizedFinancialStep_preserves_conservation
           hBefore.2 queryAsset
     · rcases hRest with hIssue | hBurn
       · rcases hIssue with
-          ⟨principal, recipient, asset, amount,
+          ⟨principal, issuer, recipient, asset, amount,
             hAuthorized, hCounterpart, hEq⟩
         subst after
         calc
