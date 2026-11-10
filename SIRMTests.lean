@@ -1611,4 +1611,39 @@ theorem typedDemoRegistryAwareTrace_preserves_complete_invariant :
     typedDemoInitialFinancialState typedDemoInitialFinancialState_invariant
     typedDemoRegistryAwareIssue_reachable
 
+
+/-! ## Exact asset-denominated base-unit regressions -/
+
+theorem typedRegistry_whole_units_convert_to_base_units :
+    typedDemoAssetMetadata.wholeUnitsToBaseUnits 12 = 1200 := by
+  norm_num [AssetMetadata.wholeUnitsToBaseUnits,
+    AssetMetadata.baseUnitsPerWhole, typedDemoAssetMetadata]
+
+theorem typedRegistry_whole_units_decimal_input_is_exact :
+    typedDemoAssetMetadata.toBaseUnits? ⟨12, 0⟩ = some 1200 := by
+  norm_num [AssetMetadata.toBaseUnits?, typedDemoAssetMetadata]
+
+theorem typedRegistry_input_at_asset_precision_is_identity :
+    typedDemoAssetMetadata.toBaseUnits? ⟨1234, 2⟩ = some 1234 := by
+  simp [AssetMetadata.toBaseUnits?, typedDemoAssetMetadata]
+
+theorem typedRegistry_extra_trailing_zero_is_exact :
+    typedDemoAssetMetadata.toBaseUnits? ⟨1230, 3⟩ = some 123 := by
+  norm_num [AssetMetadata.toBaseUnits?, typedDemoAssetMetadata]
+
+theorem typedRegistry_nonzero_excess_precision_is_rejected :
+    typedDemoAssetMetadata.toBaseUnits? ⟨1234, 3⟩ = none := by
+  norm_num [AssetMetadata.toBaseUnits?, typedDemoAssetMetadata]
+
+theorem typedRegistry_base_units_fit_explicit_bound :
+    typedDemoAssetMetadata.toBaseUnitsWithin? ⟨1230, 3⟩ 123 =
+      some ⟨123, by decide⟩ := by
+  norm_num [AssetMetadata.toBaseUnitsWithin?, AssetMetadata.toBaseUnits?,
+    typedDemoAssetMetadata]
+
+theorem typedRegistry_base_units_above_explicit_bound_are_rejected :
+    typedDemoAssetMetadata.toBaseUnitsWithin? ⟨1230, 3⟩ 122 = none := by
+  norm_num [AssetMetadata.toBaseUnitsWithin?, AssetMetadata.toBaseUnits?,
+    typedDemoAssetMetadata]
+
 end SIRMTests

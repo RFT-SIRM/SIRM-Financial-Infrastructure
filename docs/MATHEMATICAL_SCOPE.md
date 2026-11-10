@@ -30,6 +30,12 @@ This document describes what the current Lean declarations establish, the assump
 - A registry proof enforces that each asset's issuer account belongs to the same declared network. Registry-level issuance eligibility requires both the asset and issuer account to be active.
 - These metadata predicates do not prove identity, ownership, key custody, or authority. The existing authority-grant and account-control gates remain independent. Cross-network migration and conversion are not yet formalized.
 
+### Exact asset-denominated base units
+
+- `SIRM.AssetUnits` represents a nonnegative decimal input as a natural-number coefficient plus an explicit decimal-place count. For an asset with `d` decimals, input precision `p ≤ d` is scaled by `10^(d-p)`; when `p > d`, conversion succeeds only if the coefficient is divisible by `10^(p-d)`. Nonzero excess digits are rejected rather than rounded.
+- Whole-unit conversion uses the registry metadata scale `10^d`. The `Fin (maxBaseUnits + 1)` adapter separately enforces an explicit inclusive range bound. Lean's `Nat` is mathematically unbounded; this generic bound does not select or prove a concrete Rust/C machine integer width, and runtime overflow behavior remains a downstream refinement obligation.
+- No production asset decimal precision, target integer width, floating-point representation, or rounding policy is selected by these definitions.
+
 ### Registry-aware issuance eligibility
 
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with `AssetRegistry.issuanceEnabled`. A new issue is admitted only when the original policy authorizes the principal, issuer, recipient, asset, and amount, and the asset plus its issuer account are active.

@@ -79,3 +79,15 @@ The registry-aware tests compile the following cases:
 - one admitted typed issuance is a reachable transition of the new combined financial machine, and the resulting state retains holder/supply reconciliation, mapped subledger agreement, and aggregate signed-ledger conservation.
 
 The gate is intentionally issuance-specific in this block. It does not yet formalize lifecycle transitions or impose asset/issuer activity checks on transfer or burn.
+
+## Exact asset-denominated base-unit regressions
+
+The `SIRMTests.lean` suite compiles these exact-conversion cases:
+
+- whole-unit amounts convert by multiplying by the metadata scale `10 ^ decimals`;
+- an input using exactly the asset's decimal precision maps its coefficient directly to base units;
+- input with additional trailing zero digits is divided exactly and accepted;
+- input with nonzero excess precision is rejected rather than truncated or rounded;
+- a caller-supplied inclusive maximum is enforced by returning `Fin (maxBaseUnits + 1)` or `none` when out of range.
+
+The range proof is parameterized by a natural-number maximum. It does not select a machine integer width or claim runtime overflow safety for a Rust implementation. Production decimals remain unselected.

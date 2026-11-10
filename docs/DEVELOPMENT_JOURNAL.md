@@ -59,3 +59,47 @@ Expected static audit count: 17. Inspect the complete `git diff`, not just the s
 The next narrowly scoped accounting task is exact asset-denominated base-unit handling: define conversion between whole units and integer base units using `10 ^ decimals`, prove exactness for integral values and explicit rejection/handling of fractional precision, then bound runtime overflow/range separately. Do not select production RFT decimals here. Avoid floating-point arithmetic in the normative model.
 
 Open topics not claimed as solved: asset migration and cross-network conversion, legal identity/title, cryptographic signatures, lifecycle transition policy, production transaction envelopes, Rust refinement, reserve evidence, consensus, and runtime testing.
+
+## Work block: exact asset-denominated base units
+
+### Verified starting point
+
+- Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
+- Working branch: `foundation/exact-asset-base-units-2026-11-10`.
+- Exact starting commit after the preceding squash merge: `626d38dce1a5ed0d18e8b1802c19576cefd7f9d5`.
+- The branch was created from that SHA and verified identical to it on GitHub before patching.
+
+### Objective and adopted arithmetic
+
+Represent a nonnegative decimal input as `(coefficient, decimalPlaces)`, meaning `coefficient / 10^decimalPlaces` whole asset units. For an asset with `d` metadata decimals:
+
+- if `decimalPlaces ≤ d`, multiply the coefficient by `10^(d - decimalPlaces)`;
+- if `decimalPlaces > d`, divide by `10^(decimalPlaces - d)` only when the remainder is zero;
+- otherwise return `none`. There is no truncation, rounding, floating point, or implicit precision loss.
+
+Whole-unit conversion uses `10^d`. A separate bounded conversion takes an explicit inclusive maximum and returns `Fin (max + 1)`. This is a proof-level range guard only: `Nat` remains unbounded, and no concrete Rust/C integer width or runtime overflow policy is selected.
+
+### Expected source changes
+
+- Add `SIRM/AssetUnits.lean` and import it from `SIRM.lean` after `SIRM.TypedRegistry`.
+- Add theorem-level regressions for whole units, exact input precision, extra trailing zeros, rejected nonzero excess precision, and in-range/out-of-range bounded conversion.
+- Update README, formalization status, mathematical scope, roadmap, testing notes, decisions, and this journal.
+
+### Verification sequence
+
+```bash
+lake build SIRM.AssetUnits
+lake build SIRM
+lake test
+python3 scripts/ci_audit.py all
+git diff --check
+```
+
+Do not commit until the target module, full `SIRM` build, theorem-level test driver, all 17 static audits, and diff checks pass. Then create one commit on this branch, push once, verify the remote SHA, open one PR against `main`, and merge only after all 18 CI jobs are green.
+
+### Explicitly deferred
+
+- Selecting production decimal precision for RFT or any other asset.
+- Selecting a concrete 32-bit/64-bit or platform-specific runtime integer bound.
+- Rust checked-arithmetic implementation and Lean-to-Rust refinement proof.
+- Fees, FX, migration, residual rounding, and signed-value parsing.
