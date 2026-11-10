@@ -13,6 +13,7 @@
 
 9. **Typed identifiers and registries:** account and asset identifiers use separate finite index types. Each finite registry is total over its declared identifier universe. Account class/status metadata is descriptive and does not itself grant authority. An asset's issuer must be in the account universe and on the asset's declared network. Asset migration and conversion rules remain separate future decisions.
 10. **Issuance registry gate:** an authorized issuance must also target an active asset whose issuer account is active. The existing principal control and exact authority grant remain required. This registry gate does not alter transfer or burn authorization in the current formalization.
+11. **Exact base-unit conversion:** decimal inputs are nonnegative integer coefficients with explicit decimal-place counts. Conversion to an asset's base units must be exact; nonrepresentable excess precision is rejected, never rounded implicitly. A range bound is supplied explicitly by the caller. No production decimals or machine integer width are selected here.
 
 ## Not yet decided
 
