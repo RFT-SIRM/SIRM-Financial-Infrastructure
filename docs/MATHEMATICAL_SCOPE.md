@@ -30,6 +30,12 @@ This document describes what the current Lean declarations establish, the assump
 - A registry proof enforces that each asset's issuer account belongs to the same declared network. Registry-level issuance eligibility requires both the asset and issuer account to be active.
 - These metadata predicates do not prove identity, ownership, key custody, or authority. The existing authority-grant and account-control gates remain independent. Cross-network migration and conversion are not yet formalized.
 
+### Registry-aware issuance eligibility
+
+- `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with `AssetRegistry.issuanceEnabled`. A new issue is admitted only when the original policy authorizes the principal, issuer, recipient, asset, and amount, and the asset plus its issuer account are active.
+- Transfer and burn authorization predicates are passed through unchanged. This block does not introduce transfer/burn freeze gates, account lifecycle transitions, or production policy administration.
+- The registry-aware machine reuses the paired holder/GL transition and the existing reachable-state theorem for holder reconciliation, subledger agreement, and aggregate signed-ledger conservation.
+
 ### Combined authorized financial machine
 
 - `SIRM.AuthorizedFinancialMachine`: one abstract financial state containing both holder balances and the signed general ledger.
