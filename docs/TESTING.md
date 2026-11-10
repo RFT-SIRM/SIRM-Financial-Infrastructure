@@ -38,6 +38,20 @@ The account-control and issuer-scope regression cases additionally verify:
 - the registry-backed financial trace uses the combined control-plus-grant policy for transfer, issue, and burn;
 - issuance credits the recipient and increases outstanding supply; it does not debit the issuer account.
 
+## Per-principal migration nonce and replay-protection regressions
+
+The `SIRMTests.lean` suite compiles a replay-protected two-step migration and negative nonce cases:
+
+- the first authorized migration is admitted with the initial nonce zero;
+- the same principal's next expected nonce advances to one in the very same state as the first migration;
+- a second authorized migration is admitted with nonce one and advances the expected nonce to two;
+- replaying the old nonce zero after the first step is rejected;
+- submitting a future nonce two before nonce one is consumed is rejected;
+- another principal's nonce remains unchanged across both transitions;
+- the reachable-state theorem preserves the underlying holder/supply, mapped holder/GL, aggregate signed GL, and residual conservation invariants.
+
+The model uses an unbounded Lean `Nat` and scopes sequences to the migration machine. It does not prove global replay protection for every protocol operation, persistent runtime storage, concurrent transaction ordering, signature verification, or idempotent replay responses.
+
 ## Lint and runtime tests
 
 Linting is explicitly disabled in CI until a linter driver is added. Runtime/property/fuzz tests for an executable reference implementation are not yet present. These are separate requirements and must not be described as passed.

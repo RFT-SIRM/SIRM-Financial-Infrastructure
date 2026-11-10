@@ -163,6 +163,9 @@ def docs_and_ci_topology():
     testing = load("docs/TESTING.md")
     formal = load("docs/FORMALIZATION_STATUS.md")
     security = load("docs/SECURITY_MODEL.md")
+    replay = load("SIRM/ReplayProtectedAssetMigration.lean")
+    umbrella = load("SIRM.lean")
+    regression = load("SIRMTests.lean")
     workflow = load(".github/workflows/lean.yml")
 
     need("SIRM.AccountControl" in readme and "SIRM.AuthorityRegistry" in readme,
@@ -177,6 +180,21 @@ def docs_and_ci_topology():
          "FORMALIZATION_STATUS.md does not describe static account control and issuer scope")
     need("recipient" in security.lower() and "static" in security.lower(),
          "SECURITY_MODEL.md does not describe the static authorization boundary")
+    need("SIRM.ReplayProtectedAssetMigration" in umbrella and
+         "SIRM.ReplayProtectedAssetMigration" in readme,
+         "replay-protected migration module is not integrated/documented")
+    need("nextNonce : Principal → Nat" in replay and
+         "nonce = before.nextNonce principal" in replay and
+         "nonce + 1" in replay,
+         "replay guard does not require and advance the per-principal next nonce")
+    for theorem in (
+        "demoReplayProtected_stale_nonce_zero_rejected",
+        "demoReplayProtected_future_nonce_two_rejected",
+        "demoReplayProtected_other_principal_nonce_is_unchanged",
+        "demoReplayProtected_preserves_complete_invariant",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean does not document/compile {theorem}")
 
     ids = re.findall(r"(?m)^\s+- id:", workflow)
     need(len(ids) == 17, f"expected 17 static matrix jobs, found {len(ids)}")

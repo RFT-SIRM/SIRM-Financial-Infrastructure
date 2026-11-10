@@ -189,3 +189,37 @@ git diff --check
 ```
 
 Do not commit until the target module, full `SIRM` build, theorem-level test driver, all 17 static audits, and diff checks pass. Inspect the complete staged diff before one commit, one push, and one PR against `main`.
+
+
+## Work block: per-principal nonce guard for authorized migration replay
+
+### Verified starting point
+
+- Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
+- Working branch: `foundation/transaction-replay-guard-2026-11-10`.
+- Exact `main` base: `f6740483006d45bfc82b04fd441f49aac1865e52`.
+- The branch also contains the session handoff guide introduced from that exact base; before this source patch its head was `69b65f0aa92b14aad376a50ef04cb23b8915340e`.
+
+### Objective and selected model
+
+- Preserve `SIRM.AuthorizedAssetMigration` unchanged and compose it through a separate replay-protected state machine.
+- Extend the state with `nextNonce : Principal → Nat`; every principal starts at zero and has an independent sequence.
+- A request carries an explicit nonce and is admitted only when it equals the current expected nonce for the same principal.
+- The accepted transition computes the existing authorized atomic migration and increments that principal's expected nonce by one in the same returned state. All other principals' nonce values remain unchanged.
+- Prove exact advancement, non-interference for other principals, rejection of any mismatching nonce, and reachable preservation of the existing financial/residual invariant.
+
+### Explicit limits
+
+This is a migration-specific abstract nonce gate. It is not a global nonce across all protocol operations, transaction hash/idempotent response cache, signature validation, expiry, canonical bytes, persistent storage, concurrent execution protocol, or production runtime commit guarantee. Lean `Nat` is unbounded; no production nonce width is selected.
+
+### Verification gate
+
+```bash
+lake build SIRM.ReplayProtectedAssetMigration
+lake build SIRM
+lake test
+python3 scripts/ci_audit.py all
+git diff --check
+```
+
+Do not commit until the new module, umbrella library, theorem regression suite, all 17 static audits, and complete diff review pass. Then use one commit, one non-force push, one PR, and merge only after all 18 checks pass for the exact PR head. Exact commit/PR/merge SHAs and CI results are to be added to the next verified handoff entry.

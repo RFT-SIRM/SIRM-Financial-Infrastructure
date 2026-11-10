@@ -79,3 +79,10 @@ As of the authorized atomic migration block:
 - The migration is an abstract atomic transition with exact route/source/recipient-scoped residual carry-forward. It does not implement external bridge settlement/finality, replay/idempotency, custody, rollback, or production backing/valuation of residual claims.
 
 Update this baseline in the next journal entry; do not treat it as permanent state.
+
+
+## 7. Current replay-guard work block
+
+The next implementation branch is `foundation/transaction-replay-guard-2026-11-10`, based on the verified `main` SHA `f6740483006d45bfc82b04fd441f49aac1865e52`. Its goal is a migration-specific, per-principal sequential nonce gate layered over `SIRM.AuthorizedAssetMigration`. The exact accepted nonce must equal the principal's expected nonce; the migration and increment are one abstract state transition. The module, Lean tests, CI audit assertions, roadmap, formalization status, scope, testing guide, decisions, and journal must move together.
+
+This block does not claim global transaction replay protection, request-hash idempotency, signature/expiry handling, persistence, concurrency semantics, or production nonce-width safety. Verify the latest branch and CI state before continuing; do not assume this paragraph means the block is merged.

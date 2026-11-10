@@ -2125,4 +2125,167 @@ theorem demoAuthorizedMigration_preserves_complete_invariant :
     demoAuthorizedMigration_after_second_reachable
 
 
+/-! ## Per-principal nonce and replay-protection regressions -/
+
+def demoReplayProtectedInitialState :
+    ReplayProtectedAuthorizedAssetMigrationState DemoPrincipal
+      demoAuthorizedMigrationPartition (Option (AccountId 2)) :=
+  initialReplayProtectedAuthorizedAssetMigrationState DemoPrincipal
+    demoAuthorizedMigrationPartition demoAuthorizedMigrationInitialFinancial
+
+def demoReplayProtectedAfterFirst :
+    ReplayProtectedAuthorizedAssetMigrationState DemoPrincipal
+      demoAuthorizedMigrationPartition (Option (AccountId 2)) :=
+  applyReplayProtectedAuthorizedAssetMigration DemoPrincipal
+    demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationPartition
+    demoReplayProtectedInitialState DemoPrincipal.treasury 0 1
+
+def demoReplayProtectedAfterSecond :
+    ReplayProtectedAuthorizedAssetMigrationState DemoPrincipal
+      demoAuthorizedMigrationPartition (Option (AccountId 2)) :=
+  applyReplayProtectedAuthorizedAssetMigration DemoPrincipal
+    demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationPartition
+    demoReplayProtectedAfterFirst DemoPrincipal.treasury 1 1
+
+theorem demoReplayProtected_first_step :
+    ReplayProtectedAuthorizedAssetMigrationStep DemoPrincipal
+      demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+      demoAuthorizedMigrationHolderLedgerMap
+      (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+      demoAuthorizedMigrationPartition DemoPrincipal.treasury 0 1
+      demoReplayProtectedInitialState demoReplayProtectedAfterFirst := by
+  refine ⟨by rfl, ?_, rfl⟩
+  exact demoAuthorizedMigration_first_step
+
+theorem demoReplayProtected_first_nonce_advances :
+    demoReplayProtectedAfterFirst.nextNonce DemoPrincipal.treasury = 1 := by
+  simpa using
+    (replayProtectedAuthorizedAssetMigrationStep_next_nonce
+      DemoPrincipal demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+      demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+      demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+      DemoPrincipal.treasury 0 1 demoReplayProtected_first_step)
+
+theorem demoReplayProtected_other_principal_nonce_is_unchanged :
+    demoReplayProtectedAfterFirst.nextNonce DemoPrincipal.auditor = 0 := by
+  simpa [demoReplayProtectedInitialState,
+    initialReplayProtectedAuthorizedAssetMigrationState] using
+    (replayProtectedAuthorizedAssetMigrationStep_other_nonce
+      DemoPrincipal demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+      demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+      demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+      DemoPrincipal.treasury DemoPrincipal.auditor 0 1 demoReplayProtected_first_step
+      (by decide))
+
+theorem demoReplayProtected_stale_nonce_zero_rejected :
+    ∀ after,
+      ¬ ReplayProtectedAuthorizedAssetMigrationStep DemoPrincipal
+        demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+        demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+        demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+        DemoPrincipal.treasury 0 1 demoReplayProtectedAfterFirst after := by
+  intro after
+  apply replayProtectedAuthorizedAssetMigrationStep_reject_nonce_mismatch
+  rw [demoReplayProtected_first_nonce_advances]
+  decide
+
+theorem demoReplayProtected_future_nonce_two_rejected :
+    ∀ after,
+      ¬ ReplayProtectedAuthorizedAssetMigrationStep DemoPrincipal
+        demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+        demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+        demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+        DemoPrincipal.treasury 2 1 demoReplayProtectedAfterFirst after := by
+  intro after
+  apply replayProtectedAuthorizedAssetMigrationStep_reject_nonce_mismatch
+  rw [demoReplayProtected_first_nonce_advances]
+  decide
+
+theorem demoReplayProtected_second_step :
+    ReplayProtectedAuthorizedAssetMigrationStep DemoPrincipal
+      demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+      demoAuthorizedMigrationHolderLedgerMap
+      (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+      demoAuthorizedMigrationPartition DemoPrincipal.treasury 1 1
+      demoReplayProtectedAfterFirst demoReplayProtectedAfterSecond := by
+  refine ⟨?_, demoAuthorizedMigration_second_step, rfl⟩
+  simpa using demoReplayProtected_first_nonce_advances.symm
+
+def demoReplayProtectedMachine :
+    VerifiedStateMachine
+      (ReplayProtectedAuthorizedAssetMigrationState DemoPrincipal
+        demoAuthorizedMigrationPartition (Option (AccountId 2))) :=
+  replayProtectedAuthorizedAssetMigrationMachine DemoPrincipal
+    demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+    demoAuthorizedMigrationHolderLedgerMap
+    (none : Option (AccountId 2)) demoAuthorizedMigrationCounterpart_unmapped
+    demoAuthorizedMigrationPartition demoAuthorizedMigrationInitialFinancial
+    demoAuthorizedMigrationInitialFinancial_invariant
+
+theorem demoReplayProtected_initial_reachable :
+    Reachable demoReplayProtectedMachine demoReplayProtectedInitialState :=
+  Reachable.initial rfl
+
+theorem demoReplayProtected_after_first_reachable :
+    Reachable demoReplayProtectedMachine demoReplayProtectedAfterFirst :=
+  Reachable.step demoReplayProtected_initial_reachable
+    ⟨DemoPrincipal.treasury, 0, 1, demoReplayProtected_first_step⟩
+
+theorem demoReplayProtected_after_second_reachable :
+    Reachable demoReplayProtectedMachine demoReplayProtectedAfterSecond :=
+  Reachable.step demoReplayProtected_after_first_reachable
+    ⟨DemoPrincipal.treasury, 1, 1, demoReplayProtected_second_step⟩
+
+theorem demoReplayProtected_two_step_result :
+    demoReplayProtectedAfterSecond.migration.financial.holdings.balance
+        typedDemoTreasury demoMigrationSourceAsset = 0 ∧
+    demoReplayProtectedAfterSecond.migration.financial.holdings.balance
+        typedDemoCustomer demoMigrationDestinationAsset = 1 ∧
+    demoReplayProtectedAfterSecond.migration.dust.totalSourceBaseUnits = 2 ∧
+    demoReplayProtectedAfterSecond.migration.dust.totalTargetBaseUnits = 1 ∧
+    demoReplayProtectedAfterSecond.migration.dust.dustNumerator = 1 ∧
+    demoReplayProtectedAfterSecond.nextNonce DemoPrincipal.treasury = 2 ∧
+    demoReplayProtectedAfterSecond.nextNonce DemoPrincipal.auditor = 0 := by
+  have hMigration :
+      demoReplayProtectedAfterSecond.migration = demoAuthorizedMigrationAfterSecond := rfl
+  rcases demoAuthorizedMigration_two_step_result with
+    ⟨hSource, hDestination, hTotalSource, hTotalTarget, hDust⟩
+  have hTreasuryNonce :
+      demoReplayProtectedAfterSecond.nextNonce DemoPrincipal.treasury = 2 := by
+    simpa using
+      (replayProtectedAuthorizedAssetMigrationStep_next_nonce
+        DemoPrincipal demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+        demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+        demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+        DemoPrincipal.treasury 1 1 demoReplayProtected_second_step)
+  have hAuditorNonce :
+      demoReplayProtectedAfterSecond.nextNonce DemoPrincipal.auditor = 0 := by
+    calc
+      demoReplayProtectedAfterSecond.nextNonce DemoPrincipal.auditor =
+          demoReplayProtectedAfterFirst.nextNonce DemoPrincipal.auditor :=
+        replayProtectedAuthorizedAssetMigrationStep_other_nonce
+          DemoPrincipal demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+          demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+          demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+          DemoPrincipal.treasury DemoPrincipal.auditor 1 1
+          demoReplayProtected_second_step (by decide)
+      _ = 0 := demoReplayProtected_other_principal_nonce_is_unchanged
+  rw [hMigration]
+  exact ⟨hSource, hDestination, hTotalSource, hTotalTarget, hDust,
+    hTreasuryNonce, hAuditorNonce⟩
+
+theorem demoReplayProtected_preserves_complete_invariant :
+    ReplayProtectedAuthorizedAssetMigrationInvariant DemoPrincipal
+      demoAuthorizedMigrationHolderLedgerMap demoAuthorizedMigrationInitialFinancial.ledger
+      demoReplayProtectedAfterSecond :=
+  replayProtectedAuthorizedAssetMigrationInvariant_of_reachable
+    DemoPrincipal demoAuthorizedMigrationControl demoAuthorizedMigrationAuthority
+    demoAuthorizedMigrationHolderLedgerMap (none : Option (AccountId 2))
+    demoAuthorizedMigrationCounterpart_unmapped demoAuthorizedMigrationPartition
+    demoAuthorizedMigrationInitialFinancial demoAuthorizedMigrationInitialFinancial_invariant
+    demoReplayProtected_after_second_reachable
+
+
 end SIRMTests

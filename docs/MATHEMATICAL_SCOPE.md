@@ -52,6 +52,13 @@ This document describes what the current Lean declarations establish, the assump
 - The state machine preserves holder/supply reconciliation, mapped holder/GL agreement, aggregate signed GL totals per asset, and the route/source-holder/recipient residual equation. The residual accumulator is a separate exact claim subledger; fractional dust is not posted as an integer-valued GL liability account by this model.
 - This remains an abstract formal transition. It does not provide a transaction nonce, replay/idempotency protection, external bridge settlement/finality, custody, rollback, asset-collision handling, a production valuation policy, or legal/economic backing for the residual claim.
 
+### Per-principal nonce and replay protection for migration
+
+- `SIRM.ReplayProtectedAssetMigration` augments the authorized migration state with `nextNonce : Principal → Nat`. The initial expected nonce is zero for every principal.
+- A migration request is admitted only when its supplied nonce equals `nextNonce principal`. The accepted transition applies the existing authorized burn/issue/dust update and advances that principal's expected nonce to `nonce + 1` in the same returned state.
+- The transition lemmas prove that the selected principal advances by exactly one, other principals are unchanged, and a nonce unequal to the expected value cannot satisfy the step relation. The replay-protected reachable-state theorem retains the complete holder/GL/residual migration invariant.
+- This is a sequential nonce gate for this abstract migration machine only. It does not define a global protocol nonce across transfers and other operations, a transaction hash or idempotent response cache, canonical transaction encoding, signatures, expiry, persistent storage, concurrent execution, or runtime atomic commit semantics. `Nat` is unbounded in Lean; production nonce width and overflow behavior are not selected.
+
 ### Registry-aware issuance eligibility
 
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with `AssetRegistry.issuanceEnabled`. A new issue is admitted only when the original policy authorizes the principal, issuer, recipient, asset, and amount, and the asset plus its issuer account are active.
