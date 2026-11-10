@@ -1,36 +1,57 @@
-# RFT Tokenomics: Initial Policy Record
+# Tokenomics: Initial Genesis Policy Record
 
-## Selected founder genesis allocation
+This document records the one selected numerical tokenomics input in the current SIRM financial model. It does not define a complete token, issuance schedule, reserve, or production economic design.
 
-The founder allocation is **1.309% of the total genesis supply**, replacing the legacy Rift prototype's 3.14% value.
+## Selected one-time founder allocation
 
-Exact representation:
+> **SELECTED GENESIS POLICY**
+>
+> **Founder rate: 1.309% · 13,090 ppm**
+>
+> The rate applies once to total genesis supply. It replaces the legacy Rift prototype value of 3.14% (31,400 ppm).
 
-- 1.309% = 0.01309;
-- 0.01309 = 13,090 / 1,000,000;
-- integer rate = 13,090 ppm;
-- founder units for genesis supply `G` = `floor(G * 13_090 / 1_000_000)`;
-- unallocated remainder = `G - founder`.
+Let `G` denote total genesis supply, measured in the smallest integer accounting unit.
 
-The floor is taken in the smallest integer accounting unit. The result cannot exceed `G`, and founder allocation plus remainder equals `G`; these properties are included in the Lean model.
+```text
+A(G) = floor((13,090 × G) / 1,000,000)
+U(G) = G − A(G)
+```
 
-Example only: for `G = 1,000,000,000,000` base units, founder allocation is `13,090,000,000` base units. This example does not select the actual genesis supply or token decimals.
+- `A(G)` is the founder allocation.
+- `U(G)` is the remainder left unallocated.
+- Division is rounded down to a whole base unit, exactly as in the Lean `Nat` definition.
+- The identity `A(G) + U(G) = G` holds by construction; the Lean model also proves `A(G) ≤ G`.
 
-## Scope
+The corresponding Lean definitions are `ppmScale`, `founderRatePpm`, `founderAllocation`, and `remainingGenesisPool` in `SIRM/FinancialCore.lean`. The associated statements include `founderRate_valid`, `founderRate_exact`, `founderAllocation_le_genesisSupply`, and `founderAllocation_plus_remaining`.
+
+### Integer example
+
+For `G = 1,000,000,000,000` base units:
+
+- founder allocation: `13,090,000,000`;
+- unallocated remainder: `986,910,000,000`.
+
+This example illustrates the formula only. It does not select the actual genesis supply or token decimals.
+
+## What this policy does—and does not—decide
 
 This is a one-time genesis allocation. It does not grant automatic rights to future issuance, transaction fees, reserves, treasury assets, customer deposits, governance control, validator rewards, or protocol administration.
 
-## Explicitly unresolved
+The remaining amount is an explicitly unallocated pool. It is not silently transferred to the treasury, community, validators, or another recipient. For every actual genesis allocation, the account universe and assignment of every unit must be specified separately.
+
+The following remain unresolved:
 
 - total genesis supply and token decimals;
-- founder receiving address and custody arrangements;
+- founder receiving address, account assignment, and custody arrangements;
 - vesting, lock-up, transferability, and lost-key recovery;
 - treasury, validator, ecosystem, community, and reserve allocations;
 - fee schedule, burn policy, future issuance, and any supply cap;
-- whether RFT is only a network utility asset or has any other defined legal/economic rights.
+- legal or economic rights, if any, associated with the proposed RFT asset.
 
-The remaining 98.691% is an explicit unallocated pool in the initial model. It is not silently transferred to the treasury or community.
+The 1.309% selection is a policy input recorded in the current model, not a theorem that the rate is economically optimal.
 
-## Spectral-value separation
+## Separation from Phi-Genesis
 
-Phi-Genesis contains a distinct numerical spectral quantity near `1.309128920280813…`. Its exact limit and closed form are not established in the cited research note. It is not the same object as the 1.309% policy rate and does not establish economic optimality.
+Phi-Genesis studies a separate spectral quantity numerically near `1.309128920280813…`. That spectral value and the 1.309% founder-rate policy are different mathematical objects. The spectral computation does not define this allocation rate and does not establish tokenomics optimality.
+
+See the [Constants Register](CONSTANTS_REGISTER.md), [Formalization Status](FORMALIZATION_STATUS.md), and [Architecture Decision Record](DECISIONS.md).
