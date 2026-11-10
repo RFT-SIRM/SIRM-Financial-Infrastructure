@@ -12,6 +12,7 @@
 
 ## Phase 1 — accounting kernel
 - [x] finite typed account/asset identifier domains, account classes, lifecycle metadata, asset decimal precision and issuer/network coherence;
+- [x] compose typed asset/issuer lifecycle eligibility with the authorized financial machine's issuance gate;
 - [ ] asset migration rules, cross-network conversion ratios and rounding/residual policy;
 - balanced journals, account ownership and authorization;
 - transfer, fees, escrow, settlement and reversals;

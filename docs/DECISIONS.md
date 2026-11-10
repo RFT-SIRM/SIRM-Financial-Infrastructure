@@ -12,6 +12,7 @@
 8. **Public source license:** Apache License 2.0 is selected for this new repository. It does not automatically relicense the two older Rift repositories or third-party dependencies.
 
 9. **Typed identifiers and registries:** account and asset identifiers use separate finite index types. Each finite registry is total over its declared identifier universe. Account class/status metadata is descriptive and does not itself grant authority. An asset's issuer must be in the account universe and on the asset's declared network. Asset migration and conversion rules remain separate future decisions.
+10. **Issuance registry gate:** an authorized issuance must also target an active asset whose issuer account is active. The existing principal control and exact authority grant remain required. This registry gate does not alter transfer or burn authorization in the current formalization.
 
 ## Not yet decided
 

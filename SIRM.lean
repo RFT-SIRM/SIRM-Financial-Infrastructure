@@ -9,3 +9,4 @@ import SIRM.TypedRegistry
 import SIRM.StateMachine
 import SIRM.AuthorizedStateMachine
 import SIRM.AuthorizedFinancialMachine
+import SIRM.RegistryAwareFinancialMachine

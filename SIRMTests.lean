@@ -1422,4 +1422,193 @@ theorem typedRegistry_empty_holdings_preserves_existing_model :
       (emptyHoldingsState (AccountId 2) (AssetId 1)) :=
   typedEmptyHoldingsState_invariant 2 1
 
+/-! ## Registry-aware issuance financial-machine regressions -/
+
+def typedDemoIssueGrant :
+    AuthorityGrant DemoPrincipal (AccountId 2) (AssetId 1) :=
+  { principal := .treasury
+    scope := .issue typedDemoTreasury typedDemoCustomer
+    asset := typedDemoAsset
+    maxAmount := 15 }
+
+def typedDemoIssueAuthorityRegistry :
+    AuthorityRegistry DemoPrincipal (AccountId 2) (AssetId 1) where
+  grants := [typedDemoIssueGrant]
+  unique_scope := by
+    intro left right hLeftMem hRightMem _ _ _
+    have hLeft : left = typedDemoIssueGrant := by
+      simpa using hLeftMem
+    have hRight : right = typedDemoIssueGrant := by
+      simpa using hRightMem
+    rw [hLeft, hRight]
+
+def typedDemoAccountControlRegistry :
+    AccountControlRegistry DemoPrincipal (AccountId 2) where
+  entries := [(DemoPrincipal.treasury, typedDemoTreasury)]
+
+def typedDemoControlledPolicy :
+    AuthorizationPolicy DemoPrincipal (AccountId 2) (AssetId 1) :=
+  toControlledAuthorizationPolicy
+    typedDemoAccountControlRegistry typedDemoIssueAuthorityRegistry
+
+theorem typedDemoBasePolicyMayIssue :
+    typedDemoControlledPolicy.mayIssue
+      (emptyHoldingsState (AccountId 2) (AssetId 1))
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 := by
+  change AccountControlRegistry.controls typedDemoAccountControlRegistry
+      DemoPrincipal.treasury typedDemoTreasury ∧
+    AuthorityRegistry.allows typedDemoIssueAuthorityRegistry
+      DemoPrincipal.treasury
+      (.issue typedDemoTreasury typedDemoCustomer) typedDemoAsset 15
+  exact ⟨
+    by simp [AccountControlRegistry.controls, typedDemoAccountControlRegistry],
+    ⟨typedDemoIssueGrant, by simp [typedDemoIssueAuthorityRegistry],
+      rfl, rfl, rfl, by decide⟩
+  ⟩
+
+def typedDemoRegistryAwarePolicy :
+    AuthorizationPolicy DemoPrincipal (AccountId 2) (AssetId 1) :=
+  withAssetRegistryIssuanceGate
+    typedDemoControlledPolicy typedDemoAssetRegistry
+
+theorem typedDemoRegistryAwareMayIssue :
+    typedDemoRegistryAwarePolicy.mayIssue
+      (emptyHoldingsState (AccountId 2) (AssetId 1))
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 := by
+  change typedDemoControlledPolicy.mayIssue
+      (emptyHoldingsState (AccountId 2) (AssetId 1))
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 ∧
+    typedDemoAssetRegistry.issuanceEnabled typedDemoAsset
+  exact ⟨typedDemoBasePolicyMayIssue,
+    typedRegistry_active_asset_and_issuer_enable_issuance⟩
+
+theorem typedDemoDraftAssetBlocksRegistryAwareIssue :
+    ¬ (withAssetRegistryIssuanceGate
+        typedDemoControlledPolicy typedDemoDraftAssetRegistry).mayIssue
+      (emptyHoldingsState (AccountId 2) (AssetId 1))
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 := by
+  rw [withAssetRegistryIssuanceGate_mayIssue_iff]
+  rintro ⟨_, hEnabled⟩
+  exact typedRegistry_draft_asset_blocks_issuance hEnabled
+
+theorem typedDemoFrozenIssuerBlocksRegistryAwareIssue :
+    ¬ (withAssetRegistryIssuanceGate
+        typedDemoControlledPolicy typedDemoFrozenIssuerAssets).mayIssue
+      (emptyHoldingsState (AccountId 2) (AssetId 1))
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 := by
+  rw [withAssetRegistryIssuanceGate_mayIssue_iff]
+  rintro ⟨_, hEnabled⟩
+  exact typedRegistry_frozen_issuer_blocks_issuance hEnabled
+
+theorem typedDemoRegistryGateLeavesTransferUnchanged
+    (state : HoldingsState (AccountId 2) (AssetId 1))
+    (principal : DemoPrincipal)
+    (source destination : AccountId 2)
+    (asset : AssetId 1) (amount : Nat) :
+    typedDemoRegistryAwarePolicy.mayTransfer
+        state principal source destination asset amount ↔
+      typedDemoControlledPolicy.mayTransfer
+        state principal source destination asset amount :=
+  withAssetRegistryIssuanceGate_mayTransfer_iff
+    typedDemoControlledPolicy typedDemoAssetRegistry
+    state principal source destination asset amount
+
+theorem typedDemoRegistryGateLeavesBurnUnchanged
+    (state : HoldingsState (AccountId 2) (AssetId 1))
+    (principal : DemoPrincipal)
+    (holder : AccountId 2)
+    (asset : AssetId 1) (amount : Nat) :
+    typedDemoRegistryAwarePolicy.mayBurn
+        state principal holder asset amount ↔
+      typedDemoControlledPolicy.mayBurn
+        state principal holder asset amount :=
+  withAssetRegistryIssuanceGate_mayBurn_iff
+    typedDemoControlledPolicy typedDemoAssetRegistry
+    state principal holder asset amount
+
+/-- `some holder` is the holder subledger; `none` is the unmapped counterpart. -/
+def typedDemoHolderLedgerMap :
+    HolderLedgerMap (AccountId 2) (Option (AccountId 2)) where
+  ledgerAccount := some
+  injective_ledgerAccount := by
+    intro left right h
+    injection h
+
+theorem typedDemoControlIsUnmapped :
+    ∀ holder : AccountId 2,
+      (none : Option (AccountId 2)) ≠
+        typedDemoHolderLedgerMap.ledgerAccount holder := by
+  intro holder
+  simp [typedDemoHolderLedgerMap]
+
+def typedDemoInitialFinancialState :
+    FinancialState (AccountId 2) (Option (AccountId 2)) (AssetId 1) :=
+  { holdings := emptyHoldingsState (AccountId 2) (AssetId 1)
+    ledger := ⟨fun _ _ => 0⟩ }
+
+theorem typedDemoInitialFinancialState_invariant :
+    FinancialInvariant typedDemoHolderLedgerMap
+      typedDemoInitialFinancialState := by
+  constructor
+  · exact typedEmptyHoldingsState_invariant 2 1
+  · intro holder asset
+    simp [typedDemoInitialFinancialState, typedDemoHolderLedgerMap,
+      emptyHoldingsState]
+
+def typedDemoFinancialAfterIssue :
+    FinancialState (AccountId 2) (Option (AccountId 2)) (AssetId 1) :=
+  { holdings := executeAuthorizedIssue
+      typedDemoRegistryAwarePolicy typedDemoInitialFinancialState.holdings
+      DemoPrincipal.treasury typedDemoTreasury typedDemoCustomer
+      typedDemoAsset 15 typedDemoRegistryAwareMayIssue
+    ledger := postJournal typedDemoInitialFinancialState.ledger
+      (holderIssuanceJournal typedDemoHolderLedgerMap
+        (none : Option (AccountId 2)) typedDemoCustomer typedDemoAsset 15) }
+
+theorem typedDemoRegistryAwareIssue_is_step :
+    AuthorizedFinancialStep typedDemoRegistryAwarePolicy
+      typedDemoHolderLedgerMap (none : Option (AccountId 2))
+      typedDemoInitialFinancialState typedDemoFinancialAfterIssue := by
+  exact Or.inr (Or.inl ⟨
+    DemoPrincipal.treasury,
+    typedDemoTreasury,
+    typedDemoCustomer,
+    typedDemoAsset,
+    15,
+    typedDemoRegistryAwareMayIssue,
+    typedDemoControlIsUnmapped,
+    rfl
+  ⟩)
+
+def typedDemoRegistryAwareMachine :
+    VerifiedStateMachine
+      (FinancialState (AccountId 2) (Option (AccountId 2)) (AssetId 1)) :=
+  registryAwareAuthorizedFinancialMachine
+    typedDemoControlledPolicy typedDemoAssetRegistry
+    typedDemoHolderLedgerMap (none : Option (AccountId 2))
+    typedDemoInitialFinancialState typedDemoInitialFinancialState_invariant
+
+theorem typedDemoRegistryAwareInitial_reachable :
+    Reachable typedDemoRegistryAwareMachine typedDemoInitialFinancialState :=
+  Reachable.initial rfl
+
+theorem typedDemoRegistryAwareIssue_reachable :
+    Reachable typedDemoRegistryAwareMachine typedDemoFinancialAfterIssue :=
+  Reachable.step typedDemoRegistryAwareInitial_reachable
+    typedDemoRegistryAwareIssue_is_step
+
+theorem typedDemoRegistryAwareTrace_preserves_complete_invariant :
+    FinancialConservationInvariant typedDemoHolderLedgerMap
+      typedDemoInitialFinancialState.ledger typedDemoFinancialAfterIssue :=
+  registryAwareFinancialConservationInvariant_of_reachable
+    typedDemoControlledPolicy typedDemoAssetRegistry
+    typedDemoHolderLedgerMap (none : Option (AccountId 2))
+    typedDemoInitialFinancialState typedDemoInitialFinancialState_invariant
+    typedDemoRegistryAwareIssue_reachable
+
 end SIRMTests

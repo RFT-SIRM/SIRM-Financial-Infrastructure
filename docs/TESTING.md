@@ -63,7 +63,19 @@ The `SIRMTests.lean` suite additionally compiles the following cases:
 - asset decimal metadata determines a positive base-unit scale (the two-decimal test fixture is non-normative);
 - each asset's issuer account is proven to share its declared network;
 - issuance eligibility holds for an active asset with an active issuer;
-- issuance eligibility fails when the issuer account is frozen.
+- issuance eligibility fails when the issuer account is frozen;
 - issuance eligibility fails when the asset is not active (the draft-status case).
 
 These tests do not select production RFT decimals, a production network identifier, or cross-network migration semantics.
+
+## Registry-aware financial-machine regressions
+
+The registry-aware tests compile the following cases:
+
+- the active typed asset and active issuer pass the new issuance gate only after the existing principal/account-control and exact issue-grant policy passes;
+- a draft asset is denied even when the underlying authority and control policy allows the issue;
+- a frozen issuer is denied even when the underlying authority and control policy allows the issue;
+- transfer and burn authorization predicates are definitionally unchanged by the adapter;
+- one admitted typed issuance is a reachable transition of the new combined financial machine, and the resulting state retains holder/supply reconciliation, mapped subledger agreement, and aggregate signed-ledger conservation.
+
+The gate is intentionally issuance-specific in this block. It does not yet formalize lifecycle transitions or impose asset/issuer activity checks on transfer or burn.
