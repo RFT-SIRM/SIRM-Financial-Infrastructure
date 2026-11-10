@@ -12,3 +12,4 @@ import SIRM.StateMachine
 import SIRM.AuthorizedStateMachine
 import SIRM.AuthorizedFinancialMachine
 import SIRM.RegistryAwareFinancialMachine
+import SIRM.AuthorizedAssetMigration

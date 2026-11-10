@@ -155,3 +155,37 @@ Do not commit until the target module, full `SIRM` build, theorem-level test dri
 - Source token burn/redemption and destination mint/issuance transactions.
 - Authorization, custody proofs, bridge finality, replay/idempotency, rollback, asset collision and insolvency policy.
 - Rust implementation and Lean-to-Rust refinement.
+
+
+## Work block: authorized atomic cross-network migration
+
+### Verified starting point
+
+- Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
+- Working branch: `foundation/atomic-authorized-asset-migration-2026-11-10`.
+- Exact starting commit after PR #9 squash merge: `0d88ee628323afc4c5cc454114e82a082a34e6a9`.
+- The local branch was fetched and checked out from that exact remote SHA; the worktree was clean before patching.
+
+### Reviewed design
+
+- A migration partition is fixed to one route, one source holder, and one destination recipient. Proof fields bind the source holder and recipient to the respective registered networks.
+- The same principal must satisfy the existing controlled policy for both operations: control of the source holder plus an exact `.burn sourceHolder` grant, and control of the destination asset issuer plus an exact `.issue destinationIssuer recipient` grant for the computed target amount.
+- Both endpoint assets and issuers must be active through `route.endpointsEnabled`; the source holder and recipient accounts must also be active.
+- The single transition burns source base units, issues only the newly released target base units, posts the two asset-specific balanced journals, and advances the exact residual claim accumulator. There is no admitted intermediate state with only one side applied.
+- The residual subledger is scoped by route/source-holder/recipient. It is an exact fractional claim record, not a fractional integer-GL posting or proof of legal/economic backing.
+
+### Invariant and explicit limits
+
+The verified machine preserves holder/supply reconciliation, mapped holder/GL agreement, aggregate signed GL totals per asset, and the scaled source/target/residual equation. The transition remains an abstract model: replay/idempotency, nonce/expiry, bridge settlement/finality, custody, rollback, asset-collision handling, production residual-liability posting, valuation, and external backing remain open.
+
+### Verification sequence
+
+```bash
+lake build SIRM.AuthorizedAssetMigration
+lake build SIRM
+lake test
+python3 scripts/ci_audit.py all
+git diff --check
+```
+
+Do not commit until the target module, full `SIRM` build, theorem-level test driver, all 17 static audits, and diff checks pass. Inspect the complete staged diff before one commit, one push, and one PR against `main`.

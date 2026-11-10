@@ -105,3 +105,17 @@ The `SIRMTests.lean` suite compiles synthetic-rate examples and generic theorems
 - a route connects distinct assets on distinct registered networks, and route eligibility requires both assets and both issuer accounts to be active.
 
 The rate values in regressions are synthetic. These proofs do not implement migration authorization, burning, minting, bridge settlement, replay protection, or production custody.
+
+
+## Authorized atomic cross-network migration regressions
+
+The `SIRMTests.lean` suite compiles a two-step synthetic migration through the verified migration machine:
+
+- the source holder and destination recipient are pinned to the route's respective networks;
+- the same principal must control the source holder and destination issuer and possess the exact burn and issue grants;
+- the first source unit is burned while its fractional target residual is retained and no whole target unit is issued;
+- the second source unit consumes the carried residual and issues exactly one target base unit;
+- both holder balances and their corresponding source/destination GL subledgers change in the same state transition;
+- the reachable-state theorem preserves holder reconciliation, mapped subledger agreement, aggregate GL balance per asset, and exact residual conservation.
+
+The example uses a synthetic 2/3 base-unit rate. The residual is an auxiliary exact claim subledger, not a fractional posting to the integer GL. Replay/idempotency and external bridge execution remain out of scope.

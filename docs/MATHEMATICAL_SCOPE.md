@@ -28,7 +28,7 @@ This document describes what the current Lean declarations establish, the assump
 - The account registry is total over its finite account universe and records account class, lifecycle status, and network.
 - The asset registry is total over its finite asset universe and records symbol, decimal precision, issuer, lifecycle status, and network.
 - A registry proof enforces that each asset's issuer account belongs to the same declared network. Registry-level issuance eligibility requires both the asset and issuer account to be active.
-- These metadata predicates do not prove identity, ownership, key custody, or authority. The existing authority-grant and account-control gates remain independent. Cross-network migration and conversion are not yet formalized.
+- These metadata predicates do not prove identity, ownership, key custody, or authority. The existing authority-grant and account-control gates remain independent. Cross-network migration is composed by a separate transition module; the registry itself does not execute a migration.
 
 ### Exact asset-denominated base units
 
@@ -42,7 +42,15 @@ This document describes what the current Lean declarations establish, the assump
 - For source amount `s`, the proof-carrying conversion establishes `s * numerator = targetBaseUnits * denominator + dustNumerator`, with `dustNumerator < denominator`. The remainder is an exact fraction of one target base unit, not a rounded-away value.
 - `AssetMigrationDustState` carries that numerator into subsequent conversions. Its type is indexed by the exact rate and an accounting partition, preventing accidental combination of dust from different rates or different partitions. A caller choosing one shared partition is making an explicit pooling-policy choice outside the theorem.
 - A route requires distinct asset identifiers and distinct registered network identifiers. `endpointsEnabled` additionally requires both assets and both issuer accounts to be active.
-- This is arithmetic and route eligibility only. It does not establish authority to migrate, source burn/redemption, destination issuance, custody, bridge finality, replay/idempotency, rollback, asset-collision policy, or real-world backing. The conservation equation is a scaled integer identity, not by itself a legal or economic valuation theorem.
+- The base `SIRM.AssetMigration` module supplies exact arithmetic and route eligibility; `SIRM.AuthorizedAssetMigration` composes it into an abstract controlled burn/issue transition. Neither module establishes external custody, bridge finality, replay/idempotency, rollback, asset-collision policy, or legal/economic backing.
+
+### Authorized atomic cross-network migration
+
+- `AuthorizedAssetMigrationPartition` fixes one registered route, one source holder, and one destination recipient. It carries proofs that the source holder belongs to the source asset's network and the recipient belongs to the destination asset's network. Residuals therefore cannot be silently shared across different routes or account pairs.
+- A step requires one principal to satisfy the source-holder control relation and exact burn grant, plus control of the destination asset issuer and an exact issue grant for the target amount actually released by the carried residual. Both endpoint assets and their issuers, and both endpoint accounts, must be active.
+- The transition burns source base units, issues the quotient output in destination base units, posts a source burn journal and a destination issuance journal, and advances the residual state in one state value. There is no intermediate state exposing only one side of the operation.
+- The state machine preserves holder/supply reconciliation, mapped holder/GL agreement, aggregate signed GL totals per asset, and the route/source-holder/recipient residual equation. The residual accumulator is a separate exact claim subledger; fractional dust is not posted as an integer-valued GL liability account by this model.
+- This remains an abstract formal transition. It does not provide a transaction nonce, replay/idempotency protection, external bridge settlement/finality, custody, rollback, asset-collision handling, a production valuation policy, or legal/economic backing for the residual claim.
 
 ### Registry-aware issuance eligibility
 
