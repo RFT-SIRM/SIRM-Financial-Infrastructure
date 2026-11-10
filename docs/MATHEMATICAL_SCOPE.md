@@ -1,26 +1,53 @@
 # Mathematical Scope and Assurance Boundaries
 
-## Lean modules in this branch
+This document describes what the current Lean declarations establish, the assumptions they use, and what they do not establish. A module's presence in source is not by itself a claim that a theorem was successfully checked at an arbitrary commit; the pinned CI run must be tied to the exact revision.
 
-- `SIRM.FinancialCore`: the supply-state equation; initial state; mint and burn transitions with invariant-preservation theorems; exact 1.309% founder-rate arithmetic; genesis allocation and unallocated remainder.
-- `SIRM.Accounting`: a generic finite-account, per-asset signed general ledger; journal entries carrying a balance proof per asset; aggregate signed-balance preservation for balanced entries; and a balanced transfer-journal constructor.
-- `SIRM.Holdings`: nonnegative integer holder balances indexed by account and asset; exact per-asset reconciliation with outstanding supply; funded transfers; issuance to a holder; and holder-bounded burns with preservation theorems.
-- `SIRM.StateMachine`: a generic reachable-state theorem deriving safety from initial-state and transition-preservation obligations.
-- `SIRM.AuthorizedStateMachine`: an authorization-gated holder transition relation, an invariant initial state, and a theorem that every reachable state preserves holdings/supply reconciliation.
-- `SIRM.AuthorizedFinancialMachine`: one combined state containing holder balances and the signed GL; authorized transfer, issuance and burn steps update both projections together. Its stronger machine invariant preserves holder reconciliation, mapped subledger agreement and aggregate signed GL balance relative to the opening ledger.
-- `SIRM.HolderAccountingBridge`: matching balanced general-ledger journals for holder transfers, issuance and burn; pointwise subledger-agreement preservation for all three operations under an unmapped counterpart-account assumption.
+## 1. Current Lean development
 
-## Not proved by these declarations
+### Supply and financial state
 
-- Completeness or legal correctness of the account universe; it is an explicit assumption of the holdings reconciliation statement.
-- A concrete principal-to-account ownership map, cryptographic signatures, key custody, roles, signer thresholds or a production authorization policy; the authorization predicates are abstract policy inputs.
-- A complete genesis assignment to real founder, treasury, validator and other accounts.
-- A unified posting transaction that atomically updates holder balances and the signed general ledger.
-- Reserve backing, solvency, par redemption or external asset existence.
-- A particular global-field distribution law or an equivalence to the legacy Rift implementation.
-- Rust/Lean refinement, consensus safety/finality, censorship resistance or data availability.
-- Privacy guarantees, legal enforceability, licensing or regulatory compliance.
+- `SIRM.FinancialCore`: supply-state definition, initial state, mint and burn transitions with invariant-preservation statements, exact 1.309% founder-rate arithmetic, founder allocation, and the unallocated remainder.
+- `SIRM.Holdings`: nonnegative integer holder balances indexed by account and asset; exact per-asset reconciliation with outstanding supply; funded transfers; issuance to a holder; and holder-bounded burns.
+- The holdings reconciliation theorem assumes a complete account universe in which each outstanding unit is assigned exactly once. It does not independently establish that the universe corresponds to legal ownership or real-world custody.
 
-## Assurance rule
+### General ledger and holder bridge
 
-A theorem applies only to its formal statement and assumptions. Lean source is described as kernel-checked only after the pinned `lake build SIRM` succeeds. Implementation and network claims require separate refinement proofs, tests, audits and operational evidence.
+- `SIRM.Accounting`: a finite-account, per-asset signed general ledger; journal entries carrying a per-asset balance proof; aggregate signed-balance preservation for balanced entries; and a balanced transfer-journal constructor.
+- `SIRM.HolderAccountingBridge`: matching balanced journals for holder transfers, issuance, and burns; pointwise subledger-agreement preservation under an unmapped counterpart-account assumption.
+- Holder balances and the signed general ledger are separate projections. The bridge relates them; it does not treat them as additive copies of the same quantity.
+
+### Authorization and reachable-state results
+
+- `SIRM.Authorization`: abstract, state-dependent authorization predicates and guarded transfer, issue, and burn operations. The predicates are policy inputs, not a selected production identity or cryptographic scheme.
+- `SIRM.StateMachine`: a generic theorem deriving an invariant for reachable states from an invariant initial state and transition-preservation obligation.
+- `SIRM.AuthorizedStateMachine`: an authorization-gated holder transition relation and reachable-state preservation of the holdings invariant.
+
+### Combined authorized financial machine
+
+- `SIRM.AuthorizedFinancialMachine`: one abstract financial state containing both holder balances and the signed general ledger.
+- Its authorized transfer, issuance, and burn steps update the holder projection and the corresponding journal projection together in a single Lean state transition.
+- The machine invariant preserves holder/supply reconciliation, mapped holder-subledger agreement, and aggregate signed general-ledger balance relative to the opening ledger.
+- `SIRMTests.lean` contains a concrete integrated transfer → issuance → burn theorem-level regression trace, including reachability and the stated financial invariants.
+
+## 2. Important distinction: abstract paired transition vs production transaction
+
+The combined machine **does** formalize a paired state transition: a holder operation and its corresponding general-ledger posting are represented together in one transition of the abstract Lean state. It would therefore be inaccurate to say that no unified holder/ledger transition is formalized.
+
+That result does **not** yet provide a production transaction processor. The current declarations do not specify or implement a complete transaction object, canonical byte encoding, cryptographic signature verification, concrete signer thresholds, nonce and expiry handling, replay protection, event encoding, production failure codes, rollback behavior, or runtime storage/commit atomicity. Nor is a Rust implementation yet proved to refine the Lean transition.
+
+## 3. Not established by the current declarations
+
+- Completeness or legal correctness of the account universe; it is an explicit assumption of holdings reconciliation.
+- A concrete principal-to-account ownership map, account metadata, cryptographic signatures, private-key custody, production roles, signer thresholds, or permission-policy administration.
+- A complete genesis assignment to actual founder, treasury, validator, ecosystem, community, and other accounts.
+- A production posting policy for custody, customer-liability, control, and other non-holder GL accounts.
+- Freeze, escrow, fees, settlement, reversals, credit lines, account restrictions, and multi-asset FX/valuation rules.
+- Reserve backing, solvency, par redemption, external asset existence, or independent reserve attestations.
+- A global-field distribution law or an equivalence to legacy Rift behavior.
+- Rust/Lean refinement, consensus safety/finality, censorship resistance, data availability, privacy guarantees, legal enforceability, licensing conclusions, or regulatory compliance.
+
+## 4. Assurance rule
+
+A theorem applies only to its formal statement and assumptions. A successful pinned `lake build SIRM` and `lake test` establish that the relevant source and theorem-level regression library compile under the configured toolchain; they do not prove that an unimplemented runtime, network, institution, or external asset behaves as modeled.
+
+Implementation claims require a documented refinement/conformance argument plus appropriate differential tests, property/fuzz testing, independent security review, and operational evidence. Network, institutional, legal, reserve, and regulatory claims require their own separate evidence.

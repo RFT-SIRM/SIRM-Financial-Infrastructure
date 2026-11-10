@@ -1,247 +1,186 @@
 # SIRM Financial Infrastructure
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg?style=for-the-badge)](LICENSE)
-[![Lean CI](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml/badge.svg?branch=main)](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml)
-[![Formal specification](https://img.shields.io/badge/Specification-Lean%204-5b4bc4?style=for-the-badge)](docs/FORMALIZATION_STATUS.md)
-[![Status](https://img.shields.io/badge/Status-Formal%20Foundation-64748b?style=for-the-badge)](docs/RELEASE_GATES.md)
+[![RFT-SIRM Research Hub](https://img.shields.io/badge/RFT--SIRM-Research%20Hub-5b4bc4?style=flat-square)](https://github.com/RFT-SIRM/UltraCore-RFT)
+[![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-4777bd?style=flat-square)](LICENSE)
+[![Lean CI](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml/badge.svg?branch=main&style=flat-square)](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml)
+[![Lean 4 specification](https://img.shields.io/badge/Formal%20specification-Lean%204-168f83?style=flat-square)](docs/FORMALIZATION_STATUS.md)
+[![Rust reference implementation](https://img.shields.io/badge/Rust%20reference-Planned-d97706?style=flat-square)](docs/ARCHITECTURE.md)
 
-**A formal financial-protocol foundation for the planned RFT Network.**
+**The normative financial-state and accounting specification for SIRM Protocol, formalized in Lean 4.**
 
-SIRM Financial Infrastructure specifies financial state, accounting rules,
-and authorized transitions in Lean 4. Its purpose is to make core protocol
-claims explicit, machine-checkable, reviewable, and suitable for later
-implementation refinement.
+SIRM Financial Infrastructure defines financial state, admissible operations, accounting relationships, and safety invariants. The Lean development is the source of truth for the protocol's mathematical semantics. A deterministic Rust reference implementation and the independent RFT Network are planned downstream stages; neither is represented as complete.
 
-**SIRM Protocol** is the normative financial model. **RFT Network** is the
-planned sovereign execution and settlement network. **RFT** is its planned
-native asset.
+## 1. Where this project fits
 
-This repository is a formal specification and assurance foundation. It is
-not a live bank, deployed blockchain, custody service, payment system, or
-customer financial product.
+[UltraCore-RFT](https://github.com/RFT-SIRM/UltraCore-RFT) is the wider **RFT-SIRM research and engineering hub**. This repository is the dedicated financial-infrastructure workstream within that ecosystem: it owns the SIRM financial model, its Lean definitions, and the record of what has and has not been proved.
 
----
+**RFT** means *Resonant Field Theory*. **SIRM** means *Synthetic Intelligence Reasoning Model*. Within this workstream, **SIRM Protocol** is the normative financial state-transition specification; **RFT Network** is the planned independent execution and settlement network; **RFT** is the planned native network asset.
 
-## 1. Mission
+The hub link is a project-navigation and research-lineage relationship. It does not imply a separate legal entity, corporate subsidiary, partnership, institutional endorsement, or deployed financial network. Older Rift repositories are historical prototype sources, not automatic authorities for the new protocol; see [Migration from Rift](docs/MIGRATION_FROM_RIFT.md).
 
-Financial infrastructure needs more than application code and operational
-promises. Its fundamental rules should be stated precisely, and important
-safety properties should be proved against those rules.
+## 2. Mission and development principle
 
-The development principle is:
+Financial infrastructure needs explicit state and accounting rules, not only application code or operational promises. The project follows this order:
 
 1. define the financial state and admissible transitions;
-2. state the invariants that must remain true;
-3. prove transition preservation and reachable-state safety in Lean;
-4. exercise concrete theorem-level regression cases;
-5. build deterministic implementations against the specification;
-6. require separate implementation, security, operational, and legal
-   evidence before production use.
+2. state the accounting and safety invariants;
+3. prove transition preservation and reachable-state properties in Lean 4;
+4. compile concrete theorem-level regression scenarios;
+5. develop a separate deterministic Rust reference implementation;
+6. establish and document its refinement/conformance relationship to Lean;
+7. address network, security, institutional, and legal requirements through separate release gates.
 
-A proof is only as broad as its theorem statement and assumptions. A green
-Lean build does not automatically verify an unproved implementation,
-network, custodian, reserve, or institution.
+A theorem applies only to its formal statement and assumptions. A green Lean build does not by itself certify a Rust executable, network, custodian, reserve, legal entity, or production financial service.
 
-## 2. What is formalized
+## 3. What the Lean model currently covers
 
-The current mathematical foundation is organized into the following
-components.
+The source is organized by responsibility rather than a wide module table.
 
-| Component | Formal responsibility |
-|---|---|
-| `SIRM.FinancialCore` | Supply accounting, issuance and burn transitions, and exact founder-allocation arithmetic |
-| `SIRM.Accounting` | Signed per-asset general-ledger journals and conservation for balanced postings |
-| `SIRM.Holdings` | Nonnegative holder balances, reconciliation with outstanding supply, funded transfers, issuance, and holder-bounded burns |
-| `SIRM.StateMachine` | Reachable-state safety from initial-state and transition-preservation obligations |
-| `SIRM.Authorization` | Policy-parameterized authorization predicates and guarded transfer, issue, and burn operations |
-| `SIRM.AuthorizedStateMachine` | Authorization-gated holder transitions and preservation of the holdings invariant |
-| `SIRM.HolderAccountingBridge` | Matching general-ledger journals for holder transfers, issuance, and burns |
-| `SIRM.AuthorizedFinancialMachine` | A combined holder-and-ledger state machine with reconciliation, subledger agreement, and aggregate ledger conservation |
-| `SIRMTests.lean` | Concrete theorem-level regression scenarios compiled by `lake test` |
+### Financial state and supply
 
-The combined financial machine is an important boundary: holder balances and
-the signed general ledger are separate projections, and their relationship
-must be expressed through explicit posting rules. They must not be added
-together as if they were the same accounting quantity.
+- `SIRM.FinancialCore` defines the supply state, initial state, issuance and burn transitions, and the one-time founder-allocation arithmetic.
+- `SIRM.Holdings` defines nonnegative holder balances indexed by account and asset, with per-asset reconciliation to outstanding supply, funded transfers, issuance, and holder-bounded burns.
 
-For the current declaration-by-declaration status, assumptions, and open
-proof obligations, see
-[Formalization Status](docs/FORMALIZATION_STATUS.md) and
-[Mathematical Scope](docs/MATHEMATICAL_SCOPE.md).
+### General ledger and holder reconciliation
 
-## 3. Why Lean 4
+- `SIRM.Accounting` defines signed per-asset journal entries and conservation for balanced postings.
+- `SIRM.HolderAccountingBridge` supplies matching journals for holder transfers, issuance, and burns, with pointwise subledger-agreement preservation under an unmapped-counterpart-account assumption.
+- Holder balances and the signed general ledger are distinct projections. They are related by explicit posting rules; they must not be added together as if they measured the same quantity.
 
-Lean 4 provides a proof language and a small trusted kernel for checking
-formal proof terms. In this repository it is used to encode:
+### Authorization and reachable-state safety
 
-- financial state and transition relations;
-- arithmetic preconditions for admissible operations;
-- conservation and reconciliation properties;
-- authorization-gated state transitions;
-- invariants that hold for all states reachable through the specified
-  transition relation.
+- `SIRM.Authorization` provides abstract, state-dependent authorization predicates and guarded transfer, issue, and burn operations.
+- `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
+- `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
 
-This does not eliminate the need to review the model itself. A formal
-proof can be correct while its assumptions are incomplete, its state
-universe is too narrow, or its relationship to a future implementation
-remains unproved.
+### Integrated financial transition
 
-The project therefore keeps proved statements and unformalized requirements
-separate and visible.
+- `SIRM.AuthorizedFinancialMachine` combines holder balances and the signed general ledger in one abstract financial state. Its authorized transfer, issuance, and burn steps update both projections together.
+- Its machine invariant preserves holder/supply reconciliation, mapped subledger agreement, and aggregate signed-ledger balance relative to the opening ledger.
+- `SIRMTests.lean` contains concrete theorem-level regression scenarios, including an integrated transfer → issuance → burn trace.
 
-## 4. Target architecture
+For theorem-by-theorem status, explicit assumptions, and remaining obligations, see [Formalization Status](docs/FORMALIZATION_STATUS.md) and [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md).
 
-The repository is the first layer of a larger planned system.
+## 4. Genesis allocation policy
+
+> **SELECTED ONE-TIME GENESIS INPUT**
+>
+> **Founder rate: 1.309% · 13,090 ppm**
+>
+> Let `G` be the total genesis supply in the smallest integer accounting unit.
+>
+> **Founder allocation:** `A(G) = floor((13,090 × G) / 1,000,000)`
+>
+> **Remainder:** `U(G) = G − A(G)`
+>
+> The division is rounded down to a whole base unit, matching natural-number division in Lean. The remainder stays explicitly unallocated; it is not silently assigned to the treasury or another pool.
+
+The Lean model states the exact rate and proves:
+
+- `founderAllocation(G) ≤ G`;
+- `founderAllocation(G) + remainingGenesisPool(G) = G`.
+
+For example, if `G = 1,000,000,000,000` base units, the founder allocation is `13,090,000,000` base units. This is an arithmetic example, not a decision about total supply or token decimals.
+
+The 1.309% rate is an adopted one-time policy input, not a theorem of economic optimality. It grants no automatic right to future issuance, fees, treasury assets, reserves, validator rewards, governance control, or protocol administration. Other genesis pools, the total supply, decimals, receiving address, custody, and vesting remain separate decisions. See [Tokenomics](docs/TOKENOMICS.md) and the [Constants Register](docs/CONSTANTS_REGISTER.md).
+
+## 5. Why Lean 4
+
+Lean 4 provides a formal language and a small trusted kernel for checking proof terms. Here it is used to express financial state, guarded transitions, arithmetic preconditions, journal balance, reconciliation, authorization predicates, and invariants over reachable states.
+
+Formal proof does not remove the need to review the model. A proof may be correct while the modeled account universe is incomplete, an assumption is too strong, or correspondence to a future implementation has not yet been established. The project therefore keeps present declarations, assumptions, and open obligations visible.
+
+## 6. Target architecture: Lean → Rust → RFT Network
 
 ```mermaid
 flowchart TB
-    A["SIRM Protocol<br/>Lean 4 formal specification"]
-    B["Reference execution<br/>deterministic implementation"]
-    C["RFT Network<br/>nodes, consensus, state and settlement"]
-    D["Institutional applications<br/>treasury, custody and integrations"]
+    A["SIRM Protocol<br/>Lean 4 normative specification"]
+    B["Rust reference implementation<br/>planned deterministic execution"]
+    C["RFT Network<br/>planned nodes, consensus and settlement"]
+    D["Institutional applications<br/>future adapters and integrations"]
 
-    A -->|"refinement and conformance"| B
-    B -->|"deterministic execution"| C
+    A -->|"documented refinement / conformance"| B
+    B -->|"deterministic state execution"| C
     C -->|"separate application layer"| D
 ```
 
-The reference implementation, independent network software, consensus
-protocol, custody integrations, and institutional applications are future
-work. The diagram describes the target architecture, not components
-claimed to be complete today.
+The Rust implementation is intended to be a separate implementation of the specified transition semantics. It is **not** produced by translating Lean source, and passing tests alone will not make it authoritative. Its workstream must include canonical serialization, checked arithmetic, deterministic failure behavior, differential/property tests, and a documented refinement/conformance argument.
 
-## 5. Current financial design boundaries
+The RFT Network is a later, independent stage. No consensus algorithm is selected in this foundation. Node identity, validator lifecycle, consensus safety and liveness, data availability, recovery, and network security require their own specifications and evidence. Institutional applications remain a further layer; they cannot turn external custody, reserves, or legal claims into Lean-proved facts.
 
-### Supply and holder accounting
+## 7. Verification and current test scope
 
-The holder view tracks outstanding units by account and asset. Its
-reconciliation invariant assumes a complete account universe and that each
-outstanding unit is counted exactly once.
-
-### Signed general ledger
-
-The general ledger represents signed postings by account and asset.
-Balanced journals preserve aggregate signed balance per asset. The ledger
-is distinct from the holder-supply projection.
-
-### Authorization
-
-The current authorization layer accepts an abstract, state-dependent
-policy. It does not yet define a production identity registry, account
-ownership system, cryptographic key custody, signatures, signer thresholds,
-or permission-administration protocol.
-
-### Genesis allocation
-
-The current one-time founder allocation parameter is 1.309%, represented
-as 13,090 parts per million:
-
-\[
-\operatorname{founder}(G)
-=
-\left\lfloor
-\frac{13{,}090\,G}{1{,}000{,}000}
-\right\rfloor.
-\]
-
-This is an explicit tokenomics policy input. It is not a theorem that the
-selected percentage is economically optimal. Other genesis pools, supply,
-decimals, custody, and vesting remain separate policy decisions.
-
-## 6. Verification
-
-The pinned Lean workflow runs both the project build and the theorem-level
-test driver.
-
-From the repository root:
+The repository's pinned workflow runs the normative Lean target and the theorem-level test driver:
 
 ```bash
 lake build
 lake test
 ```
 
-The GitHub Actions workflow is
-[Lean CI](.github/workflows/lean.yml). Its status badge above reports the
-workflow result for `main`.
+See [Lean CI](.github/workflows/lean.yml) and [Testing and Verification](docs/TESTING.md). The test driver compiles concrete theorem scenarios in `SIRMTests.lean`; it is not a randomized node test, runtime fuzzing campaign, or network test. Linting remains disabled until a dedicated lint driver is configured.
 
-`lake test` compiles the `SIRMTests` library. These are theorem-level
-regression checks, not randomized network tests or production runtime
-fuzzing. Linting is intentionally disabled until a dedicated lint driver
-is configured.
+A passing build is evidence about the exact source revision and pinned toolchain. It is not evidence that the future Rust implementation, consensus protocol, production system, or institutional operations have passed their separate gates.
 
-See [Testing](docs/TESTING.md) for the test scope and
-[Release Gates](docs/RELEASE_GATES.md) for the requirements separating
-formalization from implementation and deployment.
+## 8. What remains outside the current proofs
 
-## 7. What is not yet established
+The current declarations do **not** yet establish:
 
-The following are explicit future work, not implied by a successful build:
+- a complete canonical asset registry or a production account universe;
+- legal ownership of accounts or a concrete principal-to-account mapping;
+- cryptographic signatures, key custody, signer thresholds, or production permission administration;
+- a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
+- a production transaction envelope with canonical bytes, nonce, expiry, replay prevention, fees, events, and specified failure/rollback behavior;
+- production runtime atomicity or Rust/Lean refinement;
+- reserve backing, solvency, redemption, or external asset existence;
+- governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;
+- privacy guarantees, legal enforceability, or regulatory compliance.
 
-- a canonical typed asset registry and complete account universe;
-- concrete principal-to-account ownership and permission administration;
-- cryptographic identities, key custody, signatures, and signer thresholds;
-- transaction nonces, expiry, replay protection, fees, and atomic failure;
-- complete posting rules for institutional and control accounts;
-- redemption obligations and external reserve evidence;
-- governance, validator lifecycle, consensus safety and liveness;
-- privacy and confidential-data disclosure mechanisms;
-- a Rust implementation and a formal refinement argument linking it to Lean;
-- independent security audits, operational controls, and jurisdictional
-  legal and regulatory review.
+The combined Lean financial machine does model holder and journal updates in one abstract transition. That is a mathematical state-transition result, not a claim that a production transaction processor, serialization format, signature system, or runtime has been implemented.
 
-The release process is staged. Passing one gate does not imply that a
-later gate has been passed.
+The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). Passing one gate does not imply that a later gate has passed.
 
-## 8. Licensing and project identity
+## 9. Documentation map
 
-The formal specification, Lean source, theorem-level tests, and covered
-documentation in this repository are distributed under the
-**Apache License 2.0**.
+### Protocol and financial model
 
-This is intentional: independent researchers, engineers, and institutions
-must be able to inspect and verify the mathematical foundation under the
-license terms.
+- [Protocol Specification](docs/PROTOCOL_SPEC.md) — normative transition and determinism requirements.
+- [Architecture](docs/ARCHITECTURE.md) — Lean, Rust, network, and application boundaries.
+- [Accounting Model](docs/ACCOUNTING_MODEL.md) — holder balances and signed-ledger projections.
+- [Tokenomics](docs/TOKENOMICS.md) — founder genesis policy and unresolved supply decisions.
+- [Constants Register](docs/CONSTANTS_REGISTER.md) — adopted, superseded, and unselected parameters.
+- [RFT Network](docs/RFT_NETWORK.md) — intended independent network scope.
 
-Apache-2.0 does not grant general trademark rights. The names SIRM, RFT,
-RFT Network, and related project identifiers must not be used to imply
-official affiliation, endorsement, or certification without a separate
-basis and permission.
+### Formal evidence and delivery status
 
-Future production implementations or commercial services may have
-separate licensing terms. Such terms do not cancel Apache-2.0 rights
-already granted for material in this repository.
+- [Formalization Status](docs/FORMALIZATION_STATUS.md) — present Lean declarations and open proof obligations.
+- [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md) — precise theorem scope, assumptions, and limits.
+- [Testing](docs/TESTING.md) — pinned build and theorem-level regression scope.
+- [Release Gates](docs/RELEASE_GATES.md) — staged proof, implementation, network, and production gates.
+- [Roadmap](docs/ROADMAP.md) — development phases and incomplete work.
 
-Read the
-[Licensing and Intellectual Property Policy](docs/LICENSING_AND_IP_POLICY.md)
-for the distinction between the formal specification, future products,
-contributions, project identifiers, and possible future commercial
-licensing.
+### Governance, security, and operation
 
-## 9. Security and responsible use
+- [Governance](docs/GOVERNANCE.md) — decision authority and change control.
+- [Security Model](docs/SECURITY_MODEL.md) — authorization, threats, and security assumptions.
+- [Consensus Requirements](docs/CONSENSUS_REQUIREMENTS.md) — requirements before a consensus design is selected.
+- [Network Protocol](docs/NETWORK_PROTOCOL.md) — future transport and network protocol boundaries.
+- [Institutional Layer](docs/INSTITUTIONAL_LAYER.md) — future external services and institutional interfaces.
 
-Please report potential vulnerabilities privately where possible. See
-[Security Policy](SECURITY.md).
+### Decisions, migration, and stewardship
 
-Nothing in this repository constitutes a banking charter, money-transmitter
-authorization, deposit-taking authority, reserve attestation, redemption
-guarantee, regulatory approval, or permission to provide financial
-services.
+- [Architecture Decisions](docs/DECISIONS.md) — adopted and unresolved design decisions.
+- [Migration from Rift](docs/MIGRATION_FROM_RIFT.md) — treatment of legacy prototype material.
+- [Open Source and Transparency](docs/OPEN_SOURCE_AND_TRANSPARENCY.md) — public development and evidence practices.
+- [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) — repository license and intellectual-property boundaries.
+- [Contributing](CONTRIBUTING.md) — contribution and review requirements.
+- [Security Policy](SECURITY.md) — responsible vulnerability reporting.
 
-Formal verification is one part of an assurance process. Production use
-would also require implementation correspondence, independent security
-assessment, operational resilience, privacy controls, legal review, and
-all applicable regulatory authorizations.
+## 10. License, identity, and responsible use
+
+The repository's formal specification, Lean source, theorem-level tests, and covered documentation are distributed under the **Apache License 2.0**, subject to any file-specific or third-party notices. The root [LICENSE](LICENSE) is authoritative. See [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) for contribution rights, project identifiers, and the treatment of possible future commercial components.
+
+This repository is not a bank, payment service, custodian, exchange, deposit-taking institution, live settlement network, reserve attestation, or regulatory authorization. Nothing here promises redemption, solvency, deposit insurance, or legal enforceability. A production deployment would require independent implementation, security, operational, custody, reserve, privacy, legal, and jurisdiction-specific regulatory evidence.
 
 ---
 
-## Project documents
-
-| Document | Purpose |
-|---|---|
-| [Formalization Status](docs/FORMALIZATION_STATUS.md) | What is formalized and what remains open |
-| [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md) | Theorems, assumptions, and assurance boundaries |
-| [Testing](docs/TESTING.md) | Lean build and theorem-level regression tests |
-| [Release Gates](docs/RELEASE_GATES.md) | Staged requirements for implementation and deployment |
-| [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) | Repository license, contributions, project identity, and future product licensing |
-| [Contributing](CONTRIBUTING.md) | Contribution and review expectations |
-| [Security Policy](SECURITY.md) | Responsible vulnerability reporting |
+**Project home:** [RFT-SIRM Research and Engineering Hub — UltraCore-RFT](https://github.com/RFT-SIRM/UltraCore-RFT) · **Financial specification:** [SIRM Financial Infrastructure](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure)
