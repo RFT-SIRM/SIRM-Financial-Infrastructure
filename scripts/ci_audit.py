@@ -167,6 +167,7 @@ def docs_and_ci_topology():
     fees = load("SIRM/FeeAccounting.lean")
     escrow = load("SIRM/EscrowAccounting.lean")
     envelope = load("SIRM/FinancialTransactionEnvelope.lean")
+    denials = load("SIRM/FinancialTransactionDenials.lean")
     umbrella = load("SIRM.lean")
     regression = load("SIRMTests.lean")
     workflow = load(".github/workflows/lean.yml")
@@ -238,6 +239,31 @@ def docs_and_ci_topology():
              f"SIRMTests.lean missing transaction-envelope regression {theorem}")
     need("## Typed financial transaction-envelope regressions" in testing,
          "TESTING.md does not document typed transaction-envelope regressions")
+    need("SIRM.FinancialTransactionDenials" in umbrella and
+         "SIRM.FinancialTransactionDenials" in readme,
+         "authorization-denial cache module is not integrated/documented")
+    for declaration in (
+        "FinancialTransactionAuthorizationDenialStep",
+        "FinancialTransactionProcessorSuccessStep",
+        "FinancialTransactionProcessorReplayStep",
+        "FinancialTransactionProcessorCacheDisjoint",
+        "financialTransactionProcessorInvariant_of_reachable",
+        "financialTransactionAuthorizationDenial_rejects_nonce_mismatch",
+    ):
+        need(declaration in denials,
+             f"FinancialTransactionDenials.lean is missing {declaration}")
+    for theorem in (
+        "demoFinancialProcessor_denial_is_admitted_at_current_nonce",
+        "demoFinancialProcessor_denial_does_not_consume_nonce",
+        "demoFinancialProcessor_success_with_new_id_after_policy_change",
+        "demoFinancialProcessor_denial_response_replays_after_nonce_advance",
+        "demoFinancialProcessor_old_denial_remains_exact_replay",
+        "demoDeniedFinancialProcessor_reachable_invariant",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean missing authorization-denial regression {theorem}")
+    need("## Cached authorization-denial regressions" in testing,
+         "TESTING.md does not document cached authorization-denial regressions")
     need("EscrowOpenStep" in escrow and "EscrowReleaseStep" in escrow and
          "EscrowCancelStep" in escrow and "escrowFinancialStep_preserves_invariant" in escrow,
          "escrow lifecycle is missing an operation or invariant-preservation theorem")

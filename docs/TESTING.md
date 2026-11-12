@@ -77,7 +77,15 @@ The model is finite Python computation, not a Lean theorem, database isolation t
 - a stale/future nonce with a new request ID cannot form a successful transition;
 - the reachable envelope machine preserves holder/supply reconciliation, mapped holder/GL agreement, and aggregate signed-GL conservation.
 
-The current Lean envelope formalizes successful-operation receipts and exact retry behavior. It does not yet cache authorization-denial responses, define a canonical byte encoding or cryptographic payload hash, or prove production persistence, locking/CAS, database isolation, crash durability, or runtime refinement. Nonce mismatch is a rejected predicate rather than a state-changing transition; an exact receipt replay remains valid even though its nonce is now stale.
+The Lean envelope formalizes successful-operation receipts and exact retry behavior. The follow-on `SIRM.FinancialTransactionDenials` layer now also caches deterministic authorization denials at the exact current nonce, without consuming that nonce or changing financial state. A denial retry returns the original stored response before nonce validation, even after another request ID has subsequently advanced the principal nonce. A separate regression re-instantiates the transition relation with a replacement policy and uses a new request ID at the still-unconsumed nonce. Policy update itself is not a transition in the machine: each verified machine is built with one fixed policy parameter.
+
+The Lean model does not yet define canonical byte encoding or cryptographic payload hashes, prove production persistence, locking/CAS, database isolation, crash durability, or runtime refinement. It caches authorization denials only; insufficient-funds, expiry, signature, and other failure classes still need explicit response semantics. Nonce mismatch is a rejected predicate rather than a state-changing transition; an exact receipt replay remains valid even though its nonce is now stale.
+
+## Cached authorization-denial regressions
+
+`SIRMTests.lean` and the processor machine prove a concrete denial path: an unauthorized transfer at the current nonce stores a denial receipt; balances, GL and nonce remain unchanged; a new request ID can succeed at that same nonce when the transition relation is re-instantiated with an updated policy parameter (policy mutation is not modeled as an in-machine state transition); the original request ID continues to return its stored denial after the successful request advances the nonce. The reachable-state invariant preserves the success/denial cache disjointness, denial request-ID binding, expected nonce and operation-family reason tag.
+
+The transition relation deliberately does not cache stale/future nonce mismatches, and the denial-cache layer does not claim to cover non-authorization business failures.
 
 ## Lint and runtime tests
 
