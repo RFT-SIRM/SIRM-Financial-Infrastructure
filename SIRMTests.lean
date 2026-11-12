@@ -3577,4 +3577,173 @@ theorem replayFinancialDemo_invariant_reachable :
     escrowDemoInitialFinancial escrowDemoInitialFinancial_conservation.1
     replayFinancialDemo_after_reachable
 
+/-! ## Typed financial transaction-envelope regressions -/
+
+def demoFinancialEnvelopeRequest :
+    FinancialTransactionRequest DemoPrincipal DemoAccount DemoAsset :=
+  { principal := DemoPrincipal.alice
+    nonce := 0
+    operation := .transfer DemoAccount.alice DemoAccount.bob DemoAsset.rft 40 }
+
+theorem demoFinancialEnvelope_transfer_operation_step :
+    FinancialOperationStep demoAuthorizationPolicy demoHolderLedgerMap
+      DemoLedgerAccount.control DemoPrincipal.alice
+      (.transfer DemoAccount.alice DemoAccount.bob DemoAsset.rft 40)
+      demoInitialFinancialState demoFinancialAfterTransfer := by
+  exact ⟨demoAliceMayTransferFromAlice, transfer40_is_funded, rfl⟩
+
+def demoFinancialEnvelopeInitialState :
+    FinancialTransactionEnvelopeState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  initialFinancialTransactionEnvelopeState Nat DemoPrincipal demoInitialFinancialState
+
+def demoFinancialEnvelopeAfterTransfer :
+    FinancialTransactionEnvelopeState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  applyFinancialTransactionSuccess DemoPrincipal Nat
+    demoFinancialEnvelopeInitialState 17 demoFinancialEnvelopeRequest
+    demoFinancialAfterTransfer
+
+theorem demoFinancialEnvelope_transfer_success :
+    FinancialTransactionEnvelopeSuccessStep demoAuthorizationPolicy
+      demoHolderLedgerMap DemoLedgerAccount.control 17
+      demoFinancialEnvelopeRequest demoFinancialEnvelopeInitialState
+      demoFinancialEnvelopeAfterTransfer := by
+  refine ⟨?_, ?_, demoFinancialAfterTransfer,
+    demoFinancialEnvelope_transfer_operation_step, rfl⟩
+  · simp [demoFinancialEnvelopeInitialState,
+      initialFinancialTransactionEnvelopeState]
+  · simp [demoFinancialEnvelopeRequest, demoFinancialEnvelopeInitialState,
+      initialFinancialTransactionEnvelopeState,
+      initialReplayProtectedFinancialState]
+
+theorem demoFinancialEnvelope_receipt_stored :
+    demoFinancialEnvelopeAfterTransfer.receipts 17 =
+      some (acceptedFinancialTransactionReceipt 17 demoFinancialEnvelopeRequest) :=
+  financialTransactionEnvelopeSuccess_stores_receipt
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    17 demoFinancialEnvelopeRequest demoFinancialEnvelope_transfer_success
+
+theorem demoFinancialEnvelope_exact_retry_is_step :
+    FinancialTransactionEnvelopeReplayStep 17 demoFinancialEnvelopeRequest
+      demoFinancialEnvelopeAfterTransfer demoFinancialEnvelopeAfterTransfer := by
+  exact ⟨acceptedFinancialTransactionReceipt 17 demoFinancialEnvelopeRequest,
+    demoFinancialEnvelope_receipt_stored, rfl, rfl, rfl⟩
+
+theorem demoFinancialEnvelope_exact_retry_returns_cached_response :
+    cachedFinancialTransactionResponse demoFinancialEnvelopeAfterTransfer 17
+      demoFinancialEnvelopeRequest =
+        some (acceptedFinancialTransactionResponse 17 demoFinancialEnvelopeRequest) := by
+  simp [cachedFinancialTransactionResponse,
+    acceptedFinancialTransactionReceipt,
+    acceptedFinancialTransactionResponse,
+    demoFinancialEnvelope_receipt_stored]
+
+theorem demoFinancialEnvelope_exact_retry_changes_no_state :
+    ∀ afterRetry,
+      FinancialTransactionEnvelopeReplayStep 17 demoFinancialEnvelopeRequest
+        demoFinancialEnvelopeAfterTransfer afterRetry →
+      afterRetry = demoFinancialEnvelopeAfterTransfer := by
+  intro afterRetry hReplay
+  exact financialTransactionEnvelopeReplay_state_unchanged
+    demoFinancialEnvelopeAfterTransfer afterRetry
+    17 demoFinancialEnvelopeRequest hReplay
+
+def demoFinancialEnvelopeConflictingRequest :
+    FinancialTransactionRequest DemoPrincipal DemoAccount DemoAsset :=
+  { demoFinancialEnvelopeRequest with
+    operation := .burn DemoAccount.alice DemoAsset.rft 20 }
+
+theorem demoFinancialEnvelope_request_id_conflict :
+    FinancialTransactionRequestIdConflict demoFinancialEnvelopeAfterTransfer 17
+      demoFinancialEnvelopeConflictingRequest := by
+  refine ⟨acceptedFinancialTransactionReceipt 17 demoFinancialEnvelopeRequest,
+    demoFinancialEnvelope_receipt_stored, ?_⟩
+  decide
+
+theorem demoFinancialEnvelope_conflicting_payload_rejected :
+    ∀ next,
+      ¬ FinancialTransactionEnvelopeSuccessStep demoAuthorizationPolicy
+        demoHolderLedgerMap DemoLedgerAccount.control 17
+        demoFinancialEnvelopeConflictingRequest
+        demoFinancialEnvelopeAfterTransfer next := by
+  intro next
+  exact financialTransactionEnvelopeConflict_rejects_success
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    17 demoFinancialEnvelopeConflictingRequest demoFinancialEnvelopeAfterTransfer
+    next demoFinancialEnvelope_request_id_conflict
+
+theorem demoFinancialEnvelope_same_nonce_competitor_rejected :
+    ∀ next,
+      ¬ FinancialTransactionEnvelopeSuccessStep demoAuthorizationPolicy
+        demoHolderLedgerMap DemoLedgerAccount.control 18
+        demoFinancialEnvelopeConflictingRequest
+        demoFinancialEnvelopeAfterTransfer next := by
+  intro next
+  exact financialTransactionEnvelopeSuccess_rejects_same_nonce_competitor
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    17 18 demoFinancialEnvelopeRequest demoFinancialEnvelopeConflictingRequest
+    demoFinancialEnvelopeInitialState demoFinancialEnvelopeAfterTransfer next
+    demoFinancialEnvelope_transfer_success rfl rfl
+
+theorem demoFinancialEnvelope_other_principal_nonce_unchanged :
+    demoFinancialEnvelopeAfterTransfer.core.nextNonce DemoPrincipal.bob = 0 :=
+  financialTransactionEnvelopeSuccess_other_nonce
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    17 demoFinancialEnvelopeRequest DemoPrincipal.bob
+    demoFinancialEnvelope_transfer_success (by decide)
+
+theorem demoFinancialEnvelope_next_nonce_is_one :
+    demoFinancialEnvelopeAfterTransfer.core.nextNonce DemoPrincipal.alice = 1 :=
+  financialTransactionEnvelopeSuccess_advances_nonce
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    17 demoFinancialEnvelopeRequest demoFinancialEnvelope_transfer_success
+
+theorem demoFinancialEnvelope_old_nonce_new_id_rejected :
+    ∀ next,
+      ¬ FinancialTransactionEnvelopeSuccessStep demoAuthorizationPolicy
+        demoHolderLedgerMap DemoLedgerAccount.control 18
+        demoFinancialEnvelopeRequest demoFinancialEnvelopeAfterTransfer next := by
+  intro next
+  apply financialTransactionEnvelopeNonceMismatch_rejects_success
+  simp [demoFinancialEnvelopeRequest, demoFinancialEnvelope_next_nonce_is_one]
+
+theorem demoFinancialEnvelope_retry_payload_nonce_is_stale :
+    demoFinancialEnvelopeRequest.nonce ≠
+      demoFinancialEnvelopeAfterTransfer.core.nextNonce DemoPrincipal.alice := by
+  rw [demoFinancialEnvelope_next_nonce_is_one]
+  simp [demoFinancialEnvelopeRequest]
+
+def demoFinancialEnvelopeMachine :
+    VerifiedStateMachine
+      (FinancialTransactionEnvelopeState Nat DemoPrincipal DemoAccount
+        DemoLedgerAccount DemoAsset) :=
+  financialTransactionEnvelopeMachine demoAuthorizationPolicy demoHolderLedgerMap
+    DemoLedgerAccount.control demoInitialFinancialState
+    demoInitialFinancialState_invariant
+
+theorem demoFinancialEnvelope_initial_reachable :
+    Reachable demoFinancialEnvelopeMachine demoFinancialEnvelopeInitialState :=
+  Reachable.initial rfl
+
+theorem demoFinancialEnvelope_after_transfer_reachable :
+    Reachable demoFinancialEnvelopeMachine demoFinancialEnvelopeAfterTransfer :=
+  Reachable.step demoFinancialEnvelope_initial_reachable
+    (Or.inl ⟨17, demoFinancialEnvelopeRequest,
+      demoFinancialEnvelope_transfer_success⟩)
+
+theorem demoFinancialEnvelope_after_retry_reachable :
+    Reachable demoFinancialEnvelopeMachine demoFinancialEnvelopeAfterTransfer :=
+  Reachable.step demoFinancialEnvelope_after_transfer_reachable
+    (Or.inr ⟨17, demoFinancialEnvelopeRequest,
+      demoFinancialEnvelope_exact_retry_is_step⟩)
+
+theorem demoFinancialEnvelope_reachable_state_preserves_conservation :
+    FinancialTransactionEnvelopeInvariant demoHolderLedgerMap
+      demoInitialFinancialState.ledger demoFinancialEnvelopeAfterTransfer :=
+  financialTransactionEnvelopeInvariant_of_reachable
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    demoInitialFinancialState demoInitialFinancialState_invariant
+    demoFinancialEnvelope_after_retry_reachable
+
 end SIRMTests

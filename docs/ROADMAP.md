@@ -1,6 +1,6 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #11 is merged into `main` at `8588b61401b6eae02510fc5f9772acf47e0dd3e5`. Its exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
+**Verified baseline:** PR #19 is merged into `main` at `b7b9d7d9a84a03affcbc404a3250a0f57504ad6c`; PR #18 added the global per-principal nonce and PR #19 added the finite transaction-envelope model. PR #19's exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
@@ -24,6 +24,7 @@
 - [x] One abstract authorized migration pairing source burn, destination issuance, two balanced journals and residual update.
 - [x] Migration-scoped per-principal sequential nonce: reject mismatches, advance the accepted nonce with migration state, and preserve other principals' nonces.
 - [x] Reachable-state invariant theorems and theorem regressions wired into `lake test`.
+- [x] Abstract typed transaction envelope: exact request-ID receipt replay, conflict rejection, nonce mismatch rejection, receipt consistency, and financial-invariant preservation in reachable states. Production storage, cryptographic encoding, authorization-denial caching, and crash recovery remain open.
 
 ### Still open
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
@@ -32,7 +33,7 @@
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
-- [ ] Production-wide transaction envelope: canonical representation, signatures/thresholds, expiry, operation-wide nonce, idempotent replay responses, deterministic errors and rollback.
+- [ ] Production transaction execution: canonical bytes/hashing, signatures/thresholds, expiry, persisted nonce/receipt storage, authorization-denial caching, deterministic event/error schemas, rollback and crash recovery. The abstract typed Lean request-ID/receipt layer is now formalized separately.
 - [ ] Asset-collision, route-change and migration-failure policies.
 
 ## Phase 2 — protocol-level semantics
@@ -69,7 +70,7 @@ No public token sale, customer deposits, real-money settlement or mainnet launch
 
 ## Recommended execution order
 1. Complete open accounting semantics: extend the verified one-record escrow lifecycle to concurrent escrow IDs, then formalize settlement finality, expiry, dispute/reversal policy, redemption obligations, liabilities and complete custody/customer-liability postings. Fee tariff policy and non-holder revenue classification remain open.
-2. Specify the complete transaction envelope, including global replay/idempotency and deterministic failure behavior.
+2. Complete the transaction envelope's remaining semantics (authorization-denial caching, canonical encoding, expiry and deterministic failure responses), then refine it to a persisted runtime processor.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.
 5. Proceed to institutional pilots and production gates only after independent reviews.

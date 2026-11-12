@@ -64,6 +64,21 @@ A finite Python model checker additionally explores every order-preserving inter
 
 The model is finite Python computation, not a Lean theorem, database isolation test, distributed linearizability proof, crash-durability test, or production signature/canonical-encoding implementation. Exact payload equality is modeled with typed tuples only. Detailed scope and calculated counts are in `engineering/transaction_envelope/MODEL_SCOPE.md`.
 
+## Typed financial transaction-envelope regressions
+
+`SIRM.FinancialTransactionEnvelope` adds a typed request payload whose operation constructor fixes every transfer, issue, or burn parameter. The theorem driver compiles a concrete authorized transfer and checks:
+
+- a successful request requires an unused request ID and the principal's exact next nonce;
+- successful execution stores the exact typed request and its accepted response under the request ID;
+- the response records the accepted nonce and next nonce, and receipt invariants preserve those bindings at every reachable state;
+- an exact retry is checked against the stored request before any nonce check, returns the stored response, and leaves financial state, nonce, GL, and receipt cache unchanged;
+- reusing an occupied request ID with a different typed payload cannot form a successful transition;
+- a second request from the same principal cannot commit at the nonce consumed by the first operation, even when the request ID and operation payload differ;
+- a stale/future nonce with a new request ID cannot form a successful transition;
+- the reachable envelope machine preserves holder/supply reconciliation, mapped holder/GL agreement, and aggregate signed-GL conservation.
+
+The current Lean envelope formalizes successful-operation receipts and exact retry behavior. It does not yet cache authorization-denial responses, define a canonical byte encoding or cryptographic payload hash, or prove production persistence, locking/CAS, database isolation, crash durability, or runtime refinement. Nonce mismatch is a rejected predicate rather than a state-changing transition; an exact receipt replay remains valid even though its nonce is now stale.
+
 ## Lint and runtime tests
 
 Linting is explicitly disabled in CI until a linter driver is added. Runtime/property/fuzz tests for an executable reference implementation are not yet present. These are separate requirements and must not be described as passed.
