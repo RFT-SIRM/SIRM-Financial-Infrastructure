@@ -10,8 +10,10 @@ principal's current nonce.
 
 A new authorization denial is recorded only at the exact current nonce and
 only for an unused request ID. It leaves the financial state and nonce
-unchanged. A later attempt after a policy change may use a new request ID and
-the same nonce. Reusing the denied request ID continues to replay the original
+unchanged. A regression may re-instantiate the transition relation with a different policy
+and use a new request ID at the still-unconsumed nonce. Policy mutation is not
+itself a state transition in this model: each verified machine has one fixed
+policy parameter. Reusing the denied request ID continues to replay the original
 denial.
 
 The model covers authorization denials only. It does not yet assign cached
@@ -75,8 +77,8 @@ def financialTransactionAuthorizationDenialReceipt
 
 /-- Insert a denial receipt without changing the successful envelope state. -/
 def applyFinancialTransactionAuthorizationDenial
-    [DecidableEq RequestId]
     {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
     (before : FinancialTransactionProcessorState
       RequestId Principal Holder LedgerAccount Asset)
     (requestId : RequestId)
@@ -124,8 +126,8 @@ def FinancialTransactionAuthorizationDenial
 
 /-- A denial is cacheable only for an unused ID and the exact current nonce. -/
 def FinancialTransactionAuthorizationDenialStep
-    [DecidableEq RequestId]
     {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
     (policy : AuthorizationPolicy Principal Holder Asset)
     (requestId : RequestId)
     (request : FinancialTransactionRequest Principal Holder Asset)
@@ -250,7 +252,7 @@ theorem financialTransactionEnvelopeSuccess_preserves_invariant
   subst after
   constructor
   · exact authorizedFinancialStep_preserves_conservation
-      policy mapping counterpart openingLedger hBefore.1.1
+      policy mapping counterpart openingLedger hBefore.1
       (financialOperationStep_toAuthorizedFinancialStep
         policy mapping counterpart request.principal request.operation hOperation)
   · exact applyFinancialTransactionSuccess_preserves_receipt_invariant
@@ -306,7 +308,9 @@ theorem financialTransactionProcessorSuccess_preserves_invariant
       policy mapping counterpart openingLedger before.envelope after.envelope
       requestId request hBefore.1 hEnvelopeSuccess
   · constructor
-    · simpa [hDenials] using hBefore.2.1
+    · intro queryId receipt hStored
+      exact hBefore.2.1 queryId receipt (by
+        simpa [hDenials] using hStored)
     · intro queryId hSuccessReceipt
       rcases hSuccessReceipt with ⟨receipt, hStored⟩
       by_cases hTarget : queryId = requestId

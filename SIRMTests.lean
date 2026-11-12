@@ -3876,7 +3876,7 @@ theorem demoFinancialProcessor_denial_response_replays_after_nonce_advance :
       demoFinancialProcessorAfterNewIdSuccess 17 demoFinancialEnvelopeRequest =
       some (.authorizationRejected
         (financialTransactionAuthorizationDenialReceipt
-          17 demoFinancialEnvelopeRequest .transferAuthorizationDenied)) := by
+          17 demoFinancialEnvelopeRequest .transferAuthorizationDenied).response) := by
   have hNoSuccess :
       demoFinancialProcessorAfterNewIdSuccess.envelope.receipts 17 = none := by
     simp [demoFinancialProcessorAfterNewIdSuccess,
