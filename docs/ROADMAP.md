@@ -1,6 +1,6 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #21 is merged into `main` at `bcb7f8babbd2b92b74c0c579b92c76288f373da9`. PR #21's exact head `1673a2abdd55a28eb1f359a98cb46d0847ef6cdf` passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. It adds the abstract cached authorization-denial processor layer on top of PR #20's typed transaction envelope.
+**Verified baseline:** PR #22 is merged into `main` at `17d96ab0b4624a2f4fcd04b2d0700737ef70fdb4`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #22 adds cached insufficient-funds denials to the transaction processor.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
@@ -32,7 +32,8 @@
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
 - [x] One-record escrow open, release and cancellation with separate authorization, exact vault backing, and holder/GL/supply conservation.
 - [x] Multiple concurrent escrow IDs, aggregate per-asset pending liabilities, and exact reconciliation to the designated vault-holder balance and mapped GL subledger.
-- [ ] Settlement finality, escrow expiry/time locks, dispute handling, external settlement evidence and reversal policy.
+- [x] Abstract escrow expiry/time locks: fixed per-ID deadlines, monotone discrete time, pre-deadline release/cancel guards, and a separately authorized post-deadline refund recorded as `expired`, preserving vault/GL/pool backing. Wall-clock binding and scheduler liveness remain open.
+- [ ] Settlement finality, dispute handling, external settlement evidence and reversal policy.
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
@@ -72,7 +73,7 @@ No consensus algorithm or production network is claimed as selected or deployed 
 No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
 
 ## Recommended execution order
-1. Complete open accounting semantics: formalize escrow settlement finality, expiry/time locks, dispute/reversal policy, redemption obligations, reserve assumptions, liabilities and complete custody/customer-liability postings. Concurrent escrow IDs and pooled vault/GL reconciliation are already formalized. Fee tariff policy and non-holder revenue classification remain open.
+1. Complete open accounting semantics: formalize escrow settlement finality, dispute/reversal policy, redemption obligations, reserve assumptions, liabilities and complete custody/customer-liability postings. Concurrent escrow IDs, pooled vault/GL reconciliation and abstract discrete expiry guards are formalized; wall-clock binding and timeout scheduler liveness remain open. Fee tariff policy and non-holder revenue classification remain open.
 2. Complete the transaction envelope's remaining semantics (canonical encoding and hashing, signature/threshold rules, expiry, cached responses for other deterministic failures, and deterministic failure schemas), then refine it to a persisted runtime processor.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.

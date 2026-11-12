@@ -139,7 +139,8 @@ The source is organized by responsibility rather than a wide module table.
 
 - `SIRM.AuthorizedFinancialMachine` combines holder balances and the signed general ledger in one abstract financial state. Its authorized transfer, issuance, and burn steps update both projections together.
 - `SIRM.EscrowAccounting` defines the separately authorized single-record deposit/release/cancel primitive. `SIRM.EscrowRegistry` supports concurrent IDs; `SIRM.EscrowPooledReserve` derives aggregate pending liabilities by asset; and `SIRM.EscrowFinancialIntegration` ties those liabilities directly to the designated vault-holder balance and mapped GL subledger in one abstract transition.
-- The integrated escrow invariant preserves holder/supply reconciliation, mapped subledger agreement, aggregate signed-ledger balance, and exact per-asset vault backing across all reachable multi-record states.
+- `SIRM.EscrowTimeLocks` adds a discrete monotone clock, immutable per-ID deadlines, pre-deadline release/voluntary-cancel guards, and a separately authorized post-deadline refund that records the distinct `expired` terminal phase. Its reachable-state theorem reuses the integrated holder/GL/pool invariant. It does not prove wall-clock binding or scheduler liveness.
+- The integrated escrow invariant preserves holder/supply reconciliation, mapped subledger agreement, aggregate signed-ledger balance, and exact per-asset vault backing across all reachable multi-record states, including expiry refunds.
 - `SIRMTests.lean` contains concrete theorem-level regression scenarios, including an integrated transfer → issuance → burn trace.
 
 For theorem-by-theorem status, explicit assumptions, and remaining obligations, see [Formalization Status](docs/FORMALIZATION_STATUS.md) and [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md).
@@ -212,7 +213,7 @@ The RFT Network is a later, independent stage. No consensus algorithm is selecte
 
 ## 9. Verification and current test scope
 
-The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs. The theorem suite also covers single-use escrow deposit/release/cancel transitions; concurrent escrow IDs, dispute handling and external settlement finality remain open.
+The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs. The theorem suite covers single-use and pooled escrow accounting plus discrete per-ID expiry guards and timeout refunds. Wall-clock sources, automatic expiry scheduling, dispute handling and external settlement finality remain open.
 
 
 ```bash

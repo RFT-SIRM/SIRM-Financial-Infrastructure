@@ -12,8 +12,9 @@ authorization-gated holder transfer paired with its balanced GL journal.
 The escrow vault is part of the holder universe, so escrowed units remain
 included in the existing supply reconciliation. No units are minted, burned,
 or represented a second time. This first block deliberately does not model
-multiple concurrent escrow IDs, dispute resolution, time locks, expiry,
-external settlement evidence, or global transaction idempotency.
+multiple concurrent escrow IDs, dispute resolution, wall-clock deadline binding,
+expiry scheduler liveness, external settlement evidence, or global transaction
+idempotency. Time-lock safety is specified separately in `EscrowTimeLocks`.
 -/
 
 namespace SIRM
@@ -24,6 +25,7 @@ inductive EscrowPhase
   | pending
   | released
   | cancelled
+  | expired
   deriving DecidableEq, Repr
 
 /-- Immutable terms and current lifecycle phase of one escrow. -/
@@ -69,6 +71,8 @@ def EscrowFinancialInvariant
 Escrow permissions are separate from ordinary transfer authorization.
 A caller must satisfy both the existing transfer policy (which can combine
 account control and an exact transfer grant) and the escrow-specific policy.
+Timeout refunds additionally require the dedicated `mayExpireEscrow` permission;
+voluntary cancellation does not grant expiry authority by itself.
 -/
 structure EscrowAuthorizationPolicy (Principal Holder Asset : Type) where
   mayOpenEscrow :
@@ -78,6 +82,9 @@ structure EscrowAuthorizationPolicy (Principal Holder Asset : Type) where
     HoldingsState Holder Asset → Principal →
       Holder → Holder → Holder → Asset → Nat → Prop
   mayCancelEscrow :
+    HoldingsState Holder Asset → Principal →
+      Holder → Holder → Holder → Asset → Nat → Prop
+  mayExpireEscrow :
     HoldingsState Holder Asset → Principal →
       Holder → Holder → Holder → Asset → Nat → Prop
 
