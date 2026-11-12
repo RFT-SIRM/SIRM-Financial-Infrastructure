@@ -1,0 +1,54 @@
+{
+  "model": "linearizable transaction envelope with per-principal nonce and request-id receipt cache",
+  "request_identity": "exact typed payload equality; no cryptographic hash or canonical byte encoding is modeled",
+  "concurrency_assumption": "each request observes and updates one serialized atomic state transition",
+  "nonce_policy": "nonce mismatch is not cached; deterministic authorization rejection is cached; rejected requests do not consume nonce",
+  "same_nonce_races": {
+    "schedules": 6,
+    "accepted_per_schedule": 1,
+    "stale_rejections_per_schedule": 2,
+    "winner_frequency": {
+      "race-transfer": 2,
+      "race-issue": 2,
+      "race-burn": 2
+    },
+    "exact_replays_per_winner": 4,
+    "conflicting_request_id_cases": 6,
+    "financial_commits_per_schedule": 1
+  },
+  "sequential_nonce_reordering": {
+    "schedules": 6,
+    "all_three_eventually_accepted": true,
+    "first_pass_future_rejections_total": 8,
+    "retry_attempts_total": 9,
+    "max_retry_rounds": 2
+  },
+  "principal_isolation": {
+    "schedules": 6,
+    "all_accepted_each_schedule": true
+  },
+  "cached_rejection": {
+    "cached_auth_rejections": 1,
+    "retry_same_id_replays_rejection": true,
+    "nonce_consumed_on_auth_rejection": false,
+    "same_payload_new_id_after_policy_change_accepted": true
+  },
+  "atomic_write_boundary": {
+    "logical_write_components": [
+      "financial_state",
+      "principal_nonce",
+      "success_receipt"
+    ],
+    "possible_partial_write_patterns": 8,
+    "valid_all_or_none_patterns": 2,
+    "unsafe_partial_patterns": 6
+  },
+  "result": "PASS",
+  "scope_limitations": [
+    "finite abstract model only; not a database or distributed-systems linearizability proof",
+    "does not establish crash durability, locking, compare-and-swap, consensus ordering, or isolation level",
+    "does not model signatures, threshold authorization, canonical serialization, expiry, or cryptographic request hashes",
+    "synthetic per-principal balance effects are not the SIRM holder/GL accounting implementation",
+    "requires a later Lean model and implementation refinement/conformance proof"
+  ]
+}

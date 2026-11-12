@@ -1,0 +1,9 @@
+write_mask,written_components,atomic_boundary_valid
+000,none,True
+001,financial_state,False
+010,principal_nonce,False
+011,financial_state+principal_nonce,False
+100,success_receipt,False
+101,financial_state+success_receipt,False
+110,principal_nonce+success_receipt,False
+111,financial_state+principal_nonce+success_receipt,True
