@@ -243,6 +243,36 @@ def docs_and_ci_topology():
          "SIRM.FinancialTransactionDenials" in readme,
          "authorization-denial cache module is not integrated/documented")
     for declaration in (
+        "FinancialTransactionInsufficientFundsDenial",
+        "FinancialTransactionInsufficientFundsDenialStep",
+        "financialTransactionProcessorInsufficientFunds_preserves_invariant",
+        "financialTransactionInsufficientFunds_rejects_nonce_mismatch",
+    ):
+        need(declaration in denials,
+             f"FinancialTransactionDenials.lean is missing {declaration}")
+    for theorem in (
+        "demoFinancialProcessor_transfer_is_insufficient_funds",
+        "demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce",
+        "demoFinancialProcessor_insufficient_funds_does_not_change_financial_state",
+        "demoFinancialProcessor_insufficient_funds_does_not_consume_nonce",
+        "demoFinancialProcessor_insufficient_funds_preserves_every_nonce",
+        "demoFinancialProcessor_insufficient_funds_response_replays",
+        "demoFinancialProcessor_burn_insufficient_funds_is_admitted_at_current_nonce",
+        "demoFinancialProcessor_burn_insufficient_funds_response_replays",
+        "demoFinancialProcessor_issue_is_not_insufficient_funds_denial",
+        "demoFinancialProcessor_self_transfer_is_not_insufficient_funds_denial",
+        "demoFinancialProcessor_unauthorized_transfer_is_not_insufficient_funds_denial",
+        "demoFinancialProcessor_burn_is_insufficient_funds",
+        "demoInsufficientFundsFinancialProcessor_reachable_invariant",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean missing insufficient-funds regression {theorem}")
+    need("## Cached insufficient-funds regressions" in testing,
+         "TESTING.md does not document cached insufficient-funds regressions")
+    need("insufficient-funds denials" in readme,
+         "README does not describe insufficient-funds denial semantics")
+
+    for declaration in (
         "FinancialTransactionAuthorizationDenialStep",
         "FinancialTransactionProcessorSuccessStep",
         "FinancialTransactionProcessorReplayStep",
