@@ -3050,3 +3050,421 @@ theorem escrowPooledDemo_reserve_after_both_terminal_is_zero :
     pooledEscrowVaultCancel, pooledEscrowVaultRelease, pooledEscrowVaultOpen,
     escrowRegistryDemoAlphaRecord, escrowRegistryDemoBetaRecord]
 end SIRMTests
+
+namespace SIRMTests
+
+open SIRM
+
+/-! ## Integrated pooled escrow / FinancialState / GL regression -/
+
+abbrev IntegratedEscrowDemoId := Bool
+
+def integratedEscrowDemoTransferPolicy :
+    AuthorizationPolicy EscrowDemoPrincipal EscrowDemoHolder EscrowDemoAsset where
+  mayTransfer := fun _ principal source destination asset amount =>
+    (principal = EscrowDemoPrincipal.aliceOperator ∧
+      source = EscrowDemoHolder.alice ∧ destination = EscrowDemoHolder.vault ∧
+      asset = EscrowDemoAsset.rft ∧ (amount = 40 ∨ amount = 25)) ∨
+    (principal = EscrowDemoPrincipal.escrowAgent ∧
+      source = EscrowDemoHolder.vault ∧ destination = EscrowDemoHolder.bob ∧
+      asset = EscrowDemoAsset.rft ∧ amount = 40) ∨
+    (principal = EscrowDemoPrincipal.escrowAgent ∧
+      source = EscrowDemoHolder.vault ∧ destination = EscrowDemoHolder.alice ∧
+      asset = EscrowDemoAsset.rft ∧ amount = 25)
+  mayIssue := fun _ _ _ _ _ _ => False
+  mayBurn := fun _ _ _ _ _ => False
+
+def integratedEscrowDemoPolicy :
+    EscrowAuthorizationPolicy EscrowDemoPrincipal EscrowDemoHolder EscrowDemoAsset where
+  mayOpenEscrow := fun _ principal depositor beneficiary vault asset amount =>
+    (principal = EscrowDemoPrincipal.aliceOperator ∧
+      depositor = EscrowDemoHolder.alice ∧ beneficiary = EscrowDemoHolder.bob ∧
+      vault = EscrowDemoHolder.vault ∧ asset = EscrowDemoAsset.rft ∧ amount = 40) ∨
+    (principal = EscrowDemoPrincipal.aliceOperator ∧
+      depositor = EscrowDemoHolder.alice ∧ beneficiary = EscrowDemoHolder.treasury ∧
+      vault = EscrowDemoHolder.vault ∧ asset = EscrowDemoAsset.rft ∧ amount = 25)
+  mayReleaseEscrow := fun _ principal vault depositor beneficiary asset amount =>
+    principal = EscrowDemoPrincipal.escrowAgent ∧
+      vault = EscrowDemoHolder.vault ∧ depositor = EscrowDemoHolder.alice ∧
+      beneficiary = EscrowDemoHolder.bob ∧ asset = EscrowDemoAsset.rft ∧ amount = 40
+  mayCancelEscrow := fun _ principal vault depositor beneficiary asset amount =>
+    principal = EscrowDemoPrincipal.escrowAgent ∧
+      vault = EscrowDemoHolder.vault ∧ depositor = EscrowDemoHolder.alice ∧
+      beneficiary = EscrowDemoHolder.treasury ∧ asset = EscrowDemoAsset.rft ∧ amount = 25
+
+def integratedEscrowDemoInitialState :
+    EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+      EscrowDemoHolder EscrowDemoAsset :=
+  emptyEscrowFinancialRegistryState escrowDemoInitialFinancial
+
+theorem integratedEscrowDemoInitial_invariant :
+    EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+      EscrowDemoHolder.vault integratedEscrowDemoInitialState := by
+  apply emptyEscrowFinancialRegistryInvariant_of_zero_vault
+  · exact escrowDemoInitialFinancial_conservation
+  · intro asset
+    cases asset
+    norm_num [integratedEscrowDemoInitialState, emptyEscrowFinancialRegistryState,
+      escrowDemoInitialFinancial, escrowDemoInitialHoldings,
+      issueToHolder, emptyHoldingsState]
+
+theorem integratedEscrowDemo_alpha_transfer_authorized :
+    integratedEscrowDemoTransferPolicy.mayTransfer
+      integratedEscrowDemoInitialState.financial.holdings
+      EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice
+      EscrowDemoHolder.vault EscrowDemoAsset.rft 40 := by
+  simp [integratedEscrowDemoTransferPolicy]
+
+theorem integratedEscrowDemo_alpha_escrow_authorized :
+    integratedEscrowDemoPolicy.mayOpenEscrow
+      integratedEscrowDemoInitialState.financial.holdings
+      EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice
+      EscrowDemoHolder.bob EscrowDemoHolder.vault EscrowDemoAsset.rft 40 := by
+  simp [integratedEscrowDemoPolicy]
+
+theorem integratedEscrowDemo_alpha_funded :
+    TransferAllowed integratedEscrowDemoInitialState.financial.holdings
+      EscrowDemoHolder.alice EscrowDemoHolder.vault EscrowDemoAsset.rft 40 :=
+  escrowDemo_open_funded
+
+def integratedEscrowDemoAfterAlpha :
+    EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+      EscrowDemoHolder EscrowDemoAsset :=
+  escrowFinancialRegistryOpen integratedEscrowDemoTransferPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState false
+    EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice EscrowDemoHolder.bob
+    EscrowDemoAsset.rft 40 integratedEscrowDemo_alpha_transfer_authorized
+    integratedEscrowDemo_alpha_funded
+
+theorem integratedEscrowDemo_open_alpha_step :
+    EscrowFinancialRegistryOpenStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoInitialState integratedEscrowDemoAfterAlpha := by
+  refine ⟨false, EscrowDemoPrincipal.aliceOperator, EscrowDemoHolder.alice,
+    EscrowDemoHolder.bob, EscrowDemoAsset.rft, 40, ?_, by decide, by decide,
+    by decide, integratedEscrowDemo_alpha_transfer_authorized,
+    integratedEscrowDemo_alpha_escrow_authorized,
+    integratedEscrowDemo_alpha_funded, rfl⟩
+  simp [integratedEscrowDemoInitialState, emptyEscrowFinancialRegistryState,
+    emptyEscrowRegistry]
+
+theorem integratedEscrowDemo_beta_transfer_authorized :
+    integratedEscrowDemoTransferPolicy.mayTransfer
+      integratedEscrowDemoAfterAlpha.financial.holdings
+      EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice
+      EscrowDemoHolder.vault EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoTransferPolicy]
+
+theorem integratedEscrowDemo_beta_escrow_authorized :
+    integratedEscrowDemoPolicy.mayOpenEscrow
+      integratedEscrowDemoAfterAlpha.financial.holdings
+      EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice
+      EscrowDemoHolder.treasury EscrowDemoHolder.vault EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoPolicy]
+
+theorem integratedEscrowDemo_beta_funded :
+    TransferAllowed integratedEscrowDemoAfterAlpha.financial.holdings
+      EscrowDemoHolder.alice EscrowDemoHolder.vault EscrowDemoAsset.rft 25 := by
+  right
+  change (25 : Int) ≤ integratedEscrowDemoAfterAlpha.financial.holdings.balance
+    EscrowDemoHolder.alice EscrowDemoAsset.rft
+  norm_num [integratedEscrowDemoAfterAlpha, escrowFinancialRegistryOpen,
+    escrowFinancialRegistryTransferFinancial, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, escrowDemoInitialFinancial,
+    escrowDemoInitialHoldings, issueToHolder, emptyHoldingsState,
+    executeAuthorizedTransfer, executeTransfer, transferBetweenHolders]
+
+def integratedEscrowDemoAfterBoth :
+    EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+      EscrowDemoHolder EscrowDemoAsset :=
+  escrowFinancialRegistryOpen integratedEscrowDemoTransferPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoAfterAlpha true
+    EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice EscrowDemoHolder.treasury
+    EscrowDemoAsset.rft 25 integratedEscrowDemo_beta_transfer_authorized
+    integratedEscrowDemo_beta_funded
+
+theorem integratedEscrowDemo_open_beta_step :
+    EscrowFinancialRegistryOpenStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoAfterAlpha integratedEscrowDemoAfterBoth := by
+  refine ⟨true, EscrowDemoPrincipal.aliceOperator, EscrowDemoHolder.alice,
+    EscrowDemoHolder.treasury, EscrowDemoAsset.rft, 25, ?_, by decide, by decide,
+    by decide, integratedEscrowDemo_beta_transfer_authorized,
+    integratedEscrowDemo_beta_escrow_authorized,
+    integratedEscrowDemo_beta_funded, rfl⟩
+  simp [integratedEscrowDemoAfterAlpha, escrowFinancialRegistryOpen,
+    integratedEscrowDemoInitialState, emptyEscrowFinancialRegistryState,
+    emptyEscrowRegistry, escrowRegistryInsert]
+
+@[simp] theorem integratedEscrowDemoAfterBoth_alpha_record :
+    integratedEscrowDemoAfterBoth.registry.records false =
+      some (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.bob
+        EscrowDemoAsset.rft 40) := by
+  simp [integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry, escrowRegistryInsert]
+
+@[simp] theorem integratedEscrowDemoAfterBoth_beta_record :
+    integratedEscrowDemoAfterBoth.registry.records true =
+      some (integratedPendingEscrowRecord EscrowDemoHolder.alice
+        EscrowDemoHolder.treasury EscrowDemoAsset.rft 25) := by
+  simp [integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry, escrowRegistryInsert]
+
+theorem integratedEscrowDemo_alpha_release_transfer_authorized :
+    integratedEscrowDemoTransferPolicy.mayTransfer
+      integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.bob EscrowDemoAsset.rft 40 := by
+  simp [integratedEscrowDemoTransferPolicy]
+
+theorem integratedEscrowDemo_alpha_release_escrow_authorized :
+    integratedEscrowDemoPolicy.mayReleaseEscrow
+      integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.alice EscrowDemoHolder.bob EscrowDemoAsset.rft 40 := by
+  simp [integratedEscrowDemoPolicy]
+
+theorem integratedEscrowDemo_alpha_release_funded :
+    TransferAllowed integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoHolder.vault EscrowDemoHolder.bob EscrowDemoAsset.rft 40 := by
+  right
+  change (40 : Int) ≤ integratedEscrowDemoAfterBoth.financial.holdings.balance
+    EscrowDemoHolder.vault EscrowDemoAsset.rft
+  norm_num [integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, escrowDemoInitialFinancial,
+    escrowDemoInitialHoldings, issueToHolder, emptyHoldingsState,
+    escrowFinancialRegistryTransferFinancial, executeAuthorizedTransfer,
+    executeTransfer, transferBetweenHolders]
+
+def integratedEscrowDemoAfterReleaseAlpha :
+    EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+      EscrowDemoHolder EscrowDemoAsset :=
+  escrowFinancialRegistryRelease integratedEscrowDemoTransferPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoAfterBoth false
+    (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.bob
+      EscrowDemoAsset.rft 40)
+    EscrowDemoPrincipal.escrowAgent
+    integratedEscrowDemo_alpha_release_transfer_authorized
+    integratedEscrowDemo_alpha_release_funded
+
+theorem integratedEscrowDemo_release_alpha_step :
+    EscrowFinancialRegistryReleaseStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoAfterBoth integratedEscrowDemoAfterReleaseAlpha := by
+  refine ⟨false,
+    integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.bob
+      EscrowDemoAsset.rft 40,
+    EscrowDemoPrincipal.escrowAgent,
+    integratedEscrowDemoAfterBoth_alpha_record, rfl,
+    integratedEscrowDemo_alpha_release_transfer_authorized,
+    integratedEscrowDemo_alpha_release_escrow_authorized,
+    integratedEscrowDemo_alpha_release_funded, rfl⟩
+
+theorem integratedEscrowDemo_beta_cancel_transfer_authorized :
+    integratedEscrowDemoTransferPolicy.mayTransfer
+      integratedEscrowDemoAfterReleaseAlpha.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.alice EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoTransferPolicy]
+
+theorem integratedEscrowDemo_beta_cancel_escrow_authorized :
+    integratedEscrowDemoPolicy.mayCancelEscrow
+      integratedEscrowDemoAfterReleaseAlpha.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.alice EscrowDemoHolder.treasury EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoPolicy]
+
+theorem integratedEscrowDemo_beta_cancel_funded :
+    TransferAllowed integratedEscrowDemoAfterReleaseAlpha.financial.holdings
+      EscrowDemoHolder.vault EscrowDemoHolder.alice EscrowDemoAsset.rft 25 := by
+  right
+  have hVaultBalance :
+      integratedEscrowDemoAfterReleaseAlpha.financial.holdings.balance
+        EscrowDemoHolder.vault EscrowDemoAsset.rft = 25 := by
+    norm_num [integratedEscrowDemoAfterReleaseAlpha, integratedEscrowDemoAfterBoth,
+      integratedEscrowDemoAfterAlpha, escrowFinancialRegistryRelease,
+      escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+      emptyEscrowFinancialRegistryState, escrowDemoInitialFinancial,
+      escrowDemoInitialHoldings, issueToHolder, emptyHoldingsState,
+      escrowFinancialRegistryTransferFinancial, executeAuthorizedTransfer,
+      executeTransfer, transferBetweenHolders, integratedPendingEscrowRecord]
+  change (25 : Int) ≤ integratedEscrowDemoAfterReleaseAlpha.financial.holdings.balance
+    EscrowDemoHolder.vault EscrowDemoAsset.rft
+  rw [hVaultBalance]
+
+def integratedEscrowDemoAfterCancelBeta :
+    EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+      EscrowDemoHolder EscrowDemoAsset :=
+  escrowFinancialRegistryCancel integratedEscrowDemoTransferPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoAfterReleaseAlpha true
+    (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.treasury
+      EscrowDemoAsset.rft 25)
+    EscrowDemoPrincipal.escrowAgent
+    integratedEscrowDemo_beta_cancel_transfer_authorized
+    integratedEscrowDemo_beta_cancel_funded
+
+theorem integratedEscrowDemo_cancel_beta_step :
+    EscrowFinancialRegistryCancelStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoAfterReleaseAlpha integratedEscrowDemoAfterCancelBeta := by
+  refine ⟨true,
+    integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.treasury
+      EscrowDemoAsset.rft 25,
+    EscrowDemoPrincipal.escrowAgent,
+    ?_, rfl,
+    integratedEscrowDemo_beta_cancel_transfer_authorized,
+    integratedEscrowDemo_beta_cancel_escrow_authorized,
+    integratedEscrowDemo_beta_cancel_funded, rfl⟩
+  simp [integratedEscrowDemoAfterReleaseAlpha, integratedEscrowDemoAfterBoth,
+    integratedEscrowDemoAfterAlpha, escrowFinancialRegistryRelease,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry, escrowRegistryInsert,
+    escrowRegistryRelease]
+
+def integratedEscrowDemoMachine :
+    VerifiedStateMachine
+      (EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+        EscrowDemoHolder EscrowDemoAsset) :=
+  escrowFinancialRegistryMachine integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState
+    integratedEscrowDemoInitial_invariant
+
+theorem integratedEscrowDemo_initial_reachable :
+    Reachable integratedEscrowDemoMachine integratedEscrowDemoInitialState :=
+  Reachable.initial rfl
+
+theorem integratedEscrowDemo_after_alpha_reachable :
+    Reachable integratedEscrowDemoMachine integratedEscrowDemoAfterAlpha :=
+  Reachable.step integratedEscrowDemo_initial_reachable
+    (Or.inl integratedEscrowDemo_open_alpha_step)
+
+theorem integratedEscrowDemo_after_both_reachable :
+    Reachable integratedEscrowDemoMachine integratedEscrowDemoAfterBoth :=
+  Reachable.step integratedEscrowDemo_after_alpha_reachable
+    (Or.inl integratedEscrowDemo_open_beta_step)
+
+theorem integratedEscrowDemo_after_release_reachable :
+    Reachable integratedEscrowDemoMachine integratedEscrowDemoAfterReleaseAlpha :=
+  Reachable.step integratedEscrowDemo_after_both_reachable
+    (Or.inr (Or.inl integratedEscrowDemo_release_alpha_step))
+
+theorem integratedEscrowDemo_after_cancel_reachable :
+    Reachable integratedEscrowDemoMachine integratedEscrowDemoAfterCancelBeta :=
+  Reachable.step integratedEscrowDemo_after_release_reachable
+    (Or.inr (Or.inr integratedEscrowDemo_cancel_beta_step))
+
+theorem integratedEscrowDemo_after_both_invariant :
+    EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+      EscrowDemoHolder.vault integratedEscrowDemoAfterBoth :=
+  escrowFinancialRegistryInvariant_of_reachable integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState
+    integratedEscrowDemoInitial_invariant integratedEscrowDemo_after_both_reachable
+
+theorem integratedEscrowDemo_after_release_invariant :
+    EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+      EscrowDemoHolder.vault integratedEscrowDemoAfterReleaseAlpha :=
+  escrowFinancialRegistryInvariant_of_reachable integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState
+    integratedEscrowDemoInitial_invariant integratedEscrowDemo_after_release_reachable
+
+theorem integratedEscrowDemo_after_cancel_invariant :
+    EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+      EscrowDemoHolder.vault integratedEscrowDemoAfterCancelBeta :=
+  escrowFinancialRegistryInvariant_of_reachable integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState
+    integratedEscrowDemoInitial_invariant integratedEscrowDemo_after_cancel_reachable
+
+theorem integratedEscrowDemo_pending_reserve_65 :
+    pooledEscrowReserve integratedEscrowDemoAfterBoth.registry EscrowDemoAsset.rft = 65 := by
+  norm_num [pooledEscrowReserve, pooledEscrowContribution,
+    integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry,
+    Fin.sum_univ_succ, escrowRegistryInsert, integratedPendingEscrowRecord]
+
+theorem integratedEscrowDemo_pending_reserve_after_release_25 :
+    pooledEscrowReserve integratedEscrowDemoAfterReleaseAlpha.registry
+      EscrowDemoAsset.rft = 25 := by
+  norm_num [escrowPooledDemo_released_ne_pending,
+    escrowPooledDemo_cancelled_ne_pending,
+    pooledEscrowReserve, pooledEscrowContribution,
+    integratedEscrowDemoAfterReleaseAlpha, integratedEscrowDemoAfterBoth,
+    integratedEscrowDemoAfterAlpha, escrowFinancialRegistryRelease,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry,
+    Fin.sum_univ_succ, escrowRegistryRelease, escrowRegistryInsert,
+    integratedPendingEscrowRecord]
+
+theorem integratedEscrowDemo_pending_reserve_after_cancel_zero :
+    pooledEscrowReserve integratedEscrowDemoAfterCancelBeta.registry
+      EscrowDemoAsset.rft = 0 := by
+  norm_num [escrowPooledDemo_released_ne_pending,
+    escrowPooledDemo_cancelled_ne_pending,
+    pooledEscrowReserve, pooledEscrowContribution,
+    integratedEscrowDemoAfterCancelBeta, integratedEscrowDemoAfterReleaseAlpha,
+    integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryCancel, escrowFinancialRegistryRelease,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry,
+    Fin.sum_univ_succ, escrowRegistryCancel, escrowRegistryRelease,
+    escrowRegistryInsert, integratedPendingEscrowRecord]
+
+theorem integratedEscrowDemo_after_both_vault_gl_pool_65 :
+    integratedEscrowDemoAfterBoth.financial.holdings.balance
+        EscrowDemoHolder.vault EscrowDemoAsset.rft = 65 ∧
+    integratedEscrowDemoAfterBoth.financial.ledger.balance
+        (escrowDemoMapping.ledgerAccount EscrowDemoHolder.vault)
+        EscrowDemoAsset.rft = 65 ∧
+    pooledEscrowReserve integratedEscrowDemoAfterBoth.registry
+        EscrowDemoAsset.rft = 65 := by
+  have hInvariant := integratedEscrowDemo_after_both_invariant
+  have hBridge := escrowFinancialRegistryVault_gl_equals_pending
+    escrowDemoMapping escrowDemoOpeningLedger EscrowDemoHolder.vault
+    integratedEscrowDemoAfterBoth hInvariant EscrowDemoAsset.rft
+  have hPool := integratedEscrowDemo_pending_reserve_65
+  refine ⟨?_, ?_, hPool⟩
+  · rw [hInvariant.vault_matches_pending, hPool]
+  · rw [hBridge.2, hPool]
+
+theorem integratedEscrowDemo_after_release_vault_gl_pool_25 :
+    integratedEscrowDemoAfterReleaseAlpha.financial.holdings.balance
+        EscrowDemoHolder.vault EscrowDemoAsset.rft = 25 ∧
+    integratedEscrowDemoAfterReleaseAlpha.financial.ledger.balance
+        (escrowDemoMapping.ledgerAccount EscrowDemoHolder.vault)
+        EscrowDemoAsset.rft = 25 ∧
+    pooledEscrowReserve integratedEscrowDemoAfterReleaseAlpha.registry
+        EscrowDemoAsset.rft = 25 := by
+  have hInvariant := integratedEscrowDemo_after_release_invariant
+  have hBridge := escrowFinancialRegistryVault_gl_equals_pending
+    escrowDemoMapping escrowDemoOpeningLedger EscrowDemoHolder.vault
+    integratedEscrowDemoAfterReleaseAlpha hInvariant EscrowDemoAsset.rft
+  have hPool := integratedEscrowDemo_pending_reserve_after_release_25
+  refine ⟨?_, ?_, hPool⟩
+  · rw [hInvariant.vault_matches_pending, hPool]
+  · rw [hBridge.2, hPool]
+
+theorem integratedEscrowDemo_after_cancel_vault_gl_pool_zero :
+    integratedEscrowDemoAfterCancelBeta.financial.holdings.balance
+        EscrowDemoHolder.vault EscrowDemoAsset.rft = 0 ∧
+    integratedEscrowDemoAfterCancelBeta.financial.ledger.balance
+        (escrowDemoMapping.ledgerAccount EscrowDemoHolder.vault)
+        EscrowDemoAsset.rft = 0 ∧
+    pooledEscrowReserve integratedEscrowDemoAfterCancelBeta.registry
+        EscrowDemoAsset.rft = 0 := by
+  have hInvariant := integratedEscrowDemo_after_cancel_invariant
+  have hBridge := escrowFinancialRegistryVault_gl_equals_pending
+    escrowDemoMapping escrowDemoOpeningLedger EscrowDemoHolder.vault
+    integratedEscrowDemoAfterCancelBeta hInvariant EscrowDemoAsset.rft
+  have hPool := integratedEscrowDemo_pending_reserve_after_cancel_zero
+  refine ⟨?_, ?_, hPool⟩
+  · rw [hInvariant.vault_matches_pending, hPool]
+  · rw [hBridge.2, hPool]
+
+end SIRMTests
