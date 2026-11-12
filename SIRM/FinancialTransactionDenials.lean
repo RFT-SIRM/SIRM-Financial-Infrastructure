@@ -1,35 +1,49 @@
 import SIRM.FinancialTransactionEnvelope
 
 /-!
-# Cached Authorization Denials for the Financial Transaction Processor
+# Cached Financial Transaction Denials
 
-This layer extends the successful-request envelope with a disjoint cache for
-deterministic authorization rejections. Receipt lookup remains first: an exact
-retry returns the previously stored success or denial, regardless of the
-principal's current nonce.
+This layer extends the successful-request envelope with one disjoint denial
+cache for deterministic authorization and insufficient-funds rejections.
+Receipt lookup remains first: an exact retry returns the previously stored
+success or denial, regardless of the principal's current nonce.
 
-A new authorization denial is recorded only at the exact current nonce and
-only for an unused request ID. It leaves the financial state and nonce
-unchanged. A regression may re-instantiate the transition relation with a different policy
-and use a new request ID at the still-unconsumed nonce. Policy mutation is not
-itself a state transition in this model: each verified machine has one fixed
-policy parameter. Reusing the denied request ID continues to replay the original
-denial.
+A new denial is recorded only at the exact current nonce and only for an unused
+request ID. It leaves the financial state and nonce unchanged. Authorization
+and funding failures remain distinct: insufficient funds is admitted only for
+an authorized non-self transfer or an authorized burn that lacks the required
+balance; issuance has no debit-funding precondition. Policy mutation is not a
+state transition in this model: each verified machine has one fixed policy
+parameter. Reusing a denied request ID continues to replay the original denial.
 
-The model covers authorization denials only. It does not yet assign cached
-responses to insufficient-funds, expiry, signature, or other failure classes.
+Expiry, signatures, other failure classes, and persisted runtime storage remain
+outside this model.
 -/
 
 namespace SIRM
 
-/-- Stable Lean-level reason codes for authorization denials by operation family. -/
+/-- Stable Lean-level reason codes for deterministic transaction rejections. -/
 inductive FinancialTransactionDenialReason
   | transferAuthorizationDenied
   | issueAuthorizationDenied
   | burnAuthorizationDenied
+  | transferInsufficientFunds
+  | burnInsufficientFunds
   deriving DecidableEq, Repr
 
-/-- A deterministic authorization-denial response; no nonce is consumed. -/
+/-- Classifies the business-failure reasons that arise from an unfunded debit. -/
+def FinancialTransactionDenialReasonIsInsufficientFunds
+    (reason : FinancialTransactionDenialReason) : Prop :=
+  reason = .transferInsufficientFunds ∨ reason = .burnInsufficientFunds
+
+/-- The insufficient-funds classifier is decidable from the finite reason enum. -/
+instance instDecidableFinancialTransactionDenialReasonIsInsufficientFunds
+    (reason : FinancialTransactionDenialReason) :
+    Decidable (FinancialTransactionDenialReasonIsInsufficientFunds reason) := by
+  unfold FinancialTransactionDenialReasonIsInsufficientFunds
+  infer_instance
+
+/-- A deterministic rejection response; no nonce is consumed. -/
 structure FinancialTransactionDenialResponse (RequestId : Type) where
   requestId : RequestId
   expectedNonce : Nat
@@ -62,7 +76,7 @@ def initialFinancialTransactionProcessorState
       RequestId Principal initialFinancial
     denials := fun _ => none }
 
-/-- The response recorded for one deterministic authorization denial. -/
+/-- The response recorded for one deterministic request denial. -/
 def financialTransactionAuthorizationDenialReceipt
     {RequestId Principal Holder Asset : Type}
     (requestId : RequestId)
@@ -93,15 +107,17 @@ def applyFinancialTransactionAuthorizationDenial
           requestId request reason)
       else before.denials candidate }
 
-/-- The denial reason must match the operation family carried by the request. -/
+/-- A cached rejection reason must match the operation family carried by the request. -/
 def FinancialTransactionDenialReasonMatchesRequest
     {Principal Holder Asset : Type}
     (request : FinancialTransactionRequest Principal Holder Asset)
     (reason : FinancialTransactionDenialReason) : Prop :=
   match request.operation with
-  | .transfer _ _ _ _ => reason = .transferAuthorizationDenied
+  | .transfer _ _ _ _ =>
+      reason = .transferAuthorizationDenied ∨ reason = .transferInsufficientFunds
   | .issue _ _ _ _ => reason = .issueAuthorizationDenied
-  | .burn _ _ _ => reason = .burnAuthorizationDenied
+  | .burn _ _ _ =>
+      reason = .burnAuthorizationDenied ∨ reason = .burnInsufficientFunds
 
 /-- Evidence that the current authorization policy rejects this exact request. -/
 def FinancialTransactionAuthorizationDenial
@@ -142,6 +158,53 @@ def FinancialTransactionAuthorizationDenialStep
     after = applyFinancialTransactionAuthorizationDenial
       before requestId request reason
 
+/--
+An insufficient-funds rejection is cacheable only after authorization succeeds.
+Self-transfers are excluded because `TransferAllowed` explicitly permits them
+without debiting the source. Issuance is a mint operation and has no funding
+precondition in this model.
+-/
+def FinancialTransactionInsufficientFundsDenial
+    {Principal Holder LedgerAccount Asset : Type}
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (financial : FinancialState Holder LedgerAccount Asset)
+    (reason : FinancialTransactionDenialReason) : Prop :=
+  match request.operation with
+  | .transfer source destination asset amount =>
+      reason = .transferInsufficientFunds ∧
+        policy.mayTransfer financial.holdings request.principal
+          source destination asset amount ∧
+        source ≠ destination ∧
+        ¬ TransferAllowed financial.holdings source destination asset amount
+  | .issue _ _ _ _ => False
+  | .burn holder asset amount =>
+      reason = .burnInsufficientFunds ∧
+        policy.mayBurn financial.holdings request.principal holder asset amount ∧
+        ¬ ((amount : Int) ≤ financial.holdings.balance holder asset)
+
+/--
+A funds denial is admitted only for an unused request ID and the exact current
+nonce, and only when the request is authorized but its debit is not funded.
+It writes a failure receipt without changing the financial state or nonce.
+-/
+def FinancialTransactionInsufficientFundsDenialStep
+    {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (requestId : RequestId)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (reason : FinancialTransactionDenialReason)
+    (before after : FinancialTransactionProcessorState
+      RequestId Principal Holder LedgerAccount Asset) : Prop :=
+  before.envelope.receipts requestId = none ∧
+    before.denials requestId = none ∧
+    request.nonce = before.envelope.core.nextNonce request.principal ∧
+    FinancialTransactionInsufficientFundsDenial policy request
+      before.envelope.core.financial reason ∧
+    after = applyFinancialTransactionAuthorizationDenial
+      before requestId request reason
+
 /-- A successful request may not reuse an ID occupied by a cached denial. -/
 def FinancialTransactionProcessorSuccessStep
     {RequestId Principal Holder LedgerAccount Asset : Type}
@@ -178,7 +241,8 @@ def FinancialTransactionProcessorReplayStep
     receipt.request = request ∧
     after = before)
 
-/-- All admitted processor transitions: success, cached denial, or exact replay. -/
+/-- All admitted processor transitions: success, cached authorization denial,
+    cached insufficient-funds denial, or exact replay. -/
 def FinancialTransactionProcessorStep
     {RequestId Principal Holder LedgerAccount Asset : Type}
     [DecidableEq RequestId] [DecidableEq Principal]
@@ -194,6 +258,9 @@ def FinancialTransactionProcessorStep
       requestId request before after) ∨
   (∃ requestId request reason,
     FinancialTransactionAuthorizationDenialStep policy
+      requestId request reason before after) ∨
+  (∃ requestId request reason,
+    FinancialTransactionInsufficientFundsDenialStep policy
       requestId request reason before after) ∨
   (∃ requestId request,
     FinancialTransactionProcessorReplayStep requestId request before after)
@@ -373,10 +440,60 @@ theorem financialTransactionAuthorizationDenial_stores_receipt
   rcases hDenial with ⟨_hSuccessUnused, _hDenialUnused, _hNonce, _hReason, rfl⟩
   simp [applyFinancialTransactionAuthorizationDenial]
 
+/-- A cached insufficient-funds denial leaves balances, GL, and all nonces unchanged. -/
+theorem financialTransactionInsufficientFunds_core_unchanged
+    {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (before after : FinancialTransactionProcessorState
+      RequestId Principal Holder LedgerAccount Asset)
+    (requestId : RequestId)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (reason : FinancialTransactionDenialReason)
+    (hDenial : FinancialTransactionInsufficientFundsDenialStep
+      policy requestId request reason before after) :
+    after.envelope.core = before.envelope.core := by
+  rcases hDenial with ⟨_hNoSuccess, _hNoDenial, _hNonce, _hReason, rfl⟩
+  rfl
+
+/-- An insufficient-funds denial cannot be cached at a stale or future nonce. -/
+theorem financialTransactionInsufficientFunds_rejects_nonce_mismatch
+    {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (requestId : RequestId)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (reason : FinancialTransactionDenialReason)
+    (before after : FinancialTransactionProcessorState
+      RequestId Principal Holder LedgerAccount Asset)
+    (hMismatch : request.nonce ≠ before.envelope.core.nextNonce request.principal) :
+    ¬ FinancialTransactionInsufficientFundsDenialStep
+      policy requestId request reason before after := by
+  intro hDenial
+  exact hMismatch hDenial.2.2.1
+
+/-- An insufficient-funds rejection stores the exact request and response. -/
+theorem financialTransactionInsufficientFunds_stores_receipt
+    {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (requestId : RequestId)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (reason : FinancialTransactionDenialReason)
+    {before after : FinancialTransactionProcessorState
+      RequestId Principal Holder LedgerAccount Asset}
+    (hDenial : FinancialTransactionInsufficientFundsDenialStep
+      policy requestId request reason before after) :
+    after.denials requestId =
+      some (financialTransactionAuthorizationDenialReceipt requestId request reason) := by
+  rcases hDenial with ⟨_hNoSuccess, _hNoDenial, _hNonce, _hReason, rfl⟩
+  simp [applyFinancialTransactionAuthorizationDenial]
+
 /-- Response type returned by an exact request-ID lookup. -/
 inductive FinancialTransactionProcessorResponse (RequestId : Type)
   | accepted (response : FinancialTransactionResponse RequestId)
   | authorizationRejected (response : FinancialTransactionDenialResponse RequestId)
+  | insufficientFundsRejected (response : FinancialTransactionDenialResponse RequestId)
   deriving DecidableEq
 
 /-- Lookup returns a cached success or denial only for the exact stored request. -/
@@ -398,7 +515,11 @@ def cachedFinancialTransactionProcessorResponse
       | none => none
       | some receipt =>
           if receipt.response.requestId = requestId ∧ receipt.request = request
-          then some (.authorizationRejected receipt.response) else none
+          then
+            if FinancialTransactionDenialReasonIsInsufficientFunds receipt.response.reason
+            then some (.insufficientFundsRejected receipt.response)
+            else some (.authorizationRejected receipt.response)
+          else none
 
 /-- Inserting a denial preserves the processor invariant, including cache disjointness. -/
 theorem financialTransactionProcessorDenial_preserves_invariant
@@ -424,7 +545,8 @@ theorem financialTransactionProcessorDenial_preserves_invariant
     | transfer source destination asset amount =>
         have hAuthorization := hReason
         simp [FinancialTransactionAuthorizationDenial, hOp] at hAuthorization
-        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using hAuthorization.1
+        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using
+          (Or.inl hAuthorization.1)
     | issue issuer recipient asset amount =>
         have hAuthorization := hReason
         simp [FinancialTransactionAuthorizationDenial, hOp] at hAuthorization
@@ -432,7 +554,61 @@ theorem financialTransactionProcessorDenial_preserves_invariant
     | burn holder asset amount =>
         have hAuthorization := hReason
         simp [FinancialTransactionAuthorizationDenial, hOp] at hAuthorization
-        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using hAuthorization.1
+        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using
+          (Or.inl hAuthorization.1)
+  constructor
+  · exact hBefore.1
+  · constructor
+    · exact applyFinancialTransactionAuthorizationDenial_preserves_receipt_invariant
+        before requestId request reason hBefore.2.1 hReasonMatches
+    · intro queryId hSuccessReceipt
+      by_cases hTarget : queryId = requestId
+      · subst queryId
+        rcases hSuccessReceipt with ⟨receipt, hReceipt⟩
+        have hOld : before.envelope.receipts requestId = some receipt := by
+          simpa [applyFinancialTransactionAuthorizationDenial] using hReceipt
+        rw [hNoSuccess] at hOld
+        cases hOld
+      · rcases hSuccessReceipt with ⟨receipt, hReceipt⟩
+        have hOld : before.envelope.receipts queryId = some receipt := by
+          simpa [applyFinancialTransactionAuthorizationDenial, hTarget] using hReceipt
+        have hNoOldDenial := hBefore.2.2 queryId ⟨receipt, hOld⟩
+        simpa [applyFinancialTransactionAuthorizationDenial, hTarget] using hNoOldDenial
+
+/-- A cached insufficient-funds denial preserves the complete processor invariant. -/
+theorem financialTransactionProcessorInsufficientFunds_preserves_invariant
+    {RequestId Principal Holder LedgerAccount Asset : Type}
+    [DecidableEq RequestId]
+    [Fintype Holder] [DecidableEq Holder] [DecidableEq Asset]
+    [Fintype LedgerAccount] [DecidableEq LedgerAccount]
+    (policy : AuthorizationPolicy Principal Holder Asset)
+    (mapping : HolderLedgerMap Holder LedgerAccount)
+    (openingLedger : Ledger LedgerAccount Asset)
+    (before after : FinancialTransactionProcessorState
+      RequestId Principal Holder LedgerAccount Asset)
+    (requestId : RequestId)
+    (request : FinancialTransactionRequest Principal Holder Asset)
+    (reason : FinancialTransactionDenialReason)
+    (hBefore : FinancialTransactionProcessorInvariant mapping openingLedger before)
+    (hDenial : FinancialTransactionInsufficientFundsDenialStep
+      policy requestId request reason before after) :
+    FinancialTransactionProcessorInvariant mapping openingLedger after := by
+  rcases hDenial with ⟨hNoSuccess, _hNoDenial, _hNonce, hFunds, rfl⟩
+  have hReasonMatches : FinancialTransactionDenialReasonMatchesRequest request reason := by
+    cases hOp : request.operation with
+    | transfer source destination asset amount =>
+        have hInsufficient := hFunds
+        simp [FinancialTransactionInsufficientFundsDenial, hOp] at hInsufficient
+        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using
+          (Or.inr hInsufficient.1)
+    | issue issuer recipient asset amount =>
+        exact False.elim (by
+          simpa [FinancialTransactionInsufficientFundsDenial, hOp] using hFunds)
+    | burn holder asset amount =>
+        have hInsufficient := hFunds
+        simp [FinancialTransactionInsufficientFundsDenial, hOp] at hInsufficient
+        simpa [FinancialTransactionDenialReasonMatchesRequest, hOp] using
+          (Or.inr hInsufficient.1)
   constructor
   · exact hBefore.1
   · constructor
@@ -492,11 +668,17 @@ theorem financialTransactionDenialReplay_returns_cached_response
     (hSame : receipt.request = request)
     (hNoSuccess : state.envelope.receipts requestId = none) :
     cachedFinancialTransactionProcessorResponse state requestId request =
-      some (.authorizationRejected receipt.response) := by
+      some (if FinancialTransactionDenialReasonIsInsufficientFunds receipt.response.reason
+        then .insufficientFundsRejected receipt.response
+        else .authorizationRejected receipt.response) := by
   simp [cachedFinancialTransactionProcessorResponse, hNoSuccess,
     hStored, hResponseId, hSame]
+  by_cases hFunds :
+      FinancialTransactionDenialReasonIsInsufficientFunds receipt.response.reason
+  · simp [hFunds]
+  · simp [hFunds]
 
-/-- A verified processor machine admits successes, cached authorization denials, and exact replays. -/
+/-- A verified processor machine admits successes, cached denials, and exact replays. -/
 def financialTransactionProcessorMachine
     {RequestId Principal Holder LedgerAccount Asset : Type}
     [DecidableEq RequestId] [DecidableEq Principal]
@@ -527,21 +709,27 @@ def financialTransactionProcessorMachine
       exact financialTransactionProcessorSuccess_preserves_invariant
         policy mapping counterpart initialFinancial.ledger
         before after requestId request hBefore hAccepted
-    · rcases hRest with hDenial | hReplay
+    · rcases hRest with hDenial | hRest
       · rcases hDenial with ⟨requestId, request, reason, hRejected⟩
         exact financialTransactionProcessorDenial_preserves_invariant
           policy mapping initialFinancial.ledger before after requestId request reason
           hBefore hRejected
-      · rcases hReplay with ⟨requestId, request, hExactReplay⟩
-        rcases hExactReplay with hSuccessReplay | hDenialReplay
-        · rcases hSuccessReplay with
-            ⟨_receipt, _hStored, _hResponseId, _hSame, hUnchanged⟩
-          rw [hUnchanged]
-          exact hBefore
-        · rcases hDenialReplay with
-            ⟨_receipt, _hStored, _hResponseId, _hSame, hUnchanged⟩
-          rw [hUnchanged]
-          exact hBefore
+      · rcases hRest with hInsufficientFunds | hReplay
+        · rcases hInsufficientFunds with
+            ⟨requestId, request, reason, hRejected⟩
+          exact financialTransactionProcessorInsufficientFunds_preserves_invariant
+            policy mapping initialFinancial.ledger before after requestId request reason
+            hBefore hRejected
+        · rcases hReplay with ⟨requestId, request, hExactReplay⟩
+          rcases hExactReplay with hSuccessReplay | hDenialReplay
+          · rcases hSuccessReplay with
+              ⟨_receipt, _hStored, _hResponseId, _hSame, hUnchanged⟩
+            rw [hUnchanged]
+            exact hBefore
+          · rcases hDenialReplay with
+              ⟨_receipt, _hStored, _hResponseId, _hSame, hUnchanged⟩
+            rw [hUnchanged]
+            exact hBefore
 
 /-- Every reachable processor state retains the financial and receipt invariants. -/
 theorem financialTransactionProcessorInvariant_of_reachable

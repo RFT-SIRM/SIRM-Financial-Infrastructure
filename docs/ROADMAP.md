@@ -1,6 +1,6 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #20 is merged into `main` at `8e8ccb59210300a8700e2ee722c7f75ec1627676`. PR #18 added the global per-principal nonce, PR #19 added the finite envelope model, and PR #20 added the Lean typed success-envelope and exact-retry semantics. PR #20's exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
+**Verified baseline:** PR #21 is merged into `main` at `bcb7f8babbd2b92b74c0c579b92c76288f373da9`. PR #21's exact head `1673a2abdd55a28eb1f359a98cb46d0847ef6cdf` passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. It adds the abstract cached authorization-denial processor layer on top of PR #20's typed transaction envelope.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
@@ -25,7 +25,8 @@
 - [x] Migration-scoped per-principal sequential nonce: reject mismatches, advance the accepted nonce with migration state, and preserve other principals' nonces.
 - [x] Reachable-state invariant theorems and theorem regressions wired into `lake test`.
 - [x] Abstract typed transaction envelope: exact request-ID receipt replay, conflict rejection, nonce mismatch rejection, receipt consistency, and financial-invariant preservation in reachable states.
-- [x] Abstract authorization-denial cache: cache only at the exact current nonce, do not consume nonce or change financial state, enforce one request-ID namespace across success/denial receipts, and replay the cached denial after a later nonce advance. This covers authorization denials only, not all deterministic business failures.
+- [x] Abstract authorization-denial cache: cache only at the exact current nonce, do not consume nonce or change financial state, enforce one request-ID namespace across success/denial receipts, and replay the cached denial after a later nonce advance.
+- [x] Abstract insufficient-funds denial cache for authorized non-self transfers and burns: cache only at the exact current nonce and an unused request ID, do not change balances/GL/nonce, and return the original insufficient-funds response on exact retry. Self-transfers and unauthorized requests are not classified as insufficient-funds failures; issuance has no debit-funding precondition.
 
 ### Still open
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
@@ -35,7 +36,7 @@
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
-- [ ] Production transaction execution: canonical bytes/hashing, signatures/thresholds, expiry, persisted nonce/receipt storage, cached responses for non-authorization failures, deterministic event/error schemas, rollback and crash recovery. The abstract Lean model covers successful receipts and authorization-denial receipts, not a persisted runtime implementation.
+- [ ] Production transaction execution: canonical bytes/hashing, signatures/thresholds, expiry, persisted nonce/receipt storage for remaining failure classes, deterministic event/error schemas, rollback and crash recovery. The abstract Lean model covers successful receipts plus cached authorization and insufficient-funds denials, but not expiry/signature/other failure classes or a persisted runtime implementation.
 - [ ] Asset-collision, route-change and migration-failure policies.
 
 ## Phase 2 — protocol-level semantics

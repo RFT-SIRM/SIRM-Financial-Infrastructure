@@ -79,13 +79,29 @@ The model is finite Python computation, not a Lean theorem, database isolation t
 
 The Lean envelope formalizes successful-operation receipts and exact retry behavior. The follow-on `SIRM.FinancialTransactionDenials` layer now also caches deterministic authorization denials at the exact current nonce, without consuming that nonce or changing financial state. A denial retry returns the original stored response before nonce validation, even after another request ID has subsequently advanced the principal nonce. A separate regression re-instantiates the transition relation with a replacement policy and uses a new request ID at the still-unconsumed nonce. Policy update itself is not a transition in the machine: each verified machine is built with one fixed policy parameter.
 
-The Lean model does not yet define canonical byte encoding or cryptographic payload hashes, prove production persistence, locking/CAS, database isolation, crash durability, or runtime refinement. It caches authorization denials only; insufficient-funds, expiry, signature, and other failure classes still need explicit response semantics. Nonce mismatch is a rejected predicate rather than a state-changing transition; an exact receipt replay remains valid even though its nonce is now stale.
+The Lean model does not yet define canonical byte encoding or cryptographic payload hashes, prove production persistence, locking/CAS, database isolation, crash durability, or runtime refinement. It caches authorization and insufficient-funds denials; expiry, signature, and other failure classes still need explicit response semantics. Nonce mismatch is a rejected predicate rather than a state-changing transition; an exact receipt replay remains valid even though its nonce is now stale.
 
 ## Cached authorization-denial regressions
 
 `SIRMTests.lean` and the processor machine prove a concrete denial path: an unauthorized transfer at the current nonce stores a denial receipt; balances, GL and nonce remain unchanged; a new request ID can succeed at that same nonce when the transition relation is re-instantiated with an updated policy parameter (policy mutation is not modeled as an in-machine state transition); the original request ID continues to return its stored denial after the successful request advances the nonce. The reachable-state invariant preserves the success/denial cache disjointness, denial request-ID binding, expected nonce and operation-family reason tag.
 
-The transition relation deliberately does not cache stale/future nonce mismatches, and the denial-cache layer does not claim to cover non-authorization business failures.
+The transition relation deliberately does not cache stale/future nonce mismatches. Other business failures beyond the explicitly modeled insufficient-funds cases remain outside this denial-cache layer.
+
+
+## Cached insufficient-funds regressions
+
+The `FinancialTransactionDenials` processor also caches insufficient-funds business denials for an authorized transfer whose source differs from its destination and whose source balance is too small, and for an authorized burn whose holder balance is too small. The regression suite checks that:
+
+- the failure is classified only after authorization succeeds;
+- self-transfers are not classified as insufficient-funds failures, because the existing transfer relation explicitly permits them without a debit;
+- issuance is outside this failure class because it mints units rather than debiting a holder;
+- a failure receipt is admitted only at the exact current nonce and an unused request ID;
+- balances, GL, and every principal nonce remain unchanged;
+- the exact request ID/payload returns the stored `insufficientFundsRejected` response;
+- stale/future nonce requests are not cached; and
+- the reachable processor invariant continues to preserve financial conservation, receipt consistency, and success/denial cache disjointness.
+
+This is an abstract Lean state-transition model. It does not yet cache expiry, signature, request-format, policy-version, or other failure classes, and it does not establish persistence or runtime atomicity.
 
 ## Lint and runtime tests
 

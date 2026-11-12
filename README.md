@@ -130,7 +130,7 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.ReplayProtectedAssetMigration` wraps that transition in a per-principal sequential nonce gate: only the exact next nonce is accepted, and the nonce advances in the same abstract state as the migration.
 - `SIRM.ReplayProtectedFinancialMachine` extends the same sequential nonce policy across transfer, issue, and burn in one abstract financial state update.
 - `SIRM.FinancialTransactionEnvelope` binds a typed operation payload and request ID to a stored response: exact retries are state no-ops, request-ID conflicts and nonce mismatches cannot be admitted as successful new requests, and the reachable-state invariant includes receipt consistency.
-- `SIRM.FinancialTransactionDenials` adds a shared request-ID namespace for cached authorization denials. A denial is cached only at the current nonce, changes neither the financial state nor the nonce, and exact retries replay the original denial even after a later successful request advances that nonce.
+- `SIRM.FinancialTransactionDenials` adds a shared request-ID namespace for cached authorization and insufficient-funds denials. Both are admitted only at the exact current nonce, change neither balances nor GL nor nonce, and replay the original response on exact retry. Insufficient funds is distinct from authorization failure and applies only to authorized non-self transfers and burns.
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with typed-asset issuance eligibility. Issuance requires an active asset and active issuer; transfer and burn authorization predicates remain unchanged. The adapter reuses the combined financial conservation theorem.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
@@ -232,7 +232,7 @@ The current declarations do **not** yet establish:
 - legal ownership of accounts or a concrete principal-to-account mapping;
 - cryptographic signatures, key custody, signer thresholds, or production permission administration;
 - a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
-- the production execution envelope: canonical bytes and hashing, signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model now has an abstract global financial nonce and typed request-ID receipt semantics, but does not yet formalize authorization-rejection caching or prove a database/runtime implementation;
+- the production execution envelope: canonical bytes and hashing, signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model has an abstract global financial nonce, typed request-ID success receipts, and cached authorization/insufficient-funds denials, but does not prove a database/runtime implementation;
 - production runtime atomicity or Rust/Lean refinement;
 - reserve backing, solvency, redemption, or external asset existence;
 - governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;

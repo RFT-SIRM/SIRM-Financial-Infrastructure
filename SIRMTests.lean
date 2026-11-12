@@ -3886,12 +3886,14 @@ theorem demoFinancialProcessor_denial_response_replays_after_nonce_advance :
       demoFinancialProcessorInitialState,
       initialFinancialTransactionProcessorState,
       initialFinancialTransactionEnvelopeState]
-  exact financialTransactionDenialReplay_returns_cached_response
-    demoFinancialProcessorAfterNewIdSuccess 17 demoFinancialEnvelopeRequest
-    (financialTransactionAuthorizationDenialReceipt
-      17 demoFinancialEnvelopeRequest .transferAuthorizationDenied)
-    demoFinancialProcessor_denial_receipt_persists_after_success
-    rfl rfl hNoSuccess
+  simpa [FinancialTransactionDenialReasonIsInsufficientFunds,
+    financialTransactionAuthorizationDenialReceipt] using
+    (financialTransactionDenialReplay_returns_cached_response
+      demoFinancialProcessorAfterNewIdSuccess 17 demoFinancialEnvelopeRequest
+      (financialTransactionAuthorizationDenialReceipt
+        17 demoFinancialEnvelopeRequest .transferAuthorizationDenied)
+      demoFinancialProcessor_denial_receipt_persists_after_success
+      rfl rfl hNoSuccess)
 
 theorem demoFinancialProcessor_old_denial_nonce_is_now_stale :
     demoFinancialEnvelopeRequest.nonce ≠
@@ -3940,5 +3942,263 @@ theorem demoDeniedFinancialProcessor_reachable_invariant :
     DemoLedgerAccount.control demoInitialFinancialState
     demoInitialFinancialState_invariant
     demoDeniedFinancialProcessor_after_denial_reachable
+
+
+
+/-! ## Cached insufficient-funds business-denial regressions -/
+
+def demoFinancialInsufficientFundsRequest :
+    FinancialTransactionRequest DemoPrincipal DemoAccount DemoAsset :=
+  { principal := DemoPrincipal.alice
+    nonce := 0
+    operation := .transfer DemoAccount.alice DemoAccount.bob DemoAsset.rft 101 }
+
+theorem demoFinancialProcessor_transfer_is_insufficient_funds :
+    FinancialTransactionInsufficientFundsDenial demoAuthorizationPolicy
+      demoFinancialInsufficientFundsRequest demoInitialFinancialState
+      .transferInsufficientFunds := by
+  simp only [FinancialTransactionInsufficientFundsDenial,
+    demoFinancialInsufficientFundsRequest]
+  refine ⟨trivial, ?_, by decide, ?_⟩
+  · simp [demoAuthorizationPolicy]
+  · simpa [demoInitialFinancialState] using transfer101_is_not_funded
+
+def demoFinancialProcessorAfterInsufficientFunds :
+    FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  applyFinancialTransactionAuthorizationDenial demoFinancialProcessorInitialState
+    27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds
+
+theorem demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce :
+    FinancialTransactionInsufficientFundsDenialStep demoAuthorizationPolicy
+      27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds
+      demoFinancialProcessorInitialState demoFinancialProcessorAfterInsufficientFunds := by
+  refine ⟨?_, ?_, ?_, demoFinancialProcessor_transfer_is_insufficient_funds, rfl⟩
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState]
+  · simp [demoFinancialInsufficientFundsRequest,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState,
+      initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_insufficient_funds_does_not_change_financial_state :
+    demoFinancialProcessorAfterInsufficientFunds.envelope.core.financial =
+      demoInitialFinancialState := by
+  rw [financialTransactionInsufficientFunds_core_unchanged
+    demoAuthorizationPolicy demoFinancialProcessorInitialState
+    demoFinancialProcessorAfterInsufficientFunds 27
+    demoFinancialInsufficientFundsRequest .transferInsufficientFunds
+    demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce]
+  simp [demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState,
+    initialFinancialTransactionEnvelopeState,
+    initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_insufficient_funds_does_not_consume_nonce :
+    demoFinancialProcessorAfterInsufficientFunds.envelope.core.nextNonce
+      DemoPrincipal.alice = 0 := by
+  rw [financialTransactionInsufficientFunds_core_unchanged
+    demoAuthorizationPolicy demoFinancialProcessorInitialState
+    demoFinancialProcessorAfterInsufficientFunds 27
+    demoFinancialInsufficientFundsRequest .transferInsufficientFunds
+    demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce]
+  simp [demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState,
+    initialFinancialTransactionEnvelopeState,
+    initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_insufficient_funds_preserves_every_nonce :
+    ∀ principal,
+      demoFinancialProcessorAfterInsufficientFunds.envelope.core.nextNonce principal =
+        demoFinancialProcessorInitialState.envelope.core.nextNonce principal := by
+  intro principal
+  exact congrArg (fun core => core.nextNonce principal)
+    (financialTransactionInsufficientFunds_core_unchanged
+      demoAuthorizationPolicy demoFinancialProcessorInitialState
+      demoFinancialProcessorAfterInsufficientFunds 27
+      demoFinancialInsufficientFundsRequest .transferInsufficientFunds
+      demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce)
+
+theorem demoFinancialProcessor_insufficient_funds_receipt_is_stored :
+    demoFinancialProcessorAfterInsufficientFunds.denials 27 =
+      some (financialTransactionAuthorizationDenialReceipt
+        27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds) :=
+  financialTransactionInsufficientFunds_stores_receipt
+    demoAuthorizationPolicy 27 demoFinancialInsufficientFundsRequest
+    .transferInsufficientFunds
+    demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce
+
+theorem demoFinancialProcessor_insufficient_funds_response_replays :
+    cachedFinancialTransactionProcessorResponse
+      demoFinancialProcessorAfterInsufficientFunds 27
+      demoFinancialInsufficientFundsRequest =
+      some (.insufficientFundsRejected
+        (financialTransactionAuthorizationDenialReceipt
+          27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds).response) := by
+  have hNoSuccess :
+      demoFinancialProcessorAfterInsufficientFunds.envelope.receipts 27 = none := by
+    simp [demoFinancialProcessorAfterInsufficientFunds,
+      applyFinancialTransactionAuthorizationDenial,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  simpa [FinancialTransactionDenialReasonIsInsufficientFunds,
+    financialTransactionAuthorizationDenialReceipt] using
+    (financialTransactionDenialReplay_returns_cached_response
+      demoFinancialProcessorAfterInsufficientFunds 27
+      demoFinancialInsufficientFundsRequest
+      (financialTransactionAuthorizationDenialReceipt
+        27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds)
+      demoFinancialProcessor_insufficient_funds_receipt_is_stored
+      rfl rfl hNoSuccess)
+
+theorem demoFinancialProcessor_insufficient_funds_exact_retry_is_noop :
+    FinancialTransactionProcessorReplayStep 27 demoFinancialInsufficientFundsRequest
+      demoFinancialProcessorAfterInsufficientFunds
+      demoFinancialProcessorAfterInsufficientFunds := by
+  right
+  exact ⟨
+    financialTransactionAuthorizationDenialReceipt
+      27 demoFinancialInsufficientFundsRequest .transferInsufficientFunds,
+    demoFinancialProcessor_insufficient_funds_receipt_is_stored,
+    rfl, rfl, rfl⟩
+
+def demoFinancialSelfTransferInsufficientFundsRequest :
+    FinancialTransactionRequest DemoPrincipal DemoAccount DemoAsset :=
+  { demoFinancialInsufficientFundsRequest with
+    operation := .transfer DemoAccount.alice DemoAccount.alice DemoAsset.rft 101 }
+
+theorem demoFinancialProcessor_self_transfer_is_not_insufficient_funds_denial :
+    ¬ FinancialTransactionInsufficientFundsDenial demoAuthorizationPolicy
+      demoFinancialSelfTransferInsufficientFundsRequest demoInitialFinancialState
+      .transferInsufficientFunds := by
+  simp [FinancialTransactionInsufficientFundsDenial,
+    demoFinancialSelfTransferInsufficientFundsRequest,
+    demoFinancialInsufficientFundsRequest]
+
+theorem demoFinancialProcessor_unauthorized_transfer_is_not_insufficient_funds_denial :
+    ¬ FinancialTransactionInsufficientFundsDenial demoFinancialProcessorDeniedPolicy
+      demoFinancialInsufficientFundsRequest demoInitialFinancialState
+      .transferInsufficientFunds := by
+  simp [FinancialTransactionInsufficientFundsDenial,
+    demoFinancialProcessorDeniedPolicy, demoFinancialInsufficientFundsRequest,
+    demoInitialFinancialState, demoState, emptyHoldingsState, issueToHolder,
+    TransferAllowed]
+
+def demoFinancialInsufficientBurnRequest :
+    FinancialTransactionRequest DemoPrincipal DemoAccount DemoAsset :=
+  { principal := DemoPrincipal.alice
+    nonce := 0
+    operation := .burn DemoAccount.alice DemoAsset.rft 101 }
+
+theorem demoFinancialProcessor_burn_is_insufficient_funds :
+    FinancialTransactionInsufficientFundsDenial demoAuthorizationPolicy
+      demoFinancialInsufficientBurnRequest demoInitialFinancialState
+      .burnInsufficientFunds := by
+  simp only [FinancialTransactionInsufficientFundsDenial,
+    demoFinancialInsufficientBurnRequest]
+  refine ⟨trivial, ?_, ?_⟩
+  · simp [demoAuthorizationPolicy]
+  · simpa [demoInitialFinancialState] using alice_rft_cannot_burn_101
+
+def demoFinancialProcessorAfterInsufficientBurn :
+    FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  applyFinancialTransactionAuthorizationDenial demoFinancialProcessorInitialState
+    28 demoFinancialInsufficientBurnRequest .burnInsufficientFunds
+
+theorem demoFinancialProcessor_burn_insufficient_funds_is_admitted_at_current_nonce :
+    FinancialTransactionInsufficientFundsDenialStep demoAuthorizationPolicy
+      28 demoFinancialInsufficientBurnRequest .burnInsufficientFunds
+      demoFinancialProcessorInitialState demoFinancialProcessorAfterInsufficientBurn := by
+  refine ⟨?_, ?_, ?_, demoFinancialProcessor_burn_is_insufficient_funds, rfl⟩
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState]
+  · simp [demoFinancialInsufficientBurnRequest,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState,
+      initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_burn_insufficient_funds_response_replays :
+    cachedFinancialTransactionProcessorResponse demoFinancialProcessorAfterInsufficientBurn
+      28 demoFinancialInsufficientBurnRequest =
+      some (.insufficientFundsRejected
+        (financialTransactionAuthorizationDenialReceipt
+          28 demoFinancialInsufficientBurnRequest .burnInsufficientFunds).response) := by
+  have hNoSuccess :
+      demoFinancialProcessorAfterInsufficientBurn.envelope.receipts 28 = none := by
+    simp [demoFinancialProcessorAfterInsufficientBurn,
+      applyFinancialTransactionAuthorizationDenial,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  simpa [FinancialTransactionDenialReasonIsInsufficientFunds,
+    financialTransactionAuthorizationDenialReceipt] using
+    (financialTransactionDenialReplay_returns_cached_response
+      demoFinancialProcessorAfterInsufficientBurn 28 demoFinancialInsufficientBurnRequest
+      (financialTransactionAuthorizationDenialReceipt
+        28 demoFinancialInsufficientBurnRequest .burnInsufficientFunds)
+      (financialTransactionInsufficientFunds_stores_receipt
+        demoAuthorizationPolicy 28 demoFinancialInsufficientBurnRequest
+        .burnInsufficientFunds
+        demoFinancialProcessor_burn_insufficient_funds_is_admitted_at_current_nonce)
+      rfl rfl hNoSuccess)
+
+theorem demoFinancialProcessor_issue_is_not_insufficient_funds_denial :
+    ¬ FinancialTransactionInsufficientFundsDenial demoAuthorizationPolicy
+      { principal := DemoPrincipal.treasury
+        nonce := 0
+        operation := .issue DemoAccount.treasury DemoAccount.alice DemoAsset.rft 100 }
+      demoInitialFinancialState .burnInsufficientFunds := by
+  simp [FinancialTransactionInsufficientFundsDenial]
+
+theorem demoFinancialProcessor_insufficient_funds_rejects_future_nonce
+    (after : FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset) :
+    ¬ FinancialTransactionInsufficientFundsDenialStep demoAuthorizationPolicy
+      27 { demoFinancialInsufficientFundsRequest with nonce := 1 }
+      .transferInsufficientFunds demoFinancialProcessorInitialState after := by
+  apply financialTransactionInsufficientFunds_rejects_nonce_mismatch
+  simp [demoFinancialInsufficientFundsRequest, demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState,
+    initialFinancialTransactionEnvelopeState,
+    initialReplayProtectedFinancialState]
+
+def demoInsufficientFundsFinancialProcessorMachine :
+    VerifiedStateMachine
+      (FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+        DemoLedgerAccount DemoAsset) :=
+  financialTransactionProcessorMachine demoAuthorizationPolicy
+    demoHolderLedgerMap DemoLedgerAccount.control demoInitialFinancialState
+    demoInitialFinancialState_invariant
+
+theorem demoInsufficientFundsFinancialProcessor_initial_reachable :
+    Reachable demoInsufficientFundsFinancialProcessorMachine
+      demoFinancialProcessorInitialState :=
+  Reachable.initial rfl
+
+theorem demoInsufficientFundsFinancialProcessor_after_denial_reachable :
+    Reachable demoInsufficientFundsFinancialProcessorMachine
+      demoFinancialProcessorAfterInsufficientFunds :=
+  Reachable.step demoInsufficientFundsFinancialProcessor_initial_reachable
+    (Or.inr (Or.inr (Or.inl ⟨27, demoFinancialInsufficientFundsRequest,
+      .transferInsufficientFunds,
+      demoFinancialProcessor_insufficient_funds_is_admitted_at_current_nonce⟩)))
+
+theorem demoInsufficientFundsFinancialProcessor_reachable_invariant :
+    FinancialTransactionProcessorInvariant demoHolderLedgerMap
+      demoInitialFinancialState.ledger demoFinancialProcessorAfterInsufficientFunds :=
+  financialTransactionProcessorInvariant_of_reachable
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    demoInitialFinancialState demoInitialFinancialState_invariant
+    demoInsufficientFundsFinancialProcessor_after_denial_reachable
 
 end SIRMTests
