@@ -19,3 +19,4 @@ import SIRM.EscrowAccounting
 import SIRM.EscrowRegistry
 import SIRM.EscrowPooledReserve
 import SIRM.EscrowFinancialIntegration
+import SIRM.ReplayProtectedFinancialMachine

@@ -52,6 +52,12 @@ The `SIRMTests.lean` suite compiles a replay-protected two-step migration and ne
 
 The model uses an unbounded Lean `Nat` and scopes sequences to the migration machine. It does not prove global replay protection for every protocol operation, persistent runtime storage, concurrent transaction ordering, signature verification, or idempotent replay responses.
 
+## Global financial operation nonce regressions
+
+The `SIRM.ReplayProtectedFinancialMachine` test driver exercises one shared per-principal nonce across the three operation families admitted by `AuthorizedFinancialStep`: transfer, issue and burn. It checks initial nonce zero, exact-next acceptance, one-step increment, other-principal isolation, stale replay rejection and future-nonce rejection. The reachable-state theorem retains holder/supply reconciliation, mapped holder/GL agreement and aggregate signed-GL conservation.
+
+A finite Python model checker additionally explores every order-preserving interleaving of three operation families for two principals (720 schedules), including cross-family replay attempts. This is a finite nonce-scheduling check, not a Lean proof or a runtime implementation test. The abstract Lean machine records successful admitted transitions only and uses unbounded `Nat`; persistent nonce storage, signature verification, concurrent runtime atomicity, idempotent responses and failed-request nonce policy remain outside scope.
+
 ## Lint and runtime tests
 
 Linting is explicitly disabled in CI until a linter driver is added. Runtime/property/fuzz tests for an executable reference implementation are not yet present. These are separate requirements and must not be described as passed.
