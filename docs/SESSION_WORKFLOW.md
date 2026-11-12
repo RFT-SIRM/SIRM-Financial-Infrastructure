@@ -76,9 +76,9 @@ As of 2026-11-12, the verified `main` baseline is `998bec99364832c0273d8680993f4
 - PR #16 merge commit: `5755c728b551a2838f505c6a9f9eaf6c1d19b03c` — concurrent escrow IDs and pooled reserve.
 - PR #17 merge commit: `ed928ecdc34e2740ea87a55925fad8ab8386ddb2` — pooled reserve tied to the actual `FinancialState` vault-holder and mapped GL subledger.
 - PR #23 merge commit: `998bec99364832c0273d8680993f453b44c3dbb9` — abstract monotone discrete time, per-ID deadlines, and a permission-gated expiry/refund transition; its exact PR head passed all 18 checks.
-- The current escrow model is layered across `EscrowAccounting`, `EscrowRegistry`, `EscrowPooledReserve`, `EscrowFinancialIntegration`, and `EscrowTimeLocks`. Stage-1 dispute intake/freeze is the current unmerged local task.
+- The current escrow model is layered across `EscrowAccounting`, `EscrowRegistry`, `EscrowPooledReserve`, `EscrowFinancialIntegration`, and `EscrowTimeLocks`; stage-1 dispute intake/freeze is implemented on a feature branch.
 
-The local dispute branch is `feat/escrow-dispute-freeze-2026-11-12`, based on the exact `main` SHA above. Local Lean/build/test/audit checks have passed, but no commit, remote branch, PR, or merge exists yet. Verify local and remote SHAs before continuing; this baseline is not a claim that the dispute work is merged.
+The feature branch is `feat/escrow-dispute-freeze-2026-11-12`, based on `998bec99364832c0273d8680993f453b44c3dbb9`. Its source-and-test commit `bb9ea4721e25bbfc9784c0643505abfb7876483c` was pushed without force, and the remote branch SHA was verified equal to that commit. Local Lean builds, theorem tests, all 17 static audits, and whitespace checks passed. No PR has been opened and no merge has occurred; `main` remains at the stated baseline. The next step is one PR and verification of all 18 checks on its exact head.
 
 
 ## 7. Current replay-guard work block
@@ -103,5 +103,6 @@ This block does not claim global transaction replay protection, request-hash ide
 - The task is stage-1, per-ID dispute intake/freeze over the verified timed escrow machine. It is not adjudication or settlement.
 - The original source patch changes nine paths: README, SIRM umbrella import, dispute module, theorem tests, formalization status, mathematical scope, roadmap, testing guide, and static audit. Documentation reconciliation adds Decisions, Development Journal, Session Workflow, and Security Model. Review all 13 task paths; `.lake` is not a task file.
 - Actual local verification on the exact worktree: `lake build SIRM.EscrowDisputes`, `lake build SIRMTests` (8734 jobs), `lake build SIRM`, `lake test`, all 17 static audits, and `git diff --check` passed. Only linter warnings remained.
-- Before the one commit: inspect `git status --short`, `git diff --stat`, `git diff --name-status`, and the complete diff; rerun target module, `SIRMTests`, `SIRM`, `lake test`, all 17 audits and `git diff --check`. Stage all 13 task paths (the 12 tracked files plus the new Lean module); never stage `.lake`.
-- Then create one commit, push the existing branch once without force, verify remote SHA, open one PR, inspect all 18 checks on the exact PR head, and merge only when all are green. Until then, `main` remains unchanged.
+- The source-and-test change is committed as `bb9ea4721e25bbfc9784c0643505abfb7876483c` (13 task files; `.lake` excluded) and pushed to the existing branch. The remote branch SHA was verified equal to the commit SHA. Do not recreate this commit or push it again.
+- Local verification passed on the exact source tree: `lake build SIRM.EscrowDisputes`, `lake build SIRMTests`, `lake build SIRM`, `lake test`, all 17 static audits, and `git diff --check`. The later scope/documentation correction also passed all 17 static audits and `git diff --check`.
+- Next: create one PR from this branch to `main`, verify the PR head SHA equals the current feature branch head, and inspect all 18 checks for that exact head. Merge only when all are green. Until merge, `main` remains unchanged.

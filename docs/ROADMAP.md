@@ -4,6 +4,8 @@
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
+**Current feature proposal:** `feat/escrow-dispute-freeze-2026-11-12` is pushed at `bb9ea4721e25bbfc9784c0643505abfb7876483c`, based on the verified `main` baseline above. Local verification passed; its PR and 18-job PR CI are still pending. The roadmap item remains unchecked until that exact PR head passes CI.
+
 ## Phase 0 — formal development foundation
 - [x] Establish SIRM/RFT naming and repository boundaries.
 - [x] Pin Lean and Mathlib; configure the SIRM library and theorem-level test driver.
@@ -28,12 +30,15 @@
 - [x] Abstract authorization-denial cache: cache only at the exact current nonce, do not consume nonce or change financial state, enforce one request-ID namespace across success/denial receipts, and replay the cached denial after a later nonce advance.
 - [x] Abstract insufficient-funds denial cache for authorized non-self transfers and burns: cache only at the exact current nonce and an unused request ID, do not change balances/GL/nonce, and return the original insufficient-funds response on exact retry. Self-transfers and unauthorized requests are not classified as insufficient-funds failures; issuance has no debit-funding precondition.
 
-### Still open
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
 - [x] One-record escrow open, release and cancellation with separate authorization, exact vault backing, and holder/GL/supply conservation.
 - [x] Multiple concurrent escrow IDs, aggregate per-asset pending liabilities, and exact reconciliation to the designated vault-holder balance and mapped GL subledger.
 - [x] Abstract escrow expiry/time locks: fixed per-ID deadlines, monotone discrete time, pre-deadline release/cancel guards, and a separately authorized post-deadline refund recorded as `expired`, preserving vault/GL/pool backing. Wall-clock binding and scheduler liveness remain open.
-- [x] First-stage escrow dispute intake/freeze: an authorized claimant can flag a pending escrow before its deadline; release, voluntary cancellation, and timeout expiry are then blocked for that ID while funds remain in the pooled vault. Adjudication, evidence verification, appeals, and outcome-specific settlement remain open.
+
+### Implemented and pushed; PR CI pending
+- [ ] First-stage escrow dispute intake/freeze: implemented on feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c`; local Lean builds, theorem tests and 17 static audits passed, and the feature branch is pushed. Awaiting PR CI before this item is marked CI-checked. An authorized claimant can flag a pending escrow before its deadline; release, voluntary cancellation, and timeout expiry are then blocked for that ID while funds remain in the pooled vault. Adjudication, evidence verification, appeals, and outcome-specific settlement remain open.
+
+### Still open
 - [ ] Dispute adjudication, evidence validation/provenance, outcome-specific beneficiary/refund settlement, appeals, and reversal policy.
 - [ ] External settlement evidence and finality, including the policy for reconciling external delivery with the internal escrow state.
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
