@@ -1,0 +1,7 @@
+schedule,arrival_order,winner,accepted,stale_rejected,exact_replays_tested,conflicting_id_rejected,financial_commits
+1,race-transfer>race-issue>race-burn,race-transfer,1,2,4,1,1
+2,race-transfer>race-burn>race-issue,race-transfer,1,2,4,1,1
+3,race-issue>race-transfer>race-burn,race-issue,1,2,4,1,1
+4,race-issue>race-burn>race-transfer,race-issue,1,2,4,1,1
+5,race-burn>race-transfer>race-issue,race-burn,1,2,4,1,1
+6,race-burn>race-issue>race-transfer,race-burn,1,2,4,1,1

@@ -58,6 +58,12 @@ The `SIRM.ReplayProtectedFinancialMachine` test driver exercises one shared per-
 
 A finite Python model checker additionally explores every order-preserving interleaving of three operation families for two principals (720 schedules), including cross-family replay attempts. This is a finite nonce-scheduling check, not a Lean proof or a runtime implementation test. The abstract Lean machine records successful admitted transitions only and uses unbounded `Nat`; persistent nonce storage, signature verification, concurrent runtime atomicity, idempotent responses and failed-request nonce policy remain outside scope.
 
+## Transaction-envelope finite model check
+
+`scripts/model_check_transaction_envelope.py` exhaustively checks a small linearized request processor: three distinct requests racing for one principal nonce, exact retries, request-ID/body conflicts, reordered consecutive nonces with fair retries, two-principal isolation, cached authorization denial, and all-or-none write-set patterns. The request-ID receipt is checked before nonce validation; nonce mismatches are not cached; deterministic authorization rejections are cached but do not consume a nonce; successful financial effect, nonce increment, and success receipt are one abstract transition.
+
+The model is finite Python computation, not a Lean theorem, database isolation test, distributed linearizability proof, crash-durability test, or production signature/canonical-encoding implementation. Exact payload equality is modeled with typed tuples only. Detailed scope and calculated counts are in `engineering/transaction_envelope/MODEL_SCOPE.md`.
+
 ## Lint and runtime tests
 
 Linting is explicitly disabled in CI until a linter driver is added. Runtime/property/fuzz tests for an executable reference implementation are not yet present. These are separate requirements and must not be described as passed.
