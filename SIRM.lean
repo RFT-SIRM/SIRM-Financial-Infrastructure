@@ -20,6 +20,7 @@ import SIRM.EscrowRegistry
 import SIRM.EscrowPooledReserve
 import SIRM.EscrowFinancialIntegration
 import SIRM.EscrowTimeLocks
+import SIRM.EscrowDisputes
 import SIRM.ReplayProtectedFinancialMachine
 import SIRM.FinancialTransactionEnvelope
 import SIRM.FinancialTransactionDenials

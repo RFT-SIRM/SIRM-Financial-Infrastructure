@@ -71,14 +71,14 @@ The next session must read the newest journal entry and verify its SHAs against 
 
 ## 6. Current workflow baseline
 
-As of the authorized atomic migration block:
-- PR #10 is squash-merged.
-- Merge commit on `main`: `f6740483006d45bfc82b04fd441f49aac1865e52`.
-- The PR head was `0ce1b999f893a5696e6ebee3ffb66465898f28a9`.
-- GitHub Actions run #45 completed successfully: Lean plus all 17 static checks (18/18).
-- The migration is an abstract atomic transition with exact route/source/recipient-scoped residual carry-forward. It does not implement external bridge settlement/finality, replay/idempotency, custody, rollback, or production backing/valuation of residual claims.
+As of 2026-11-12, the verified `main` baseline is `998bec99364832c0273d8680993f453b44c3dbb9`.
 
-Update this baseline in the next journal entry; do not treat it as permanent state.
+- PR #16 merge commit: `5755c728b551a2838f505c6a9f9eaf6c1d19b03c` — concurrent escrow IDs and pooled reserve.
+- PR #17 merge commit: `ed928ecdc34e2740ea87a55925fad8ab8386ddb2` — pooled reserve tied to the actual `FinancialState` vault-holder and mapped GL subledger.
+- PR #23 merge commit: `998bec99364832c0273d8680993f453b44c3dbb9` — abstract monotone discrete time, per-ID deadlines, and a permission-gated expiry/refund transition; its exact PR head passed all 18 checks.
+- The current escrow model is layered across `EscrowAccounting`, `EscrowRegistry`, `EscrowPooledReserve`, `EscrowFinancialIntegration`, and `EscrowTimeLocks`. Stage-1 dispute intake/freeze is the current unmerged local task.
+
+The local dispute branch is `feat/escrow-dispute-freeze-2026-11-12`, based on the exact `main` SHA above. Local Lean/build/test/audit checks have passed, but no commit, remote branch, PR, or merge exists yet. Verify local and remote SHAs before continuing; this baseline is not a claim that the dispute work is merged.
 
 
 ## 7. Current replay-guard work block
@@ -95,3 +95,13 @@ This block does not claim global transaction replay protection, request-hash ide
 - PR #11 passed all 18 checks (one Lean job plus 17 static audits); squash merge on `main`: `8588b61401b6eae02510fc5f9772acf47e0dd3e5`.
 - Replay protection is migration-scoped: exact expected nonce per principal, accepted principal advances in the same abstract transition, and other principals remain unchanged. It is not global idempotency or runtime persistence.
 - Documentation consolidation branch: `docs/public-roadmap-status-2026-11-10`, based on that exact merge SHA. Its purpose is the illustrated README overview, author statement, and aligned roadmap/formalization boundaries.
+
+## 9. Current escrow dispute-intake/freeze work block
+
+- Work only in the existing local branch `feat/escrow-dispute-freeze-2026-11-12`, based on `998bec99364832c0273d8680993f453b44c3dbb9`; do not create another branch or worktree.
+- The existing local worktree shares the repository-root `.lake` cache via a symlink. Preserve that cache and never stage `.lake`.
+- The task is stage-1, per-ID dispute intake/freeze over the verified timed escrow machine. It is not adjudication or settlement.
+- The original source patch changes nine paths: README, SIRM umbrella import, dispute module, theorem tests, formalization status, mathematical scope, roadmap, testing guide, and static audit. Documentation reconciliation adds Decisions, Development Journal, Session Workflow, and Security Model. Review all 13 task paths; `.lake` is not a task file.
+- Actual local verification on the exact worktree: `lake build SIRM.EscrowDisputes`, `lake build SIRMTests` (8734 jobs), `lake build SIRM`, `lake test`, all 17 static audits, and `git diff --check` passed. Only linter warnings remained.
+- Before the one commit: inspect `git status --short`, `git diff --stat`, `git diff --name-status`, and the complete diff; rerun target module, `SIRMTests`, `SIRM`, `lake test`, all 17 audits and `git diff --check`. Stage all 13 task paths (the 12 tracked files plus the new Lean module); never stage `.lake`.
+- Then create one commit, push the existing branch once without force, verify remote SHA, open one PR, inspect all 18 checks on the exact PR head, and merge only when all are green. Until then, `main` remains unchanged.
