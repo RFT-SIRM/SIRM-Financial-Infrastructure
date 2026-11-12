@@ -166,6 +166,7 @@ def docs_and_ci_topology():
     replay = load("SIRM/ReplayProtectedAssetMigration.lean")
     fees = load("SIRM/FeeAccounting.lean")
     escrow = load("SIRM/EscrowAccounting.lean")
+    time_locks = load("SIRM/EscrowTimeLocks.lean")
     envelope = load("SIRM/FinancialTransactionEnvelope.lean")
     denials = load("SIRM/FinancialTransactionDenials.lean")
     umbrella = load("SIRM.lean")
@@ -214,6 +215,8 @@ def docs_and_ci_topology():
 
     need("SIRM.EscrowAccounting" in umbrella and "SIRM.EscrowAccounting" in readme,
          "escrow accounting module is not integrated/documented")
+    need("SIRM.EscrowTimeLocks" in umbrella and "SIRM.EscrowTimeLocks" in readme,
+         "escrow time-lock module is not integrated/documented")
     need("SIRM.FinancialTransactionEnvelope" in umbrella and
          "SIRM.FinancialTransactionEnvelope" in readme,
          "typed financial transaction-envelope module is not integrated/documented")
@@ -312,6 +315,49 @@ def docs_and_ci_topology():
         "escrowDemo_after_cancel_invariant",
     ):
         need(theorem in regression, f"SIRMTests.lean missing {theorem}")
+    need("mayExpireEscrow" in escrow and "EscrowPhase.expired" in time_locks,
+         "escrow timeout requires a dedicated permission and a distinct expired terminal phase")
+    for declaration in (
+        "EscrowTimeLockedFinancialRegistryState",
+        "EscrowTimeLockedOpenStep",
+        "EscrowTimeLockedReleaseStep",
+        "EscrowTimeLockedCancelStep",
+        "EscrowTimeLockedExpireStep",
+        "EscrowTimeAdvanceStep",
+        "escrowFinancialRegistryExpire_preserves_invariant",
+        "escrowTimeLockedFinancialRegistryStep_preserves_invariant",
+        "escrowTimeLockedFinancialRegistryStep_time_monotone",
+        "escrowTimeLockedReleaseStep_rejects_expired",
+        "escrowTimeLockedCancelStep_rejects_expired",
+        "escrowTimeLockedExpireStep_requires_elapsed_deadline",
+        "escrowRegistryExpire_other",
+        "escrowTimeLockedFinancialRegistryInvariant_of_reachable",
+    ):
+        need(declaration in time_locks,
+             f"EscrowTimeLocks.lean is missing {declaration}")
+    for theorem in (
+        "integratedEscrowTime_open_alpha_step",
+        "integratedEscrowTime_open_beta_step",
+        "integratedEscrowTime_advance_to_beta_deadline",
+        "integratedEscrowTime_time_step_is_monotone",
+        "integratedEscrowTime_expire_beta_step",
+        "integratedEscrowTime_beta_open_blocked_at_deadline",
+        "integratedEscrowTime_beta_release_blocked_at_deadline",
+        "integratedEscrowTime_beta_cancel_blocked_at_deadline",
+        "integratedEscrowTime_beta_expiry_is_not_available_early",
+        "integratedEscrowTime_expiry_requires_dedicated_permission",
+        "integratedEscrowTime_after_beta_expiry_invariant",
+        "integratedEscrowTime_after_expiry_vault_balance_is_40",
+        "integratedEscrowTime_after_expiry_gl_subledger_is_40",
+        "integratedEscrowTime_after_expiry_pending_pool_is_40",
+        "integratedEscrowTime_alpha_record_remains_pending",
+        "integratedEscrowTime_beta_record_is_expired",
+        "integratedEscrowTime_expired_id_cannot_be_reused",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean missing escrow time-lock regression {theorem}")
+    need("## Escrow expiry and time-lock regressions" in testing,
+         "TESTING.md does not document escrow expiry and time-lock regressions")
 
     ids = re.findall(r"(?m)^\s+- id:", workflow)
     need(len(ids) == 17, f"expected 17 static matrix jobs, found {len(ids)}")

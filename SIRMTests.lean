@@ -2478,12 +2478,19 @@ def escrowDemoEscrowPolicy :
       depositor = EscrowDemoHolder.alice ∧
       beneficiary = EscrowDemoHolder.bob ∧
       asset = EscrowDemoAsset.rft ∧ amount = 40
+  mayExpireEscrow := fun _ principal escrowVault depositor beneficiary asset amount =>
+    principal = EscrowDemoPrincipal.escrowAgent ∧
+      escrowVault = EscrowDemoHolder.vault ∧
+      depositor = EscrowDemoHolder.alice ∧
+      beneficiary = EscrowDemoHolder.bob ∧
+      asset = EscrowDemoAsset.rft ∧ amount = 40
 
 def escrowDemoDenyAllEscrowPolicy :
     EscrowAuthorizationPolicy EscrowDemoPrincipal EscrowDemoHolder EscrowDemoAsset where
   mayOpenEscrow := fun _ _ _ _ _ _ _ => False
   mayReleaseEscrow := fun _ _ _ _ _ _ _ => False
   mayCancelEscrow := fun _ _ _ _ _ _ _ => False
+  mayExpireEscrow := fun _ _ _ _ _ _ _ => False
 
 theorem escrowDemo_open_transfer_authorized :
     escrowDemoTransferPolicy.mayTransfer escrowDemoInitialHoldings
@@ -3091,6 +3098,10 @@ def integratedEscrowDemoPolicy :
     principal = EscrowDemoPrincipal.escrowAgent ∧
       vault = EscrowDemoHolder.vault ∧ depositor = EscrowDemoHolder.alice ∧
       beneficiary = EscrowDemoHolder.treasury ∧ asset = EscrowDemoAsset.rft ∧ amount = 25
+  mayExpireEscrow := fun _ principal vault depositor beneficiary asset amount =>
+    principal = EscrowDemoPrincipal.escrowAgent ∧
+      vault = EscrowDemoHolder.vault ∧ depositor = EscrowDemoHolder.alice ∧
+      beneficiary = EscrowDemoHolder.treasury ∧ asset = EscrowDemoAsset.rft ∧ amount = 25
 
 def integratedEscrowDemoInitialState :
     EscrowFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
@@ -3466,6 +3477,313 @@ theorem integratedEscrowDemo_after_cancel_vault_gl_pool_zero :
   refine ⟨?_, ?_, hPool⟩
   · rw [hInvariant.vault_matches_pending, hPool]
   · rw [hBridge.2, hPool]
+
+/-! ## Escrow expiry and time-lock regressions -/
+
+abbrev IntegratedTimedEscrowDemoState :=
+  EscrowTimeLockedFinancialRegistryState IntegratedEscrowDemoId EscrowDemoHolder
+    EscrowDemoHolder EscrowDemoAsset
+
+def integratedEscrowDemoExpiry : IntegratedEscrowDemoId → Nat
+  | false => 10
+  | true => 5
+
+def integratedEscrowTimeInitialState : IntegratedTimedEscrowDemoState :=
+  { escrow := integratedEscrowDemoInitialState
+    currentTime := 0 }
+
+theorem integratedEscrowTimeInitial_invariant :
+    EscrowTimeLockedFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowTimeInitialState := by
+  change EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoInitialState
+  exact integratedEscrowDemoInitial_invariant
+
+def integratedEscrowTimeAfterAlpha : IntegratedTimedEscrowDemoState :=
+  { escrow := integratedEscrowDemoAfterAlpha
+    currentTime := 0 }
+
+theorem integratedEscrowTime_open_alpha_step :
+    EscrowTimeLockedOpenStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry false integratedEscrowTimeInitialState
+      integratedEscrowTimeAfterAlpha := by
+  refine ⟨EscrowDemoPrincipal.aliceOperator, EscrowDemoHolder.alice,
+    EscrowDemoHolder.bob, EscrowDemoAsset.rft, 40, ?_, by decide, by decide,
+    by decide, by decide, integratedEscrowDemo_alpha_transfer_authorized,
+    integratedEscrowDemo_alpha_escrow_authorized,
+    integratedEscrowDemo_alpha_funded, rfl⟩
+  simp [integratedEscrowTimeInitialState, integratedEscrowDemoInitialState,
+    emptyEscrowTimeLockedFinancialRegistryState, emptyEscrowFinancialRegistryState,
+    emptyEscrowRegistry]
+
+def integratedEscrowTimeAfterBoth : IntegratedTimedEscrowDemoState :=
+  { escrow := integratedEscrowDemoAfterBoth
+    currentTime := 0 }
+
+theorem integratedEscrowTime_open_beta_step :
+    EscrowTimeLockedOpenStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAfterAlpha
+      integratedEscrowTimeAfterBoth := by
+  refine ⟨EscrowDemoPrincipal.aliceOperator, EscrowDemoHolder.alice,
+    EscrowDemoHolder.treasury, EscrowDemoAsset.rft, 25, ?_, by decide,
+    by decide, by decide, by decide,
+    integratedEscrowDemo_beta_transfer_authorized,
+    integratedEscrowDemo_beta_escrow_authorized,
+    integratedEscrowDemo_beta_funded, rfl⟩
+  simp [integratedEscrowTimeAfterAlpha, integratedEscrowDemoAfterAlpha,
+    escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+    emptyEscrowFinancialRegistryState, emptyEscrowRegistry, escrowRegistryInsert]
+
+def integratedEscrowTimeAtBetaDeadline : IntegratedTimedEscrowDemoState :=
+  { integratedEscrowTimeAfterBoth with currentTime := 5 }
+
+theorem integratedEscrowTime_advance_to_beta_deadline :
+    EscrowTimeAdvanceStep integratedEscrowTimeAfterBoth
+      integratedEscrowTimeAtBetaDeadline := by
+  exact ⟨5, by decide, rfl⟩
+
+theorem integratedEscrowTime_beta_expiry_transfer_authorized :
+    integratedEscrowDemoTransferPolicy.mayTransfer
+      integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.alice EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoTransferPolicy]
+
+theorem integratedEscrowTime_beta_expiry_escrow_authorized :
+    integratedEscrowDemoPolicy.mayExpireEscrow
+      integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoPrincipal.escrowAgent EscrowDemoHolder.vault
+      EscrowDemoHolder.alice EscrowDemoHolder.treasury EscrowDemoAsset.rft 25 := by
+  simp [integratedEscrowDemoPolicy]
+
+theorem integratedEscrowTime_beta_expiry_funded :
+    TransferAllowed integratedEscrowDemoAfterBoth.financial.holdings
+      EscrowDemoHolder.vault EscrowDemoHolder.alice EscrowDemoAsset.rft 25 := by
+  right
+  rw [integratedEscrowDemo_after_both_vault_gl_pool_65.1]
+  norm_num
+
+def integratedEscrowTimeAfterBetaExpiry : IntegratedTimedEscrowDemoState :=
+  { escrow := escrowFinancialRegistryExpire integratedEscrowDemoTransferPolicy
+      escrowDemoMapping EscrowDemoHolder.vault integratedEscrowDemoAfterBoth true
+      (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.treasury
+        EscrowDemoAsset.rft 25)
+      EscrowDemoPrincipal.escrowAgent
+      integratedEscrowTime_beta_expiry_transfer_authorized
+      integratedEscrowTime_beta_expiry_funded
+    currentTime := 5 }
+
+theorem integratedEscrowTime_expire_beta_step :
+    EscrowTimeLockedExpireStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAtBetaDeadline
+      integratedEscrowTimeAfterBetaExpiry := by
+  refine ⟨integratedPendingEscrowRecord EscrowDemoHolder.alice
+      EscrowDemoHolder.treasury EscrowDemoAsset.rft 25,
+    EscrowDemoPrincipal.escrowAgent, integratedEscrowDemoAfterBoth_beta_record,
+    rfl, by decide, integratedEscrowTime_beta_expiry_transfer_authorized,
+    integratedEscrowTime_beta_expiry_escrow_authorized,
+    integratedEscrowTime_beta_expiry_funded, rfl⟩
+
+def integratedEscrowTimeLockedMachine :
+    VerifiedStateMachine IntegratedTimedEscrowDemoState :=
+  escrowTimeLockedFinancialRegistryMachine integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry
+    integratedEscrowTimeInitialState integratedEscrowTimeInitial_invariant
+
+theorem integratedEscrowTime_initial_reachable :
+    Reachable integratedEscrowTimeLockedMachine integratedEscrowTimeInitialState :=
+  Reachable.initial rfl
+
+theorem integratedEscrowTime_after_alpha_reachable :
+    Reachable integratedEscrowTimeLockedMachine integratedEscrowTimeAfterAlpha :=
+  Reachable.step integratedEscrowTime_initial_reachable
+    (Or.inl ⟨false, integratedEscrowTime_open_alpha_step⟩)
+
+theorem integratedEscrowTime_after_both_reachable :
+    Reachable integratedEscrowTimeLockedMachine integratedEscrowTimeAfterBoth :=
+  Reachable.step integratedEscrowTime_after_alpha_reachable
+    (Or.inl ⟨true, integratedEscrowTime_open_beta_step⟩)
+
+theorem integratedEscrowTime_time_step_is_monotone :
+    integratedEscrowTimeAfterBoth.currentTime ≤
+      integratedEscrowTimeAtBetaDeadline.currentTime := by
+  exact escrowTimeLockedFinancialRegistryStep_time_monotone
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry
+    (Or.inr (Or.inr (Or.inr (Or.inr integratedEscrowTime_advance_to_beta_deadline))))
+
+theorem integratedEscrowTime_at_beta_deadline_reachable :
+    Reachable integratedEscrowTimeLockedMachine integratedEscrowTimeAtBetaDeadline :=
+  Reachable.step integratedEscrowTime_after_both_reachable
+    (Or.inr (Or.inr (Or.inr (Or.inr integratedEscrowTime_advance_to_beta_deadline))))
+
+theorem integratedEscrowTime_after_beta_expiry_reachable :
+    Reachable integratedEscrowTimeLockedMachine integratedEscrowTimeAfterBetaExpiry :=
+  Reachable.step integratedEscrowTime_at_beta_deadline_reachable
+    (Or.inr (Or.inr (Or.inr
+      (Or.inl ⟨true, integratedEscrowTime_expire_beta_step⟩))))
+
+theorem integratedEscrowTime_after_beta_expiry_invariant :
+    EscrowTimeLockedFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowTimeAfterBetaExpiry :=
+  escrowTimeLockedFinancialRegistryInvariant_of_reachable
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowDemoExpiry
+    integratedEscrowTimeInitialState integratedEscrowTimeInitial_invariant
+    integratedEscrowTime_after_beta_expiry_reachable
+
+theorem integratedEscrowTime_beta_release_blocked_at_deadline
+    (after : IntegratedTimedEscrowDemoState) :
+    ¬ EscrowTimeLockedReleaseStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAtBetaDeadline after := by
+  exact escrowTimeLockedReleaseStep_rejects_expired
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+    integratedEscrowTimeAtBetaDeadline after (by decide)
+
+theorem integratedEscrowTime_beta_open_blocked_at_deadline
+    (after : IntegratedTimedEscrowDemoState) :
+    ¬ EscrowTimeLockedOpenStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAtBetaDeadline after := by
+  exact escrowTimeLockedOpenStep_rejects_expired
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+    integratedEscrowTimeAtBetaDeadline after (by decide)
+
+theorem integratedEscrowTime_beta_cancel_blocked_at_deadline
+    (after : IntegratedTimedEscrowDemoState) :
+    ¬ EscrowTimeLockedCancelStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAtBetaDeadline after := by
+  exact escrowTimeLockedCancelStep_rejects_expired
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+    integratedEscrowTimeAtBetaDeadline after (by decide)
+
+theorem integratedEscrowTime_beta_expiry_is_not_available_early
+    (after : IntegratedTimedEscrowDemoState) :
+    ¬ EscrowTimeLockedExpireStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowTimeAfterBoth after := by
+  intro hExpire
+  have hElapsed := escrowTimeLockedExpireStep_requires_elapsed_deadline
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy escrowDemoMapping
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+    integratedEscrowTimeAfterBoth after hExpire
+  norm_num [integratedEscrowDemoExpiry, integratedEscrowTimeAfterBoth] at hElapsed
+
+def integratedEscrowDemoPolicyWithoutExpiryPermission :
+    EscrowAuthorizationPolicy EscrowDemoPrincipal EscrowDemoHolder EscrowDemoAsset :=
+  { integratedEscrowDemoPolicy with
+    mayExpireEscrow := fun _ _ _ _ _ _ _ => False }
+
+theorem integratedEscrowTime_expiry_requires_dedicated_permission
+    (after : IntegratedTimedEscrowDemoState) :
+    ¬ EscrowTimeLockedExpireStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicyWithoutExpiryPermission escrowDemoMapping
+      EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+      integratedEscrowTimeAtBetaDeadline after := by
+  intro hExpire
+  rcases hExpire with
+    ⟨record, principal, _hRecord, _hPending, _hDeadline,
+      _hTransfer, hExpiryPermission, _hAllowed, _hAfter⟩
+  exact hExpiryPermission
+
+theorem integratedEscrowTime_after_expiry_vault_balance_is_40 :
+    integratedEscrowTimeAfterBetaExpiry.escrow.financial.holdings.balance
+      EscrowDemoHolder.vault EscrowDemoAsset.rft = 40 := by
+  have hDebit := escrowFinancialRegistryTransfer_source_balance
+    integratedEscrowDemoTransferPolicy escrowDemoMapping
+    integratedEscrowDemoAfterBoth.financial EscrowDemoPrincipal.escrowAgent
+    EscrowDemoHolder.vault EscrowDemoHolder.alice EscrowDemoAsset.rft
+    EscrowDemoAsset.rft 25 integratedEscrowTime_beta_expiry_transfer_authorized
+    integratedEscrowTime_beta_expiry_funded (by decide)
+  rw [integratedEscrowDemo_after_both_vault_gl_pool_65.1] at hDebit
+  norm_num at hDebit
+  simpa [integratedEscrowTimeAfterBetaExpiry, escrowFinancialRegistryExpire,
+    escrowRegistryExpire, integratedPendingEscrowRecord] using hDebit
+
+theorem integratedEscrowTime_after_expiry_alice_balance_is_60 :
+    integratedEscrowTimeAfterBetaExpiry.escrow.financial.holdings.balance
+      EscrowDemoHolder.alice EscrowDemoAsset.rft = 60 := by
+  have hCredit := escrowFinancialRegistryTransfer_destination_balance
+    integratedEscrowDemoTransferPolicy escrowDemoMapping
+    integratedEscrowDemoAfterBoth.financial EscrowDemoPrincipal.escrowAgent
+    EscrowDemoHolder.vault EscrowDemoHolder.alice EscrowDemoAsset.rft
+    EscrowDemoAsset.rft 25 integratedEscrowTime_beta_expiry_transfer_authorized
+    integratedEscrowTime_beta_expiry_funded (by decide)
+  have hBefore : integratedEscrowDemoAfterBoth.financial.holdings.balance
+      EscrowDemoHolder.alice EscrowDemoAsset.rft = 35 := by
+    norm_num [integratedEscrowDemoAfterBoth, integratedEscrowDemoAfterAlpha,
+      escrowFinancialRegistryOpen, integratedEscrowDemoInitialState,
+      emptyEscrowFinancialRegistryState, emptyEscrowRegistry,
+      escrowFinancialRegistryTransferFinancial, executeAuthorizedTransfer,
+      executeTransfer, transferBetweenHolders, escrowDemoInitialFinancial,
+      escrowDemoInitialHoldings, issueToHolder, emptyHoldingsState,
+      integratedPendingEscrowRecord]
+  rw [hBefore] at hCredit
+  norm_num at hCredit
+  simpa [integratedEscrowTimeAfterBetaExpiry, escrowFinancialRegistryExpire,
+    escrowRegistryExpire, integratedPendingEscrowRecord] using hCredit
+
+theorem integratedEscrowTime_after_expiry_gl_subledger_is_40 :
+    integratedEscrowTimeAfterBetaExpiry.escrow.financial.ledger.balance
+      (escrowDemoMapping.ledgerAccount EscrowDemoHolder.vault)
+      EscrowDemoAsset.rft = 40 := by
+  have hBaseInvariant : EscrowFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault
+      integratedEscrowTimeAfterBetaExpiry.escrow :=
+    integratedEscrowTime_after_beta_expiry_invariant
+  have hBridge := escrowFinancialRegistryVault_gl_equals_pending
+    escrowDemoMapping escrowDemoOpeningLedger EscrowDemoHolder.vault
+    integratedEscrowTimeAfterBetaExpiry.escrow hBaseInvariant EscrowDemoAsset.rft
+  calc
+    integratedEscrowTimeAfterBetaExpiry.escrow.financial.ledger.balance
+        (escrowDemoMapping.ledgerAccount EscrowDemoHolder.vault) EscrowDemoAsset.rft =
+      integratedEscrowTimeAfterBetaExpiry.escrow.financial.holdings.balance
+        EscrowDemoHolder.vault EscrowDemoAsset.rft := hBridge.1.symm
+    _ = 40 := integratedEscrowTime_after_expiry_vault_balance_is_40
+
+theorem integratedEscrowTime_after_expiry_pending_pool_is_40 :
+    pooledEscrowReserve integratedEscrowTimeAfterBetaExpiry.escrow.registry
+      EscrowDemoAsset.rft = 40 := by
+  have hBaseInvariant : EscrowFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault
+      integratedEscrowTimeAfterBetaExpiry.escrow :=
+    integratedEscrowTime_after_beta_expiry_invariant
+  rw [← hBaseInvariant.vault_matches_pending EscrowDemoAsset.rft]
+  exact integratedEscrowTime_after_expiry_vault_balance_is_40
+
+theorem integratedEscrowTime_alpha_record_remains_pending :
+    integratedEscrowTimeAfterBetaExpiry.escrow.registry.records false =
+      some (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.bob
+        EscrowDemoAsset.rft 40) := by
+  have hFrame := escrowRegistryExpire_other integratedEscrowDemoAfterBoth.registry
+    true false
+    (integratedPendingEscrowRecord EscrowDemoHolder.alice EscrowDemoHolder.treasury
+      EscrowDemoAsset.rft 25) (by decide)
+  simpa [integratedEscrowTimeAfterBetaExpiry, escrowFinancialRegistryExpire,
+    escrowRegistryExpire] using
+    (hFrame.trans integratedEscrowDemoAfterBoth_alpha_record)
+
+theorem integratedEscrowTime_beta_record_is_expired :
+    integratedEscrowTimeAfterBetaExpiry.escrow.registry.records true =
+      some { integratedPendingEscrowRecord EscrowDemoHolder.alice
+        EscrowDemoHolder.treasury EscrowDemoAsset.rft 25 with
+          phase := EscrowPhase.expired } := by
+  simp [integratedEscrowTimeAfterBetaExpiry, escrowFinancialRegistryExpire,
+    escrowRegistryExpire]
+
+theorem integratedEscrowTime_expired_id_cannot_be_reused :
+    integratedEscrowTimeAfterBetaExpiry.escrow.registry.records true ≠ none := by
+  rw [integratedEscrowTime_beta_record_is_expired]
+  simp
 
 end SIRMTests
 namespace SIRMTests
