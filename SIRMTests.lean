@@ -3468,3 +3468,113 @@ theorem integratedEscrowDemo_after_cancel_vault_gl_pool_zero :
   · rw [hBridge.2, hPool]
 
 end SIRMTests
+namespace SIRMTests
+
+open SIRM
+
+/-! ## Global per-principal nonce across transfer / issue / burn -/
+
+abbrev ReplayFinancialDemoState :=
+  ReplayProtectedFinancialState EscrowDemoPrincipal EscrowDemoHolder
+    EscrowDemoHolder EscrowDemoAsset
+
+def replayFinancialDemoInitial : ReplayFinancialDemoState :=
+  initialReplayProtectedFinancialState EscrowDemoPrincipal escrowDemoInitialFinancial
+
+def replayFinancialDemoFinancialAfter :
+    FinancialState EscrowDemoHolder EscrowDemoHolder EscrowDemoAsset :=
+  { holdings := executeAuthorizedTransfer integratedEscrowDemoTransferPolicy
+      replayFinancialDemoInitial.financial.holdings
+      EscrowDemoPrincipal.aliceOperator EscrowDemoHolder.alice EscrowDemoHolder.vault
+      EscrowDemoAsset.rft 40 integratedEscrowDemo_alpha_transfer_authorized
+      integratedEscrowDemo_alpha_funded
+    ledger := postJournal replayFinancialDemoInitial.financial.ledger
+      (holderTransferJournal escrowDemoMapping EscrowDemoHolder.alice
+        EscrowDemoHolder.vault EscrowDemoAsset.rft 40) }
+
+theorem replayFinancialDemo_financial_step :
+    AuthorizedFinancialStep integratedEscrowDemoTransferPolicy escrowDemoMapping
+      EscrowDemoHolder.treasury replayFinancialDemoInitial.financial
+      replayFinancialDemoFinancialAfter := by
+  apply Or.inl
+  refine ⟨EscrowDemoPrincipal.aliceOperator, EscrowDemoHolder.alice,
+    EscrowDemoHolder.vault, EscrowDemoAsset.rft, 40, ?_, ?_, rfl⟩
+  · simpa [replayFinancialDemoInitial, initialReplayProtectedFinancialState,
+      integratedEscrowDemoInitialState, emptyEscrowFinancialRegistryState] using
+      integratedEscrowDemo_alpha_transfer_authorized
+  · simpa [replayFinancialDemoInitial, initialReplayProtectedFinancialState,
+      integratedEscrowDemoInitialState, emptyEscrowFinancialRegistryState] using
+      integratedEscrowDemo_alpha_funded
+
+def replayFinancialDemoAfter : ReplayFinancialDemoState :=
+  applyReplayProtectedFinancialStep EscrowDemoPrincipal replayFinancialDemoInitial
+    EscrowDemoPrincipal.aliceOperator 0 replayFinancialDemoFinancialAfter
+
+theorem replayFinancialDemo_step :
+    ReplayProtectedFinancialStep integratedEscrowDemoTransferPolicy escrowDemoMapping
+      EscrowDemoHolder.treasury EscrowDemoPrincipal.aliceOperator 0
+      replayFinancialDemoInitial replayFinancialDemoAfter := by
+  refine ⟨?_, replayFinancialDemoFinancialAfter, replayFinancialDemo_financial_step, rfl⟩
+  simp [replayFinancialDemoInitial, initialReplayProtectedFinancialState]
+
+def replayFinancialDemoMachine :
+    VerifiedStateMachine ReplayFinancialDemoState :=
+  replayProtectedFinancialMachine (Principal := EscrowDemoPrincipal)
+    integratedEscrowDemoTransferPolicy escrowDemoMapping EscrowDemoHolder.treasury
+    escrowDemoInitialFinancial escrowDemoInitialFinancial_conservation.1
+
+theorem replayFinancialDemo_initial_reachable :
+    Reachable replayFinancialDemoMachine replayFinancialDemoInitial :=
+  Reachable.initial rfl
+
+theorem replayFinancialDemo_after_reachable :
+    Reachable replayFinancialDemoMachine replayFinancialDemoAfter :=
+  Reachable.step replayFinancialDemo_initial_reachable
+    ⟨EscrowDemoPrincipal.aliceOperator, 0, replayFinancialDemo_step⟩
+
+theorem replayFinancialDemo_accepted_nonce_is_one :
+    replayFinancialDemoAfter.nextNonce EscrowDemoPrincipal.aliceOperator = 1 := by
+  exact replayProtectedFinancialStep_next_nonce
+    integratedEscrowDemoTransferPolicy escrowDemoMapping EscrowDemoHolder.treasury
+    EscrowDemoPrincipal.aliceOperator 0 replayFinancialDemo_step
+
+theorem replayFinancialDemo_other_principal_nonce_stays_zero :
+    replayFinancialDemoAfter.nextNonce EscrowDemoPrincipal.escrowAgent = 0 := by
+  have h := replayProtectedFinancialStep_other_nonce
+    integratedEscrowDemoTransferPolicy escrowDemoMapping EscrowDemoHolder.treasury
+    EscrowDemoPrincipal.aliceOperator EscrowDemoPrincipal.escrowAgent 0
+    replayFinancialDemo_step (by decide)
+  simpa [replayFinancialDemoInitial, initialReplayProtectedFinancialState] using h
+
+theorem replayFinancialDemo_stale_nonce_rejected (after : ReplayFinancialDemoState) :
+    ¬ ReplayProtectedFinancialStep integratedEscrowDemoTransferPolicy escrowDemoMapping
+      EscrowDemoHolder.treasury EscrowDemoPrincipal.aliceOperator 0
+      replayFinancialDemoAfter after := by
+  apply replayProtectedFinancialStep_reject_nonce_mismatch
+  norm_num [replayFinancialDemoAfter, applyReplayProtectedFinancialStep]
+
+theorem replayFinancialDemo_future_nonce_rejected (after : ReplayFinancialDemoState) :
+    ¬ ReplayProtectedFinancialStep integratedEscrowDemoTransferPolicy escrowDemoMapping
+      EscrowDemoHolder.treasury EscrowDemoPrincipal.aliceOperator 1
+      replayFinancialDemoInitial after := by
+  apply replayProtectedFinancialStep_reject_nonce_mismatch
+  norm_num [replayFinancialDemoInitial, initialReplayProtectedFinancialState]
+
+theorem replayFinancialDemo_vault_balance_is_forty :
+    replayFinancialDemoAfter.financial.holdings.balance
+      EscrowDemoHolder.vault EscrowDemoAsset.rft = 40 := by
+  norm_num [replayFinancialDemoAfter, applyReplayProtectedFinancialStep,
+    replayFinancialDemoFinancialAfter, replayFinancialDemoInitial,
+    initialReplayProtectedFinancialState, executeAuthorizedTransfer,
+    executeTransfer, transferBetweenHolders, escrowDemoInitialFinancial,
+    escrowDemoInitialHoldings, issueToHolder, emptyHoldingsState]
+
+theorem replayFinancialDemo_invariant_reachable :
+    ReplayProtectedFinancialInvariant escrowDemoMapping escrowDemoOpeningLedger
+      replayFinancialDemoAfter :=
+  replayProtectedFinancialInvariant_of_reachable
+    integratedEscrowDemoTransferPolicy escrowDemoMapping EscrowDemoHolder.treasury
+    escrowDemoInitialFinancial escrowDemoInitialFinancial_conservation.1
+    replayFinancialDemo_after_reachable
+
+end SIRMTests

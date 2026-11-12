@@ -1,0 +1,24 @@
+{
+  "model": "two principals; shared per-principal nonce across transfer/issue/burn",
+  "operation_families": [
+    "transfer",
+    "issue",
+    "burn"
+  ],
+  "principals": [
+    "principal_A",
+    "principal_B"
+  ],
+  "operation_orders_per_principal": 6,
+  "order_preserving_interleavings_per_order_pair": 20,
+  "exhaustive_schedules": 720,
+  "accepted_steps": 4320,
+  "stale_nonce_rejections": 2880,
+  "future_nonce_rejections": 4320,
+  "cross_operation_family_replay_rejections": 8640,
+  "other_principal_isolation_checks": 4320,
+  "terminal_nonce_states_checked": 720,
+  "terminal_nonce_for_each_principal": 3,
+  "result": "PASS",
+  "scope_note": "Finite model check of nonce sequencing only; not a proof of signatures, persistent storage, concurrent runtime atomicity, idempotent responses, or failed-request nonce policy."
+}
