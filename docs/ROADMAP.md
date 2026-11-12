@@ -1,6 +1,6 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #19 is merged into `main` at `b7b9d7d9a84a03affcbc404a3250a0f57504ad6c`; PR #18 added the global per-principal nonce and PR #19 added the finite transaction-envelope model. PR #19's exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
+**Verified baseline:** PR #20 is merged into `main` at `8e8ccb59210300a8700e2ee722c7f75ec1627676`. PR #18 added the global per-principal nonce, PR #19 added the finite envelope model, and PR #20 added the Lean typed success-envelope and exact-retry semantics. PR #20's exact head passed 18/18 GitHub Actions checks: one Lean build/theorem-test job and 17 static audits.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
@@ -24,16 +24,18 @@
 - [x] One abstract authorized migration pairing source burn, destination issuance, two balanced journals and residual update.
 - [x] Migration-scoped per-principal sequential nonce: reject mismatches, advance the accepted nonce with migration state, and preserve other principals' nonces.
 - [x] Reachable-state invariant theorems and theorem regressions wired into `lake test`.
-- [x] Abstract typed transaction envelope: exact request-ID receipt replay, conflict rejection, nonce mismatch rejection, receipt consistency, and financial-invariant preservation in reachable states. Production storage, cryptographic encoding, authorization-denial caching, and crash recovery remain open.
+- [x] Abstract typed transaction envelope: exact request-ID receipt replay, conflict rejection, nonce mismatch rejection, receipt consistency, and financial-invariant preservation in reachable states.
+- [x] Abstract authorization-denial cache: cache only at the exact current nonce, do not consume nonce or change financial state, enforce one request-ID namespace across success/denial receipts, and replay the cached denial after a later nonce advance. This covers authorization denials only, not all deterministic business failures.
 
 ### Still open
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
 - [x] One-record escrow open, release and cancellation with separate authorization, exact vault backing, and holder/GL/supply conservation.
-- [ ] Multiple concurrent escrow IDs, settlement finality, expiry, dispute handling and reversal policy.
+- [x] Multiple concurrent escrow IDs, aggregate per-asset pending liabilities, and exact reconciliation to the designated vault-holder balance and mapped GL subledger.
+- [ ] Settlement finality, escrow expiry/time locks, dispute handling, external settlement evidence and reversal policy.
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
-- [ ] Production transaction execution: canonical bytes/hashing, signatures/thresholds, expiry, persisted nonce/receipt storage, authorization-denial caching, deterministic event/error schemas, rollback and crash recovery. The abstract typed Lean request-ID/receipt layer is now formalized separately.
+- [ ] Production transaction execution: canonical bytes/hashing, signatures/thresholds, expiry, persisted nonce/receipt storage, cached responses for non-authorization failures, deterministic event/error schemas, rollback and crash recovery. The abstract Lean model covers successful receipts and authorization-denial receipts, not a persisted runtime implementation.
 - [ ] Asset-collision, route-change and migration-failure policies.
 
 ## Phase 2 — protocol-level semantics
@@ -69,8 +71,8 @@ No consensus algorithm or production network is claimed as selected or deployed 
 No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
 
 ## Recommended execution order
-1. Complete open accounting semantics: extend the verified one-record escrow lifecycle to concurrent escrow IDs, then formalize settlement finality, expiry, dispute/reversal policy, redemption obligations, liabilities and complete custody/customer-liability postings. Fee tariff policy and non-holder revenue classification remain open.
-2. Complete the transaction envelope's remaining semantics (authorization-denial caching, canonical encoding, expiry and deterministic failure responses), then refine it to a persisted runtime processor.
+1. Complete open accounting semantics: formalize escrow settlement finality, expiry/time locks, dispute/reversal policy, redemption obligations, reserve assumptions, liabilities and complete custody/customer-liability postings. Concurrent escrow IDs and pooled vault/GL reconciliation are already formalized. Fee tariff policy and non-holder revenue classification remain open.
+2. Complete the transaction envelope's remaining semantics (canonical encoding and hashing, signature/threshold rules, expiry, cached responses for other deterministic failures, and deterministic failure schemas), then refine it to a persisted runtime processor.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.
 5. Proceed to institutional pilots and production gates only after independent reviews.
@@ -78,4 +80,4 @@ No public token sale, customer deposits, real-money settlement or mainnet launch
 A network cannot repair an incomplete accounting model, and consensus cannot establish the correctness of an underspecified financial transition.
 
 
-The first escrow lifecycle is specified as a single-use record: a funded deposit moves to a dedicated vault holder, followed by either release to the recorded beneficiary or cancellation back to the depositor. The vault is exactly backed while pending, and the record cannot reopen after a terminal transition. This does not model concurrent escrow IDs, external settlement finality, dispute resolution, expiry, or production idempotency.
+Escrow formalization is layered: `EscrowAccounting` proves the single-record authorized lifecycle; `EscrowRegistry` adds concurrent, permanently allocated IDs; `EscrowPooledReserve` derives aggregate pending obligations by asset; and `EscrowFinancialIntegration` proves those obligations equal the designated vault-holder balance and mapped GL subledger throughout reachable multi-record states. External settlement finality/evidence, expiry/time locks, dispute resolution, reversals and production persistence/idempotency remain outside the current model.

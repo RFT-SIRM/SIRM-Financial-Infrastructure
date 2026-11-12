@@ -130,6 +130,7 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.ReplayProtectedAssetMigration` wraps that transition in a per-principal sequential nonce gate: only the exact next nonce is accepted, and the nonce advances in the same abstract state as the migration.
 - `SIRM.ReplayProtectedFinancialMachine` extends the same sequential nonce policy across transfer, issue, and burn in one abstract financial state update.
 - `SIRM.FinancialTransactionEnvelope` binds a typed operation payload and request ID to a stored response: exact retries are state no-ops, request-ID conflicts and nonce mismatches cannot be admitted as successful new requests, and the reachable-state invariant includes receipt consistency.
+- `SIRM.FinancialTransactionDenials` adds a shared request-ID namespace for cached authorization denials. A denial is cached only at the current nonce, changes neither the financial state nor the nonce, and exact retries replay the original denial even after a later successful request advances that nonce.
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with typed-asset issuance eligibility. Issuance requires an active asset and active issuer; transfer and burn authorization predicates remain unchanged. The adapter reuses the combined financial conservation theorem.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
@@ -137,8 +138,8 @@ The source is organized by responsibility rather than a wide module table.
 ### Integrated financial transition
 
 - `SIRM.AuthorizedFinancialMachine` combines holder balances and the signed general ledger in one abstract financial state. Its authorized transfer, issuance, and burn steps update both projections together.
-- `SIRM.EscrowAccounting` adds a separately authorized, single-use escrow lifecycle: deposit to a dedicated vault holder, release to the recorded beneficiary, or cancellation back to the depositor. Exact vault backing, supply reconciliation, mapped subledger agreement and aggregate GL conservation are preserved.
-- Its machine invariant preserves holder/supply reconciliation, mapped subledger agreement, and aggregate signed-ledger balance relative to the opening ledger.
+- `SIRM.EscrowAccounting` defines the separately authorized single-record deposit/release/cancel primitive. `SIRM.EscrowRegistry` supports concurrent IDs; `SIRM.EscrowPooledReserve` derives aggregate pending liabilities by asset; and `SIRM.EscrowFinancialIntegration` ties those liabilities directly to the designated vault-holder balance and mapped GL subledger in one abstract transition.
+- The integrated escrow invariant preserves holder/supply reconciliation, mapped subledger agreement, aggregate signed-ledger balance, and exact per-asset vault backing across all reachable multi-record states.
 - `SIRMTests.lean` contains concrete theorem-level regression scenarios, including an integrated transfer → issuance → burn trace.
 
 For theorem-by-theorem status, explicit assumptions, and remaining obligations, see [Formalization Status](docs/FORMALIZATION_STATUS.md) and [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md).

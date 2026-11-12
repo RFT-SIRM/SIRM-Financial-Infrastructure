@@ -3746,4 +3746,199 @@ theorem demoFinancialEnvelope_reachable_state_preserves_conservation :
     demoInitialFinancialState demoInitialFinancialState_invariant
     demoFinancialEnvelope_after_retry_reachable
 
+
+/-! ## Cached authorization-denial transaction-envelope regressions -/
+
+def demoFinancialProcessorDeniedPolicy :
+    AuthorizationPolicy DemoPrincipal DemoAccount DemoAsset :=
+  { demoAuthorizationPolicy with
+    mayTransfer := fun _ _ _ _ _ _ => False }
+
+def demoFinancialProcessorInitialState :
+    FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  initialFinancialTransactionProcessorState Nat DemoPrincipal
+    demoInitialFinancialState
+
+def demoFinancialProcessorAfterDenial :
+    FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  applyFinancialTransactionAuthorizationDenial
+    demoFinancialProcessorInitialState 17 demoFinancialEnvelopeRequest
+    .transferAuthorizationDenied
+
+theorem demoFinancialProcessor_transfer_is_authorization_denied :
+    FinancialTransactionAuthorizationDenial
+      demoFinancialProcessorDeniedPolicy demoFinancialEnvelopeRequest
+      demoInitialFinancialState .transferAuthorizationDenied := by
+  simp [FinancialTransactionAuthorizationDenial,
+    demoFinancialProcessorDeniedPolicy, demoFinancialEnvelopeRequest]
+
+theorem demoFinancialProcessor_denial_is_admitted_at_current_nonce :
+    FinancialTransactionAuthorizationDenialStep demoFinancialProcessorDeniedPolicy
+      17 demoFinancialEnvelopeRequest .transferAuthorizationDenied
+      demoFinancialProcessorInitialState demoFinancialProcessorAfterDenial := by
+  refine ⟨?_, ?_, ?_, demoFinancialProcessor_transfer_is_authorization_denied, rfl⟩
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  · simp [demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState]
+  · simp [demoFinancialEnvelopeRequest, demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState,
+      initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_denial_does_not_consume_nonce :
+    demoFinancialProcessorAfterDenial.envelope.core.nextNonce DemoPrincipal.alice = 0 := by
+  rw [financialTransactionAuthorizationDenial_core_unchanged
+    demoFinancialProcessorDeniedPolicy demoFinancialProcessorInitialState
+    demoFinancialProcessorAfterDenial 17 demoFinancialEnvelopeRequest
+    .transferAuthorizationDenied
+    demoFinancialProcessor_denial_is_admitted_at_current_nonce]
+  simp [demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState,
+    initialFinancialTransactionEnvelopeState,
+    initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_denial_does_not_change_financial_state :
+    demoFinancialProcessorAfterDenial.envelope.core.financial =
+      demoInitialFinancialState := by
+  rw [financialTransactionAuthorizationDenial_core_unchanged
+    demoFinancialProcessorDeniedPolicy demoFinancialProcessorInitialState
+    demoFinancialProcessorAfterDenial 17 demoFinancialEnvelopeRequest
+    .transferAuthorizationDenied
+    demoFinancialProcessor_denial_is_admitted_at_current_nonce]
+  simp [demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState,
+    initialFinancialTransactionEnvelopeState,
+    initialReplayProtectedFinancialState]
+
+def demoFinancialProcessorAfterNewIdSuccess :
+    FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+      DemoLedgerAccount DemoAsset :=
+  { envelope := applyFinancialTransactionSuccess DemoPrincipal Nat
+      demoFinancialProcessorAfterDenial.envelope 18 demoFinancialEnvelopeRequest
+      demoFinancialAfterTransfer
+    denials := demoFinancialProcessorAfterDenial.denials }
+
+theorem demoFinancialProcessor_underlying_success_with_new_id :
+    FinancialTransactionEnvelopeSuccessStep demoAuthorizationPolicy
+      demoHolderLedgerMap DemoLedgerAccount.control 18
+      demoFinancialEnvelopeRequest demoFinancialProcessorAfterDenial.envelope
+      demoFinancialProcessorAfterNewIdSuccess.envelope := by
+  refine ⟨?_, ?_, demoFinancialAfterTransfer,
+    demoFinancialEnvelope_transfer_operation_step, rfl⟩
+  · simp [demoFinancialProcessorAfterDenial,
+      applyFinancialTransactionAuthorizationDenial,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  · simp [demoFinancialEnvelopeRequest, demoFinancialProcessorAfterDenial,
+      applyFinancialTransactionAuthorizationDenial,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState,
+      initialReplayProtectedFinancialState]
+
+theorem demoFinancialProcessor_success_with_new_id_after_policy_change :
+    FinancialTransactionProcessorSuccessStep demoAuthorizationPolicy
+      demoHolderLedgerMap DemoLedgerAccount.control 18
+      demoFinancialEnvelopeRequest demoFinancialProcessorAfterDenial
+      demoFinancialProcessorAfterNewIdSuccess := by
+  refine ⟨?_, demoFinancialProcessor_underlying_success_with_new_id, rfl⟩
+  simp [demoFinancialProcessorAfterDenial,
+    applyFinancialTransactionAuthorizationDenial,
+    demoFinancialProcessorInitialState,
+    initialFinancialTransactionProcessorState]
+
+theorem demoFinancialProcessor_new_id_success_advances_nonce_to_one :
+    demoFinancialProcessorAfterNewIdSuccess.envelope.core.nextNonce
+      DemoPrincipal.alice = 1 := by
+  have hNext := financialTransactionEnvelopeSuccess_advances_nonce
+    demoAuthorizationPolicy demoHolderLedgerMap DemoLedgerAccount.control
+    18 demoFinancialEnvelopeRequest
+    demoFinancialProcessor_underlying_success_with_new_id
+  simpa [demoFinancialEnvelopeRequest] using hNext
+
+theorem demoFinancialProcessor_denial_receipt_persists_after_success :
+    demoFinancialProcessorAfterNewIdSuccess.denials 17 =
+      some (financialTransactionAuthorizationDenialReceipt
+        17 demoFinancialEnvelopeRequest .transferAuthorizationDenied) := by
+  have hStored := financialTransactionAuthorizationDenial_stores_receipt
+    demoFinancialProcessorDeniedPolicy 17 demoFinancialEnvelopeRequest
+    .transferAuthorizationDenied
+    demoFinancialProcessor_denial_is_admitted_at_current_nonce
+  simpa [demoFinancialProcessorAfterNewIdSuccess] using hStored
+
+theorem demoFinancialProcessor_denial_response_replays_after_nonce_advance :
+    cachedFinancialTransactionProcessorResponse
+      demoFinancialProcessorAfterNewIdSuccess 17 demoFinancialEnvelopeRequest =
+      some (.authorizationRejected
+        (financialTransactionAuthorizationDenialReceipt
+          17 demoFinancialEnvelopeRequest .transferAuthorizationDenied)) := by
+  have hNoSuccess :
+      demoFinancialProcessorAfterNewIdSuccess.envelope.receipts 17 = none := by
+    simp [demoFinancialProcessorAfterNewIdSuccess,
+      applyFinancialTransactionSuccess,
+      demoFinancialProcessorAfterDenial,
+      applyFinancialTransactionAuthorizationDenial,
+      demoFinancialProcessorInitialState,
+      initialFinancialTransactionProcessorState,
+      initialFinancialTransactionEnvelopeState]
+  exact financialTransactionDenialReplay_returns_cached_response
+    demoFinancialProcessorAfterNewIdSuccess 17 demoFinancialEnvelopeRequest
+    (financialTransactionAuthorizationDenialReceipt
+      17 demoFinancialEnvelopeRequest .transferAuthorizationDenied)
+    demoFinancialProcessor_denial_receipt_persists_after_success
+    rfl rfl hNoSuccess
+
+theorem demoFinancialProcessor_old_denial_nonce_is_now_stale :
+    demoFinancialEnvelopeRequest.nonce ≠
+      demoFinancialProcessorAfterNewIdSuccess.envelope.core.nextNonce
+        DemoPrincipal.alice := by
+  rw [demoFinancialProcessor_new_id_success_advances_nonce_to_one]
+  simp [demoFinancialEnvelopeRequest]
+
+theorem demoFinancialProcessor_old_denial_remains_exact_replay :
+    FinancialTransactionProcessorReplayStep 17 demoFinancialEnvelopeRequest
+      demoFinancialProcessorAfterNewIdSuccess
+      demoFinancialProcessorAfterNewIdSuccess := by
+  right
+  exact ⟨
+    financialTransactionAuthorizationDenialReceipt
+      17 demoFinancialEnvelopeRequest .transferAuthorizationDenied,
+    demoFinancialProcessor_denial_receipt_persists_after_success,
+    rfl, rfl, rfl⟩
+
+def demoDeniedFinancialProcessorMachine :
+    VerifiedStateMachine
+      (FinancialTransactionProcessorState Nat DemoPrincipal DemoAccount
+        DemoLedgerAccount DemoAsset) :=
+  financialTransactionProcessorMachine demoFinancialProcessorDeniedPolicy
+    demoHolderLedgerMap DemoLedgerAccount.control demoInitialFinancialState
+    demoInitialFinancialState_invariant
+
+theorem demoDeniedFinancialProcessor_initial_reachable :
+    Reachable demoDeniedFinancialProcessorMachine
+      demoFinancialProcessorInitialState :=
+  Reachable.initial rfl
+
+theorem demoDeniedFinancialProcessor_after_denial_reachable :
+    Reachable demoDeniedFinancialProcessorMachine
+      demoFinancialProcessorAfterDenial :=
+  Reachable.step demoDeniedFinancialProcessor_initial_reachable
+    (Or.inr (Or.inl ⟨17, demoFinancialEnvelopeRequest,
+      .transferAuthorizationDenied,
+      demoFinancialProcessor_denial_is_admitted_at_current_nonce⟩))
+
+theorem demoDeniedFinancialProcessor_reachable_invariant :
+    FinancialTransactionProcessorInvariant demoHolderLedgerMap
+      demoInitialFinancialState.ledger demoFinancialProcessorAfterDenial :=
+  financialTransactionProcessorInvariant_of_reachable
+    demoFinancialProcessorDeniedPolicy demoHolderLedgerMap
+    DemoLedgerAccount.control demoInitialFinancialState
+    demoInitialFinancialState_invariant
+    demoDeniedFinancialProcessor_after_denial_reachable
+
 end SIRMTests
