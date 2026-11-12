@@ -15,3 +15,6 @@ import SIRM.RegistryAwareFinancialMachine
 import SIRM.AuthorizedAssetMigration
 import SIRM.ReplayProtectedAssetMigration
 import SIRM.FeeAccounting
+import SIRM.EscrowAccounting
+import SIRM.EscrowRegistry
+import SIRM.EscrowPooledReserve

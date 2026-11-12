@@ -19,6 +19,8 @@
 
 14. **Migration replay guard:** the abstract replay-protected migration machine maintains an independent next nonce per principal, starts each sequence at zero, accepts only the exact expected nonce, and increments it atomically with the paired financial migration state. This is deliberately scoped to this migration machine; a global transaction envelope, request-hash/idempotent response cache, signatures, expiry, persistent nonce storage, concurrency control, and production integer-width behavior remain unselected.
 
+15. **Single-use escrow accounting:** the first escrow abstraction uses one escrow record and one dedicated holder-vault account. Opening transfers already-issued units into the vault; release transfers the exact recorded amount to the beneficiary; cancellation returns it to the depositor. All three actions require the ordinary transfer authorization plus an independent escrow-policy witness. The record can be opened only from `ready` and cannot be reused after release/cancellation. Escrowed units remain in the holder/supply partition; no mint, burn, or duplicate liability representation is introduced. Multiple escrow IDs, expiry, disputes, settlement evidence/finality, and reversal policy remain open.
+
 ## Not yet decided
 
 - total genesis supply, decimals, and final allocation table;

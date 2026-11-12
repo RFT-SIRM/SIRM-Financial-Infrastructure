@@ -26,8 +26,9 @@
 - [x] Reachable-state invariant theorems and theorem regressions wired into `lake test`.
 
 ### Still open
-- [ ] Fees and their posting, beneficiary and supply effects.
-- [ ] Escrow, settlement, release, cancellation and reversals.
+- [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
+- [x] One-record escrow open, release and cancellation with separate authorization, exact vault backing, and holder/GL/supply conservation.
+- [ ] Multiple concurrent escrow IDs, settlement finality, expiry, dispute handling and reversal policy.
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
@@ -67,10 +68,13 @@ No consensus algorithm or production network is claimed as selected or deployed 
 No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
 
 ## Recommended execution order
-1. Complete open accounting semantics: fee accounting is now formally modeled at the exact base-unit transfer layer; next formalize escrow, settlement, reversals, redemption and liabilities. Fee tariff policy and non-holder revenue classification remain open.
+1. Complete open accounting semantics: extend the verified one-record escrow lifecycle to concurrent escrow IDs, then formalize settlement finality, expiry, dispute/reversal policy, redemption obligations, liabilities and complete custody/customer-liability postings. Fee tariff policy and non-holder revenue classification remain open.
 2. Specify the complete transaction envelope, including global replay/idempotency and deterministic failure behavior.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.
 5. Proceed to institutional pilots and production gates only after independent reviews.
 
 A network cannot repair an incomplete accounting model, and consensus cannot establish the correctness of an underspecified financial transition.
+
+
+The first escrow lifecycle is specified as a single-use record: a funded deposit moves to a dedicated vault holder, followed by either release to the recorded beneficiary or cancellation back to the depositor. The vault is exactly backed while pending, and the record cannot reopen after a terminal transition. This does not model concurrent escrow IDs, external settlement finality, dispute resolution, expiry, or production idempotency.

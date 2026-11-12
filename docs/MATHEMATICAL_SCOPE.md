@@ -72,6 +72,13 @@ This document describes what the current Lean declarations establish, the assump
 - The machine invariant preserves holder/supply reconciliation, mapped holder-subledger agreement, and aggregate signed general-ledger balance relative to the opening ledger.
 - `SIRMTests.lean` contains a concrete integrated transfer → issuance → burn theorem-level regression trace, including reachability and the stated financial invariants.
 
+### Authorized one-record escrow lifecycle
+
+- `SIRM.EscrowAccounting` models a dedicated escrow holder account as part of the holder universe. Opening moves existing units from a depositor into that vault; release transfers the recorded amount to the fixed beneficiary; cancellation returns it to the depositor. These are ordinary holder transfers, not issuance or burn.
+- Opening, release and cancellation each require an ordinary transfer-policy witness and an independent escrow-policy witness. Opening is admitted only from `ready`; release/cancel are admitted only from `pending`. A terminal record cannot be reopened, preventing reuse of the same escrow record after completion.
+- The escrow invariant requires the vault to hold exactly the recorded amount of the escrow asset while pending, and zero units of every asset in all other phases. It composes with holder/supply reconciliation, mapped holder/GL agreement, and aggregate signed GL conservation. The state machine therefore preserves these facts for every reachable state.
+- This is a single-record/single-vault model. It does not yet define multiple concurrent escrow IDs, timeout/expiry, dispute adjudication, external settlement/finality evidence, automatic reversal, or global transaction idempotency. The exact rights and authority semantics are policy inputs rather than legal or cryptographic proofs.
+
 ## 2. Important distinction: abstract paired transition vs production transaction
 
 The combined machine **does** formalize a paired state transition: a holder operation and its corresponding general-ledger posting are represented together in one transition of the abstract Lean state. It would therefore be inaccurate to say that no unified holder/ledger transition is formalized.
@@ -84,7 +91,7 @@ That result does **not** yet provide a production transaction processor. The mig
 - A concrete principal-to-account legal-ownership map, production identity verification, cryptographic signatures, private-key custody, lifecycle transition policy, production role semantics, signer thresholds, or permission-policy administration. Typed account metadata is descriptive and does not by itself establish these properties.
 - A complete genesis assignment to actual founder, treasury, validator, ecosystem, community, and other accounts.
 - A production posting policy for custody, customer-liability, control, and other non-holder GL accounts.
-- Freeze, escrow, fees, settlement, reversals, credit lines, account restrictions, and multi-asset FX/valuation rules.
+- Multiple concurrent escrow IDs, expiry, disputes, external settlement finality, reversals, credit lines, account restrictions, and multi-asset FX/valuation rules.
 - Reserve backing, solvency, par redemption, external asset existence, or independent reserve attestations.
 - A global-field distribution law or an equivalence to legacy Rift behavior.
 - Rust/Lean refinement, consensus safety/finality, censorship resistance, data availability, privacy guarantees, legal enforceability, licensing conclusions, or regulatory compliance.
@@ -99,3 +106,8 @@ Implementation claims require a documented refinement/conformance argument plus 
 ## Fee accounting boundary
 
 The initial fee model treats a fee as an internal transfer of already-issued base units: gross is split exactly into net beneficiary credit plus fee-collector credit. The collector is an explicit holder, and fee authorization is independent of ordinary transfer authorization. No units are minted or burned by the fee transition. The model does not yet classify a non-holder revenue account, define a tariff schedule, rounding/minimum/maximum rules, tax treatment, refunds, fee changes, or production revenue recognition.
+
+
+## Escrow accounting boundary
+
+Escrowed units remain holder-owned units in the formal supply partition, held temporarily in a dedicated vault account. This model does not represent them as both depositor assets and a separate liability balance; the vault is the single holder coordinate for those units. It proves accounting movement and phase-dependent backing, not legal beneficial ownership, custody, external delivery, or settlement finality.

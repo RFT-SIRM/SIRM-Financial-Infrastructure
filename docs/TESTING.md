@@ -149,3 +149,8 @@ The fee-accounting module and `SIRMTests.lean` compile theorem-level checks for:
 - preservation of holder/supply reconciliation, mapped holder/GL agreement and aggregate signed GL totals through the verified fee machine.
 
 These are abstract Lean transition proofs, not a production tariff, percentage calculation, tax treatment, revenue-recognition policy, runtime transaction processor or Rust implementation. The collector is a holder in this first model.
+
+
+## Authorized escrow accounting regressions
+
+The escrow regression fixture compiles an authorized 40-base-unit deposit from Alice into a dedicated vault, followed by alternative terminal paths: release of 40 units to Bob or cancellation returning 40 units to Alice. The tests check exact balances and corresponding GL postings, unchanged supply, exact vault backing while pending, reachable-state preservation of the complete financial invariant, denial without the escrow-specific permission, and rejection of repeated opening or terminal release/cancel actions. The model has one single-use record and one dedicated vault; concurrent escrow IDs, expiry, disputes and external settlement finality remain open.
