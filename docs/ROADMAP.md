@@ -1,10 +1,8 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #23 is merged into `main` at `998bec99364832c0273d8680993f453b44c3dbb9`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #23 adds abstract escrow expiry/time locks with a permission-gated refund.
+**Verified baseline:** PR #24 is merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #24 adds first-stage escrow dispute intake/freeze on top of PR #23 (expiry/time locks).
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
-
-**Current feature proposal:** `feat/escrow-dispute-freeze-2026-11-12` is pushed at `bb9ea4721e25bbfc9784c0643505abfb7876483c`, based on the verified `main` baseline above. Local verification passed; its PR and 18-job PR CI are still pending. The roadmap item remains unchecked until that exact PR head passes CI.
 
 ## Phase 0 — formal development foundation
 - [x] Establish SIRM/RFT naming and repository boundaries.
@@ -35,8 +33,8 @@
 - [x] Multiple concurrent escrow IDs, aggregate per-asset pending liabilities, and exact reconciliation to the designated vault-holder balance and mapped GL subledger.
 - [x] Abstract escrow expiry/time locks: fixed per-ID deadlines, monotone discrete time, pre-deadline release/cancel guards, and a separately authorized post-deadline refund recorded as `expired`, preserving vault/GL/pool backing. Wall-clock binding and scheduler liveness remain open.
 
-### Implemented and pushed; PR CI pending
-- [ ] First-stage escrow dispute intake/freeze: implemented on feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c`; local Lean builds, theorem tests and 17 static audits passed, and the feature branch is pushed. Awaiting PR CI before this item is marked CI-checked. An authorized claimant can flag a pending escrow before its deadline; release, voluntary cancellation, and timeout expiry are then blocked for that ID while funds remain in the pooled vault. Adjudication, evidence verification, appeals, and outcome-specific settlement remain open.
+### Merged in PR #24
+- [x] First-stage escrow dispute intake/freeze (PR #24; all 18 checks passed on the merged commit). An authorized claimant can flag a pending escrow before its deadline; release, voluntary cancellation, and timeout expiry are then blocked for that ID while funds remain in the pooled vault. Adjudication, evidence verification, appeals, and outcome-specific settlement remain open.
 
 ### Still open
 - [ ] Dispute adjudication, evidence validation/provenance, outcome-specific beneficiary/refund settlement, appeals, and reversal policy.

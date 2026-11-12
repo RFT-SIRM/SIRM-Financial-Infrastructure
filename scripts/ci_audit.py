@@ -409,9 +409,8 @@ def docs_and_ci_topology():
          "DECISIONS.md does not record the layered escrow/dispute decision")
     need("Work block: first-stage escrow dispute intake/freeze" in journal,
          "DEVELOPMENT_JOURNAL.md lacks the verified dispute-intake handoff")
-    need("feat/escrow-dispute-freeze-2026-11-12" in workflow and
-         "998bec99364832c0273d8680993f453b44c3dbb9" in workflow,
-         "SESSION_WORKFLOW.md lacks the current escrow dispute branch/base")
+    need("5bb3fd4f4d58436debce6abfab4c87df132632c8" in workflow and "PR #24" in workflow,
+         "SESSION_WORKFLOW.md lacks the merged PR #24 baseline")
     need("first-stage dispute intake/freeze" in scope.lower(),
          "MATHEMATICAL_SCOPE.md does not describe the first-stage dispute freeze")
     need("SIRM.EscrowDisputes" in security and "dispute fairness/adjudication" in security,

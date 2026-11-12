@@ -243,14 +243,14 @@ The earlier preparation note below described only the first single-record escrow
 - Initial branch label: `foundation/escrow-accounting-2026-11-12`.
 - The original single-record assumptions remain the scope of `SIRM.EscrowAccounting` only; they must not be applied to the later composed escrow model.
 
-## Work block: first-stage escrow dispute intake/freeze (feature commit pushed; PR pending)
+## Work block: first-stage escrow dispute intake/freeze (merged in PR #24)
 
 ### Verified baseline and preceding escrow layers
 
 - Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
 - Exact starting `main` SHA: `998bec99364832c0273d8680993f453b44c3dbb9`.
 - The escrow foundation was merged in sequence: PR #16 (`5755c728b551a2838f505c6a9f9eaf6c1d19b03c`) added concurrent IDs and pooled reserve; PR #17 (`ed928ecdc34e2740ea87a55925fad8ab8386ddb2`) connected the reserve to `FinancialState` and the mapped GL; PR #23 (`998bec99364832c0273d8680993f453b44c3dbb9`) added discrete deadlines and permissioned expiry. PR #23 passed all 18 CI jobs for its exact head.
-- Feature branch: `feat/escrow-dispute-freeze-2026-11-12`, based on the exact `main` SHA above. Feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c` contains exactly the 13 task files; its parent is the stated `main` SHA. The branch was pushed without force, and the remote branch SHA was verified equal to this commit. No PR or merge exists yet.
+- Feature branch: `feat/escrow-dispute-freeze-2026-11-12`, based on the exact `main` SHA above. Feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c` contains exactly the 13 task files; its parent is the stated `main` SHA. The branch was pushed without force, and the remote branch SHA was verified equal to this commit. It was merged as PR #24 (`5bb3fd4f4d58436debce6abfab4c87df132632c8`); all 18 checks passed on the post-merge commit.
 
 ### Objective and selected semantics
 
@@ -298,6 +298,6 @@ git diff --check
 - The first failing test output contained parser errors in two nested `some { ... }` record literals. Fixing those record layouts exposed the next, independent goal: the claimant-policy disjunction. The actual proof repair unfolds `integratedPendingEscrowRecord` alongside `integratedEscrowDisputeDemoPolicy` in the `simp` call. Do not revive the earlier guessed comma/record-field repair scripts.
 - No theorem statement was weakened and no `sorry`/`admit` was introduced; `no-proof-holes` passed.
 
-### Next gate
+### Outcome
 
-The source-and-test feature commit is complete and pushed. Local verification on its source tree passed: `lake build SIRM.EscrowDisputes`, `lake build SIRMTests` (8734 jobs), `lake build SIRM`, `lake test`, all 17 static audits, and `git diff --check`. The final scope/documentation correction also passed all 17 static audits and `git diff --check`. No PR CI has run for this feature head yet. Next: open one PR from this existing branch to `main`, verify its exact head SHA, and require all 18 CI checks to pass for that head before merge. Do not create another branch or touch `main` directly.
+PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with all 18 checks green (one Lean build/theorem-test job and 17 static audits). Open follow-ups are unchanged: dispute adjudication, evidence validation/provenance, outcome-specific settlement, appeals, and wall-clock/scheduler binding.
