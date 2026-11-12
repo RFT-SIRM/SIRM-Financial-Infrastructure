@@ -167,6 +167,7 @@ def docs_and_ci_topology():
     fees = load("SIRM/FeeAccounting.lean")
     escrow = load("SIRM/EscrowAccounting.lean")
     time_locks = load("SIRM/EscrowTimeLocks.lean")
+    disputes = load("SIRM/EscrowDisputes.lean")
     envelope = load("SIRM/FinancialTransactionEnvelope.lean")
     denials = load("SIRM/FinancialTransactionDenials.lean")
     umbrella = load("SIRM.lean")
@@ -358,7 +359,65 @@ def docs_and_ci_topology():
              f"SIRMTests.lean missing escrow time-lock regression {theorem}")
     need("## Escrow expiry and time-lock regressions" in testing,
          "TESTING.md does not document escrow expiry and time-lock regressions")
+    need("SIRM.EscrowDisputes" in umbrella and "SIRM.EscrowDisputes" in readme,
+         "escrow dispute-freeze module is not integrated/documented")
+    for declaration in (
+        "EscrowDisputeFinancialRegistryState",
+        "EscrowDisputeAuthorizationPolicy",
+        "EscrowDisputeRaiseStep",
+        "EscrowDisputeTimeLockedReleaseStep",
+        "EscrowDisputeTimeLockedCancelStep",
+        "EscrowDisputeTimeLockedExpireStep",
+        "EscrowDisputeFinancialRegistryStep",
+        "escrowDisputeRaiseStep_rejects_existing_filing",
+        "escrowDisputeFinancialRegistryStep_preserves_existing_filing",
+        "escrowDisputeFinancialRegistryStep_preserves_invariant",
+        "escrowDisputeTimeLockedReleaseStep_rejects_disputed",
+        "escrowDisputeTimeLockedCancelStep_rejects_disputed",
+        "escrowDisputeTimeLockedExpireStep_rejects_disputed",
+        "escrowDisputeRaiseStep_rejects_elapsed_deadline",
+        "escrowDisputeFinancialRegistryStep_time_monotone",
+        "escrowDisputeFinancialRegistryInvariant_of_reachable",
+    ):
+        need(declaration in disputes,
+             f"EscrowDisputes.lean is missing {declaration}")
+    for theorem in (
+        "integratedEscrowDispute_beta_claim_step",
+        "integratedEscrowDispute_after_beta_claim_reachable",
+        "integratedEscrowDispute_beta_release_is_frozen",
+        "integratedEscrowDispute_beta_cancel_is_frozen",
+        "integratedEscrowDispute_beta_claim_cannot_be_filed_twice",
+        "integratedEscrowDispute_alpha_remains_releasable",
+        "integratedEscrowDispute_beta_filing_persists_after_clock_advance",
+        "integratedEscrowDispute_advance_to_beta_deadline",
+        "integratedEscrowDispute_beta_expiry_is_frozen_at_deadline",
+        "integratedEscrowDispute_new_claim_is_rejected_at_deadline",
+        "integratedEscrowDispute_after_deadline_reachable",
+        "integratedEscrowDispute_beta_vault_funds_remain_65",
+        "integratedEscrowDispute_other_alpha_id_is_not_frozen",
+        "integratedEscrowDispute_after_deadline_preserves_invariant",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean missing escrow dispute-freeze regression {theorem}")
+    need("## Escrow dispute-freeze regressions" in testing,
+         "TESTING.md does not document escrow dispute-freeze regressions")
+    decisions = load("docs/DECISIONS.md")
+    journal = load("docs/DEVELOPMENT_JOURNAL.md")
+    workflow = load("docs/SESSION_WORKFLOW.md")
+    scope = load("docs/MATHEMATICAL_SCOPE.md")
+    need("Layered escrow accounting and dispute safety" in decisions,
+         "DECISIONS.md does not record the layered escrow/dispute decision")
+    need("Work block: first-stage escrow dispute intake/freeze" in journal,
+         "DEVELOPMENT_JOURNAL.md lacks the verified dispute-intake handoff")
+    need("feat/escrow-dispute-freeze-2026-11-12" in workflow and
+         "998bec99364832c0273d8680993f453b44c3dbb9" in workflow,
+         "SESSION_WORKFLOW.md lacks the current escrow dispute branch/base")
+    need("first-stage dispute intake/freeze" in scope.lower(),
+         "MATHEMATICAL_SCOPE.md does not describe the first-stage dispute freeze")
+    need("SIRM.EscrowDisputes" in security and "dispute fairness/adjudication" in security,
+         "SECURITY_MODEL.md does not distinguish the formal freeze from open dispute fairness/adjudication")
 
+    workflow = load(".github/workflows/lean.yml")
     ids = re.findall(r"(?m)^\s+- id:", workflow)
     need(len(ids) == 17, f"expected 17 static matrix jobs, found {len(ids)}")
     workflows = list((ROOT / ".github/workflows").glob("*.yml"))

@@ -1,8 +1,10 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #22 is merged into `main` at `17d96ab0b4624a2f4fcd04b2d0700737ef70fdb4`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #22 adds cached insufficient-funds denials to the transaction processor.
+**Verified baseline:** PR #23 is merged into `main` at `998bec99364832c0273d8680993f453b44c3dbb9`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #23 adds abstract escrow expiry/time locks with a permission-gated refund.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
+
+**Current feature proposal:** `feat/escrow-dispute-freeze-2026-11-12` is pushed at `bb9ea4721e25bbfc9784c0643505abfb7876483c`, based on the verified `main` baseline above. Local verification passed; its PR and 18-job PR CI are still pending. The roadmap item remains unchecked until that exact PR head passes CI.
 
 ## Phase 0 — formal development foundation
 - [x] Establish SIRM/RFT naming and repository boundaries.
@@ -28,12 +30,17 @@
 - [x] Abstract authorization-denial cache: cache only at the exact current nonce, do not consume nonce or change financial state, enforce one request-ID namespace across success/denial receipts, and replay the cached denial after a later nonce advance.
 - [x] Abstract insufficient-funds denial cache for authorized non-self transfers and burns: cache only at the exact current nonce and an unused request ID, do not change balances/GL/nonce, and return the original insufficient-funds response on exact retry. Self-transfers and unauthorized requests are not classified as insufficient-funds failures; issuance has no debit-funding precondition.
 
-### Still open
 - [x] Exact-base-unit fee transfer with separate transfer/fee authorization, a balanced combined journal, and holder/GL/supply conservation (tariff and non-holder revenue policy remain open).
 - [x] One-record escrow open, release and cancellation with separate authorization, exact vault backing, and holder/GL/supply conservation.
 - [x] Multiple concurrent escrow IDs, aggregate per-asset pending liabilities, and exact reconciliation to the designated vault-holder balance and mapped GL subledger.
 - [x] Abstract escrow expiry/time locks: fixed per-ID deadlines, monotone discrete time, pre-deadline release/cancel guards, and a separately authorized post-deadline refund recorded as `expired`, preserving vault/GL/pool backing. Wall-clock binding and scheduler liveness remain open.
-- [ ] Settlement finality, dispute handling, external settlement evidence and reversal policy.
+
+### Implemented and pushed; PR CI pending
+- [ ] First-stage escrow dispute intake/freeze: implemented on feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c`; local Lean builds, theorem tests and 17 static audits passed, and the feature branch is pushed. Awaiting PR CI before this item is marked CI-checked. An authorized claimant can flag a pending escrow before its deadline; release, voluntary cancellation, and timeout expiry are then blocked for that ID while funds remain in the pooled vault. Adjudication, evidence verification, appeals, and outcome-specific settlement remain open.
+
+### Still open
+- [ ] Dispute adjudication, evidence validation/provenance, outcome-specific beneficiary/refund settlement, appeals, and reversal policy.
+- [ ] External settlement evidence and finality, including the policy for reconciling external delivery with the internal escrow state.
 - [ ] Pending-pool and residual accounting beyond the migration-specific dust subledger.
 - [ ] Redemption obligations, liability accounts, reserve assumptions and supply caps.
 - [ ] Complete posting policy for custody, customer-liability and control accounts.
@@ -73,7 +80,7 @@ No consensus algorithm or production network is claimed as selected or deployed 
 No public token sale, customer deposits, real-money settlement or mainnet launch before the relevant legal, custody, reserve, security, implementation and operational gates are independently satisfied.
 
 ## Recommended execution order
-1. Complete open accounting semantics: formalize escrow settlement finality, dispute/reversal policy, redemption obligations, reserve assumptions, liabilities and complete custody/customer-liability postings. Concurrent escrow IDs, pooled vault/GL reconciliation and abstract discrete expiry guards are formalized; wall-clock binding and timeout scheduler liveness remain open. Fee tariff policy and non-holder revenue classification remain open.
+1. Complete open accounting semantics: formalize dispute adjudication, evidence validation/provenance, outcome-specific beneficiary/refund settlement, appeals and reversal policy; then address redemption obligations, reserve assumptions, liability accounts and complete custody/customer-liability postings. Dispute intake/freeze, concurrent escrow IDs, pooled vault/GL reconciliation and discrete expiry guards are formalized. Wall-clock binding and timeout scheduler liveness remain open. Fee tariff policy and non-holder revenue classification remain open.
 2. Complete the transaction envelope's remaining semantics (canonical encoding and hashing, signature/threshold rules, expiry, cached responses for other deterministic failures, and deterministic failure schemas), then refine it to a persisted runtime processor.
 3. Implement and test Rust against the stabilized Lean model.
 4. Build a single-node development network; only then design and test consensus.
@@ -82,4 +89,4 @@ No public token sale, customer deposits, real-money settlement or mainnet launch
 A network cannot repair an incomplete accounting model, and consensus cannot establish the correctness of an underspecified financial transition.
 
 
-Escrow formalization is layered: `EscrowAccounting` proves the single-record authorized lifecycle; `EscrowRegistry` adds concurrent, permanently allocated IDs; `EscrowPooledReserve` derives aggregate pending obligations by asset; and `EscrowFinancialIntegration` proves those obligations equal the designated vault-holder balance and mapped GL subledger throughout reachable multi-record states. External settlement finality/evidence, expiry/time locks, dispute resolution, reversals and production persistence/idempotency remain outside the current model.
+Escrow formalization is layered: `EscrowAccounting` proves the single-record authorized lifecycle; `EscrowRegistry` adds concurrent, permanently allocated IDs; `EscrowPooledReserve` derives aggregate pending obligations by asset; `EscrowFinancialIntegration` proves those obligations equal the designated vault-holder balance and mapped GL subledger; `EscrowTimeLocks` adds discrete per-ID deadlines and timeout refunds; and `EscrowDisputes` adds a first-stage authorized dispute freeze. Dispute adjudication, evidence verification, appeals, outcome-specific settlement, external settlement finality, reversals and production persistence/idempotency remain open.

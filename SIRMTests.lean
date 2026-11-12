@@ -4520,3 +4520,191 @@ theorem demoInsufficientFundsFinancialProcessor_reachable_invariant :
     demoInsufficientFundsFinancialProcessor_after_denial_reachable
 
 end SIRMTests
+
+namespace SIRMTests
+
+open SIRM
+
+/-! ## Escrow dispute-intake freeze regressions -/
+
+abbrev IntegratedEscrowDisputeDemoState :=
+  EscrowDisputeFinancialRegistryState EscrowDemoPrincipal IntegratedEscrowDemoId
+    EscrowDemoHolder EscrowDemoHolder EscrowDemoAsset
+
+def integratedEscrowDisputeDemoPolicy :
+    EscrowDisputeAuthorizationPolicy EscrowDemoPrincipal IntegratedEscrowDemoId
+      EscrowDemoHolder EscrowDemoAsset where
+  mayRaiseDispute := fun _ principal _ claimant _ depositor beneficiary vault _ _ =>
+    principal = EscrowDemoPrincipal.escrowAgent ∧
+      (claimant = depositor ∨ claimant = beneficiary) ∧
+      vault = EscrowDemoHolder.vault
+
+def integratedEscrowDisputeInitial : IntegratedEscrowDisputeDemoState :=
+  emptyEscrowDisputeFinancialRegistryState integratedEscrowTimeAfterBoth
+
+theorem integratedEscrowDisputeInitial_invariant :
+    EscrowDisputeFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowDisputeInitial := by
+  change EscrowTimeLockedFinancialRegistryInvariant escrowDemoMapping
+    escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowTimeAfterBoth
+  change EscrowFinancialRegistryInvariant escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoAfterBoth
+  exact integratedEscrowDemo_after_both_invariant
+
+def integratedEscrowDisputeAfterBetaClaim : IntegratedEscrowDisputeDemoState :=
+  { timed := integratedEscrowTimeAfterBoth
+    disputes := fun id =>
+      if id = true then
+        some {
+          principal := EscrowDemoPrincipal.escrowAgent
+          claimant := EscrowDemoHolder.alice
+          filedAt := 0
+        }
+      else none }
+
+theorem integratedEscrowDispute_beta_claim_step :
+    EscrowDisputeRaiseStep integratedEscrowDisputeDemoPolicy
+      EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+      integratedEscrowDisputeInitial integratedEscrowDisputeAfterBetaClaim := by
+  refine ⟨integratedPendingEscrowRecord EscrowDemoHolder.alice
+      EscrowDemoHolder.treasury EscrowDemoAsset.rft 25,
+    EscrowDemoPrincipal.escrowAgent, EscrowDemoHolder.alice,
+    integratedEscrowDemoAfterBoth_beta_record, rfl, by decide, rfl,
+    Or.inl rfl, ?_, rfl⟩
+  simp [integratedEscrowDisputeDemoPolicy, integratedPendingEscrowRecord]
+
+def integratedEscrowDisputeMachine :
+    VerifiedStateMachine IntegratedEscrowDisputeDemoState :=
+  escrowDisputeFinancialRegistryMachine integratedEscrowDemoTransferPolicy
+    integratedEscrowDemoPolicy integratedEscrowDisputeDemoPolicy
+    escrowDemoMapping escrowDemoOpeningLedger EscrowDemoHolder.vault
+    integratedEscrowDemoExpiry integratedEscrowDisputeInitial
+    integratedEscrowDisputeInitial_invariant (by intro id; rfl)
+
+theorem integratedEscrowDispute_initial_reachable :
+    Reachable integratedEscrowDisputeMachine integratedEscrowDisputeInitial :=
+  Reachable.initial ⟨rfl, by intro id; rfl⟩
+
+theorem integratedEscrowDispute_after_beta_claim_reachable :
+    Reachable integratedEscrowDisputeMachine integratedEscrowDisputeAfterBetaClaim :=
+  Reachable.step integratedEscrowDispute_initial_reachable
+    (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+      ⟨true, integratedEscrowDispute_beta_claim_step⟩)))))
+
+theorem integratedEscrowDispute_after_beta_claim_invariant :
+    EscrowDisputeFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowDisputeAfterBetaClaim := by
+  exact escrowDisputeFinancialRegistryStep_preserves_invariant
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy
+    integratedEscrowDisputeDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry
+    integratedEscrowDisputeInitial_invariant
+    (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+      ⟨true, integratedEscrowDispute_beta_claim_step⟩)))))
+
+theorem integratedEscrowDispute_beta_release_is_frozen
+    (after : IntegratedEscrowDisputeDemoState) :
+    ¬ EscrowDisputeTimeLockedReleaseStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowDisputeAfterBetaClaim after := by
+  apply escrowDisputeTimeLockedReleaseStep_rejects_disputed
+  simp [integratedEscrowDisputeAfterBetaClaim]
+
+theorem integratedEscrowDispute_beta_cancel_is_frozen
+    (after : IntegratedEscrowDisputeDemoState) :
+    ¬ EscrowDisputeTimeLockedCancelStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowDisputeAfterBetaClaim after := by
+  apply escrowDisputeTimeLockedCancelStep_rejects_disputed
+  simp [integratedEscrowDisputeAfterBetaClaim]
+
+theorem integratedEscrowDispute_beta_claim_cannot_be_filed_twice
+    (after : IntegratedEscrowDisputeDemoState) :
+    ¬ EscrowDisputeRaiseStep integratedEscrowDisputeDemoPolicy
+      EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+      integratedEscrowDisputeAfterBetaClaim after := by
+  apply escrowDisputeRaiseStep_rejects_existing_filing
+  simp [integratedEscrowDisputeAfterBetaClaim]
+
+def integratedEscrowDisputeAfterAlphaRelease : IntegratedEscrowDisputeDemoState :=
+  { timed := { escrow := integratedEscrowDemoAfterReleaseAlpha, currentTime := 0 }
+    disputes := integratedEscrowDisputeAfterBetaClaim.disputes }
+
+theorem integratedEscrowDispute_alpha_remains_releasable :
+    EscrowDisputeTimeLockedReleaseStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry false integratedEscrowDisputeAfterBetaClaim
+      integratedEscrowDisputeAfterAlphaRelease := by
+  refine ⟨{ escrow := integratedEscrowDemoAfterReleaseAlpha, currentTime := 0 },
+    rfl, ?_, rfl⟩
+  refine ⟨integratedPendingEscrowRecord EscrowDemoHolder.alice
+      EscrowDemoHolder.bob EscrowDemoAsset.rft 40,
+    EscrowDemoPrincipal.escrowAgent,
+    integratedEscrowDemoAfterBoth_alpha_record, rfl, by decide,
+    integratedEscrowDemo_alpha_release_transfer_authorized,
+    integratedEscrowDemo_alpha_release_escrow_authorized,
+    integratedEscrowDemo_alpha_release_funded, rfl⟩
+
+def integratedEscrowDisputeAtBetaDeadline : IntegratedEscrowDisputeDemoState :=
+  { timed := integratedEscrowTimeAtBetaDeadline
+    disputes := integratedEscrowDisputeAfterBetaClaim.disputes }
+
+theorem integratedEscrowDispute_beta_filing_persists_after_clock_advance :
+    integratedEscrowDisputeAtBetaDeadline.disputes true =
+      some {
+        principal := EscrowDemoPrincipal.escrowAgent
+        claimant := EscrowDemoHolder.alice
+        filedAt := 0
+      } := by
+  rfl
+
+theorem integratedEscrowDispute_advance_to_beta_deadline :
+    EscrowDisputeTimeAdvanceStep integratedEscrowDisputeAfterBetaClaim
+      integratedEscrowDisputeAtBetaDeadline := by
+  exact ⟨integratedEscrowTimeAtBetaDeadline,
+    integratedEscrowTime_advance_to_beta_deadline, rfl⟩
+
+theorem integratedEscrowDispute_beta_expiry_is_frozen_at_deadline
+    (after : IntegratedEscrowDisputeDemoState) :
+    ¬ EscrowDisputeTimeLockedExpireStep integratedEscrowDemoTransferPolicy
+      integratedEscrowDemoPolicy escrowDemoMapping EscrowDemoHolder.vault
+      integratedEscrowDemoExpiry true integratedEscrowDisputeAtBetaDeadline after := by
+  apply escrowDisputeTimeLockedExpireStep_rejects_disputed
+  simp [integratedEscrowDisputeAtBetaDeadline,
+    integratedEscrowDisputeAfterBetaClaim]
+
+theorem integratedEscrowDispute_new_claim_is_rejected_at_deadline
+    (after : IntegratedEscrowDisputeDemoState) :
+    ¬ EscrowDisputeRaiseStep integratedEscrowDisputeDemoPolicy
+      EscrowDemoHolder.vault integratedEscrowDemoExpiry true
+      integratedEscrowDisputeAtBetaDeadline after := by
+  apply escrowDisputeRaiseStep_rejects_elapsed_deadline
+  decide
+
+theorem integratedEscrowDispute_after_deadline_reachable :
+    Reachable integratedEscrowDisputeMachine integratedEscrowDisputeAtBetaDeadline :=
+  Reachable.step integratedEscrowDispute_after_beta_claim_reachable
+    (Or.inr (Or.inr (Or.inr (Or.inr
+      (Or.inl integratedEscrowDispute_advance_to_beta_deadline)))) )
+
+theorem integratedEscrowDispute_beta_vault_funds_remain_65 :
+    integratedEscrowDisputeAtBetaDeadline.timed.escrow.financial.holdings.balance
+      EscrowDemoHolder.vault EscrowDemoAsset.rft = 65 := by
+  simpa [integratedEscrowDisputeAtBetaDeadline, integratedEscrowTimeAtBetaDeadline,
+    integratedEscrowTimeAfterBoth] using integratedEscrowDemo_after_both_vault_gl_pool_65.1
+
+theorem integratedEscrowDispute_other_alpha_id_is_not_frozen :
+    integratedEscrowDisputeAtBetaDeadline.disputes false = none := by
+  rfl
+
+theorem integratedEscrowDispute_after_deadline_preserves_invariant :
+    EscrowDisputeFinancialRegistryInvariant escrowDemoMapping
+      escrowDemoOpeningLedger EscrowDemoHolder.vault integratedEscrowDisputeAtBetaDeadline := by
+  exact escrowDisputeFinancialRegistryInvariant_of_reachable
+    integratedEscrowDemoTransferPolicy integratedEscrowDemoPolicy
+    integratedEscrowDisputeDemoPolicy escrowDemoMapping escrowDemoOpeningLedger
+    EscrowDemoHolder.vault integratedEscrowDemoExpiry integratedEscrowDisputeInitial
+    integratedEscrowDisputeInitial_invariant (by intro id; rfl)
+    integratedEscrowDispute_after_deadline_reachable
+
+end SIRMTests

@@ -235,13 +235,69 @@ Do not commit until the new module, umbrella library, theorem regression suite, 
 - Verify exact PR head and all 18 checks before merge.
 
 
-## Work block: single-use authorized escrow accounting (prepared; local verification pending)
+## Historical handoff: initial single-use escrow accounting preparation (superseded)
 
-- Verified base: `main` at `ba5ed00248b21921ac50b2c1e925a5fbd54bb0c7`.
-- Working branch prepared for this task: `foundation/escrow-accounting-2026-11-12` (branch currently points to the base; no source commit is made by this package).
-- Objective: model escrow deposit, release and cancellation as proof-carrying holder transfers paired with balanced GL journals.
-- Safety conditions: normal transfer authorization and escrow-specific authorization are both required; open is allowed only from `ready`; release/cancel only from `pending`; vault balance equals the recorded amount while pending and is zero otherwise; supply, mapped subledger agreement and aggregate GL conservation are preserved; a terminal record cannot be reused.
-- Scope limitation: one record and one dedicated vault holder. Multi-escrow registries, expiry, dispute resolution, settlement finality, reversals and global transaction idempotency remain open.
-- Prepared files: `SIRM/EscrowAccounting.lean`, umbrella import, theorem regressions, CI source audit, roadmap, mathematical scope, formalization status, decisions, security model, testing guide and README.
-- Required local verification, in order: `lake build SIRM.EscrowAccounting`; `lake build SIRM`; `lake test`; `python3 scripts/ci_audit.py all`; `git diff --check`.
-- **Verification status:** not run in this preparation step. Do not commit or push until the user returns the actual terminal output and every check passes.
+The earlier preparation note below described only the first single-record escrow primitive and predates the subsequently merged registry, pooled-reserve, financial-integration and time-lock layers. It is retained as historical context only; it is not the current escrow status. The verified progression is recorded in the current dispute-intake work block below and in PRs #16, #17 and #23.
+
+- Initial preparation base: `ba5ed00248b21921ac50b2c1e925a5fbd54bb0c7`.
+- Initial branch label: `foundation/escrow-accounting-2026-11-12`.
+- The original single-record assumptions remain the scope of `SIRM.EscrowAccounting` only; they must not be applied to the later composed escrow model.
+
+## Work block: first-stage escrow dispute intake/freeze (feature commit pushed; PR pending)
+
+### Verified baseline and preceding escrow layers
+
+- Repository: `RFT-SIRM/SIRM-Financial-Infrastructure`.
+- Exact starting `main` SHA: `998bec99364832c0273d8680993f453b44c3dbb9`.
+- The escrow foundation was merged in sequence: PR #16 (`5755c728b551a2838f505c6a9f9eaf6c1d19b03c`) added concurrent IDs and pooled reserve; PR #17 (`ed928ecdc34e2740ea87a55925fad8ab8386ddb2`) connected the reserve to `FinancialState` and the mapped GL; PR #23 (`998bec99364832c0273d8680993f453b44c3dbb9`) added discrete deadlines and permissioned expiry. PR #23 passed all 18 CI jobs for its exact head.
+- Feature branch: `feat/escrow-dispute-freeze-2026-11-12`, based on the exact `main` SHA above. Feature commit `bb9ea4721e25bbfc9784c0643505abfb7876483c` contains exactly the 13 task files; its parent is the stated `main` SHA. The branch was pushed without force, and the remote branch SHA was verified equal to this commit. No PR or merge exists yet.
+
+### Objective and selected semantics
+
+Add stage-1 dispute intake as a safety freeze layered over `EscrowTimeLocks`:
+
+- A separate dispute policy witness authorizes the principal/claimant/request context; the claimant must be the recorded depositor or beneficiary.
+- Filing is permitted only for an existing pending ID, before its deadline, and only if that ID has no earlier filing.
+- The filing stores principal, claimant and discrete filing time. It does not transfer funds or change the timed financial state.
+- A filed ID cannot be released, voluntarily cancelled, or expired, including after its deadline. The discrete clock can still advance; other escrow IDs remain independently operable.
+- Reachable states retain the established timed holder/supply, vault-balance, pending-pool and mapped-GL invariant.
+
+### Explicit non-goals
+
+No evidence authenticity/provenance validation, adjudication, winner selection, beneficiary/refund settlement, appeals, reversal, external delivery or settlement finality, wall-clock oracle, automatic scheduler liveness, persistence, production transaction idempotency, or Lean-to-Rust refinement is claimed. The stage-1 filing is a permanent freeze marker; a later layer must define its only authorized resolution semantics.
+
+### Changed source and documentation paths in the current local patch
+
+- `SIRM/EscrowDisputes.lean` (new) and `SIRM.lean`.
+- `SIRMTests.lean` (integrated regression scenarios).
+- `scripts/ci_audit.py` (dispute declarations and regression assertions in the existing 17-check audit set).
+- `README.md`, `docs/FORMALIZATION_STATUS.md`, `docs/MATHEMATICAL_SCOPE.md`, `docs/ROADMAP.md`, `docs/TESTING.md`, and `docs/SECURITY_MODEL.md`.
+
+The handoff/documentation reconciliation also updates `docs/DECISIONS.md`, this journal, and `docs/SESSION_WORKFLOW.md` in the same reviewed change set.
+
+### Local verification reported for the source patch
+
+The exact existing worktree completed the following commands successfully:
+
+```bash
+lake build SIRM.EscrowDisputes
+lake build SIRMTests
+lake build SIRM
+lake test
+python3 scripts/ci_audit.py all
+git diff --check
+```
+
+- `SIRMTests` built successfully (8734 jobs).
+- The static audit reported `STATIC_AUDITS_PASSED=17`.
+- The command block reached `ALL_REQUIRED_LOCAL_CHECKS_PASSED`; `git diff --check` was clean.
+- Remaining messages were Lean linter warnings only; no Lean errors were reported.
+
+### Debugging facts to retain
+
+- The first failing test output contained parser errors in two nested `some { ... }` record literals. Fixing those record layouts exposed the next, independent goal: the claimant-policy disjunction. The actual proof repair unfolds `integratedPendingEscrowRecord` alongside `integratedEscrowDisputeDemoPolicy` in the `simp` call. Do not revive the earlier guessed comma/record-field repair scripts.
+- No theorem statement was weakened and no `sorry`/`admit` was introduced; `no-proof-holes` passed.
+
+### Next gate
+
+The source-and-test feature commit is complete and pushed. Local verification on its source tree passed: `lake build SIRM.EscrowDisputes`, `lake build SIRMTests` (8734 jobs), `lake build SIRM`, `lake test`, all 17 static audits, and `git diff --check`. The final scope/documentation correction also passed all 17 static audits and `git diff --check`. No PR CI has run for this feature head yet. Next: open one PR from this existing branch to `main`, verify its exact head SHA, and require all 18 CI checks to pass for that head before merge. Do not create another branch or touch `main` directly.

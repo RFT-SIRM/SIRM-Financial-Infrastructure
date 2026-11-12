@@ -204,10 +204,15 @@ These are abstract Lean transition proofs, not a production tariff, percentage c
 
 ## Authorized escrow accounting regressions
 
-The escrow regressions compile the authorized single-record deposit/release/cancel lifecycle and the financially integrated two-ID pooled-vault lifecycle. They check exact balances and GL postings, unchanged supply, aggregate pending liabilities, vault/GL/pool equality, reachable-state invariants and terminal-ID non-reuse. Discrete expiry and deadline guards are covered separately by `SIRM.EscrowTimeLocks`; wall-clock binding, automatic scheduler liveness, disputes and external settlement finality remain open.
+The escrow regressions compile the authorized single-record deposit/release/cancel lifecycle, the financially integrated two-ID pooled-vault lifecycle, discrete expiry guards, and first-stage dispute intake/freeze. They check exact balances and GL postings, unchanged supply, aggregate pending liabilities, vault/GL/pool equality, reachable-state invariants, terminal-ID non-reuse, and the fact that a disputed ID cannot be released, voluntarily cancelled, or expired while another ID remains independent. Wall-clock binding, automatic scheduler liveness, dispute adjudication/evidence/outcome settlement, and external settlement finality remain open.
 
 ## Escrow expiry and time-lock regressions
 
 The timed fixture assigns the two pending escrow IDs distinct absolute deadlines (10 and 5) over an abstract `Nat` clock. It opens both records before their deadlines, advances time monotonically to the second deadline, and proves that release and voluntary cancellation are no longer admissible for that ID. Expiry is a separate permissioned refund: it requires the dedicated `mayExpireEscrow` policy witness, returns the selected 25 units to the depositor, and marks that record `expired` rather than `cancelled`. The other 40-unit record remains pending; the reachable-state theorem proves the remaining vault-holder balance, mapped vault GL subledger and pooled pending liability all equal 40. A negative regression shows that the ordinary cancellation permission alone does not authorize expiry.
 
 This is a discrete abstract-time safety specification. It does not bind `Nat` to a wall clock, prove an external scheduler will invoke expiry, persist deadline terms inside the escrow record, or prove runtime atomicity.
+
+
+## Escrow dispute-freeze regressions
+
+The dispute fixture raises an authorized claim against the pending 25-unit beta escrow before its deadline. It proves that the disputed ID cannot be released or voluntarily cancelled, advances the discrete clock to the deadline, and proves that timeout expiry remains blocked even though the deadline has elapsed. The 65 units backing both pending escrows remain in the vault, and the independent alpha ID is not marked disputed. The wrapper's reachable-state theorem continues to preserve the timed holder/supply, vault, pooled-liability and mapped-GL invariant. This is a permanent first-stage freeze: adjudication, evidence verification, appeals, outcome-specific settlement and external finality remain open.
