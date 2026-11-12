@@ -166,6 +166,7 @@ def docs_and_ci_topology():
     replay = load("SIRM/ReplayProtectedAssetMigration.lean")
     fees = load("SIRM/FeeAccounting.lean")
     escrow = load("SIRM/EscrowAccounting.lean")
+    envelope = load("SIRM/FinancialTransactionEnvelope.lean")
     umbrella = load("SIRM.lean")
     regression = load("SIRMTests.lean")
     workflow = load(".github/workflows/lean.yml")
@@ -212,6 +213,31 @@ def docs_and_ci_topology():
 
     need("SIRM.EscrowAccounting" in umbrella and "SIRM.EscrowAccounting" in readme,
          "escrow accounting module is not integrated/documented")
+    need("SIRM.FinancialTransactionEnvelope" in umbrella and
+         "SIRM.FinancialTransactionEnvelope" in readme,
+         "typed financial transaction-envelope module is not integrated/documented")
+    for declaration in (
+        "FinancialTransactionEnvelopeSuccessStep",
+        "FinancialTransactionEnvelopeReplayStep",
+        "FinancialTransactionRequestIdConflict",
+        "FinancialTransactionReceiptInvariant",
+        "financialTransactionEnvelopeInvariant_of_reachable",
+        "financialTransactionEnvelopeSuccess_rejects_same_nonce_competitor",
+    ):
+        need(declaration in envelope,
+             f"FinancialTransactionEnvelope.lean is missing {declaration}")
+    for theorem in (
+        "demoFinancialEnvelope_transfer_success",
+        "demoFinancialEnvelope_exact_retry_returns_cached_response",
+        "demoFinancialEnvelope_conflicting_payload_rejected",
+        "demoFinancialEnvelope_same_nonce_competitor_rejected",
+        "demoFinancialEnvelope_old_nonce_new_id_rejected",
+        "demoFinancialEnvelope_reachable_state_preserves_conservation",
+    ):
+        need(theorem in regression,
+             f"SIRMTests.lean missing transaction-envelope regression {theorem}")
+    need("## Typed financial transaction-envelope regressions" in testing,
+         "TESTING.md does not document typed transaction-envelope regressions")
     need("EscrowOpenStep" in escrow and "EscrowReleaseStep" in escrow and
          "EscrowCancelStep" in escrow and "escrowFinancialStep_preserves_invariant" in escrow,
          "escrow lifecycle is missing an operation or invariant-preservation theorem")

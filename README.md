@@ -76,8 +76,8 @@ One abstract transition pairs source burn, destination issuance, both journals a
 <tr>
 <td width="50%" valign="top">
 <p align="center"><img src="docs/assets/overview/replay-protection.svg" width="88" height="88" alt="Replay protection shield"/></p>
-<strong>7. Migration Replay Protection</strong><br/>
-Each principal has an independent expected nonce, advanced with the migration state.
+<strong>7. Global Financial Replay Protection</strong><br/>
+Transfer, issuance and burn share one expected nonce per principal; typed request IDs bind exact retries to cached responses.
 </td>
 <td width="50%" valign="top">
 <p align="center"><img src="docs/assets/overview/formal-verification.svg" width="88" height="88" alt="Formal proof and independent audit checklist"/></p>
@@ -128,6 +128,8 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.AssetMigration` models explicit cross-network routes and positive rational base-unit rates. Quotient/remainder conversion is exact; residual dust is carried in a rate- and partition-indexed accumulator, never silently discarded or pooled across partitions. This is arithmetic and route eligibility, not a complete bridge transaction.
 - `SIRM.AuthorizedAssetMigration` defines one proof-carrying transition that atomically burns source units, issues the target amount released by route-specific dust, posts both balanced holder/GL journals, and preserves the combined financial invariant. The dust claim subledger is scoped to one route, source holder, and recipient.
 - `SIRM.ReplayProtectedAssetMigration` wraps that transition in a per-principal sequential nonce gate: only the exact next nonce is accepted, and the nonce advances in the same abstract state as the migration.
+- `SIRM.ReplayProtectedFinancialMachine` extends the same sequential nonce policy across transfer, issue, and burn in one abstract financial state update.
+- `SIRM.FinancialTransactionEnvelope` binds a typed operation payload and request ID to a stored response: exact retries are state no-ops, request-ID conflicts and nonce mismatches cannot be admitted as successful new requests, and the reachable-state invariant includes receipt consistency.
 - `SIRM.RegistryAwareFinancialMachine` composes the existing authority-grant and account-control policy with typed-asset issuance eligibility. Issuance requires an active asset and active issuer; transfer and burn authorization predicates remain unchanged. The adapter reuses the combined financial conservation theorem.
 - `SIRM.StateMachine` proves a generic reachable-state invariant from initial-state and transition-preservation obligations.
 - `SIRM.AuthorizedStateMachine` applies this pattern to authorization-gated holder transitions.
@@ -229,7 +231,7 @@ The current declarations do **not** yet establish:
 - legal ownership of accounts or a concrete principal-to-account mapping;
 - cryptographic signatures, key custody, signer thresholds, or production permission administration;
 - a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
-- a production-wide transaction envelope with canonical bytes, signer rules, expiry, operation-wide nonce semantics, idempotent replay responses, fees, events, and specified failure/rollback behavior; the current nonce theorem is migration-scoped;
+- the production execution envelope: canonical bytes and hashing, signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model now has an abstract global financial nonce and typed request-ID receipt semantics, but does not yet formalize authorization-rejection caching or prove a database/runtime implementation;
 - production runtime atomicity or Rust/Lean refinement;
 - reserve backing, solvency, redemption, or external asset existence;
 - governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;
