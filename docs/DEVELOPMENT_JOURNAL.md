@@ -233,3 +233,15 @@ Do not commit until the new module, umbrella library, theorem regression suite, 
 - Roadmap and scope text distinguish completed Lean properties from open accounting semantics, global transaction idempotency, Rust refinement, RFT Network, institutional and production gates.
 - No Lean definitions or theorem statements are changed. No production deployment, custody, reserves, legal status or Rust implementation is claimed.
 - Verify exact PR head and all 18 checks before merge.
+
+
+## Work block: single-use authorized escrow accounting (prepared; local verification pending)
+
+- Verified base: `main` at `ba5ed00248b21921ac50b2c1e925a5fbd54bb0c7`.
+- Working branch prepared for this task: `foundation/escrow-accounting-2026-11-12` (branch currently points to the base; no source commit is made by this package).
+- Objective: model escrow deposit, release and cancellation as proof-carrying holder transfers paired with balanced GL journals.
+- Safety conditions: normal transfer authorization and escrow-specific authorization are both required; open is allowed only from `ready`; release/cancel only from `pending`; vault balance equals the recorded amount while pending and is zero otherwise; supply, mapped subledger agreement and aggregate GL conservation are preserved; a terminal record cannot be reused.
+- Scope limitation: one record and one dedicated vault holder. Multi-escrow registries, expiry, dispute resolution, settlement finality, reversals and global transaction idempotency remain open.
+- Prepared files: `SIRM/EscrowAccounting.lean`, umbrella import, theorem regressions, CI source audit, roadmap, mathematical scope, formalization status, decisions, security model, testing guide and README.
+- Required local verification, in order: `lake build SIRM.EscrowAccounting`; `lake build SIRM`; `lake test`; `python3 scripts/ci_audit.py all`; `git diff --check`.
+- **Verification status:** not run in this preparation step. Do not commit or push until the user returns the actual terminal output and every check passes.

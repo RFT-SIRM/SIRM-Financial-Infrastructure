@@ -35,6 +35,8 @@ This file separates Lean declarations present in source from protocol properties
 - A finite static account-control relation, independent of authority grants, represented by principal/account pairs. The combined policy requires control of the source for transfers, the issuer for issuance, and the holder for burns, together with an exact grant. Issue grants bind both issuer and recipient; recipient control is not required by this model.
 - A registry-backed authorization adapter and regression theorems for denial when control is absent, denial when the exact grant is absent, and an allowed Treasury-to-Alice issuance where Treasury controls the issuer account but not Alice's recipient account. The holder operation remains mint-to-recipient and does not debit the issuer.
 
+- `SIRM.EscrowAccounting` defines a one-record authorized escrow lifecycle. Opening transfers funded, already-issued units from a depositor to a dedicated vault holder; release transfers the exact amount to the recorded beneficiary; cancellation returns it to the depositor. Separate ordinary-transfer and escrow-specific permissions are required. The verified machine preserves holder/supply reconciliation, mapped holder/GL agreement, aggregate signed GL totals, exact vault backing while pending, and terminal-state replay rejection.
+
 ## Not yet formalized
 
 - Production migration execution: the repository proves a migration-scoped sequential nonce gate, but not a production transaction envelope, operation-wide nonce policy, idempotent response cache, external bridge settlement/finality, custody, rollback/failure execution, asset-collision handling, or production posting/valuation/backing of fractional residual claims. The model proves an authorized source burn paired with destination issuance, exact residual carry-forward and per-principal nonce increment in one abstract transition; it does not execute an external bridge or establish legal/economic backing.
@@ -43,7 +45,7 @@ This file separates Lean declarations present in source from protocol properties
 - A canonical finite account universe and concrete genesis assignment covering founder, treasury, validator, ecosystem, community and unallocated pools.
 - A production-wide transaction object with canonical encoding, signer/threshold rules, expiry, nonce semantics across all operation families, idempotent replay responses, fees, deterministic errors and rollback semantics. The existing sequential nonce theorem is migration-scoped and uses unbounded Lean `Nat`.
 - A complete production posting policy for custody, customer-liability, control, and other non-holder general-ledger accounts.
-- Freeze, escrow, fees, settlement, reversals, credit lines and account restrictions.
+- Multiple concurrent escrow IDs, dispute resolution, time locks, expiry, external settlement finality, reversals, credit lines and account restrictions.
 - Multi-asset FX, valuation and rounding-residual policies.
 - Redemption obligations and their legal/operational preconditions.
 - Reserve evidence and external attestations as explicit assumptions with freshness and provenance.
@@ -63,3 +65,6 @@ No theorem is described as proving more than its exact statement. The holder-sup
 
 
 - `SIRM.FeeAccounting` defines an authorized fee transfer with explicit payer, beneficiary and fee-collector holder roles. The payer is debited gross base units, the beneficiary receives gross minus fee, and the collector receives the fee. Transfer permission and fee permission are separate witnesses. The combined two-leg journal is balanced and the verified machine preserves holder/supply reconciliation, mapped holder/GL agreement and aggregate signed GL totals. The initial model requires the collector to be in the holder universe; tariff calculation, non-holder revenue classification, production fee policy and runtime execution remain open.
+
+
+The first escrow model is intentionally limited to one record and one dedicated vault holder. It does not prove concurrent escrow-ID allocation, dispute adjudication, timeout semantics, external settlement evidence, or global idempotent responses.

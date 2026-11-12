@@ -165,6 +165,7 @@ def docs_and_ci_topology():
     security = load("docs/SECURITY_MODEL.md")
     replay = load("SIRM/ReplayProtectedAssetMigration.lean")
     fees = load("SIRM/FeeAccounting.lean")
+    escrow = load("SIRM/EscrowAccounting.lean")
     umbrella = load("SIRM.lean")
     regression = load("SIRMTests.lean")
     workflow = load(".github/workflows/lean.yml")
@@ -208,6 +209,27 @@ def docs_and_ci_topology():
     ):
         need(theorem in regression,
              f"SIRMTests.lean does not document/compile {theorem}")
+
+    need("SIRM.EscrowAccounting" in umbrella and "SIRM.EscrowAccounting" in readme,
+         "escrow accounting module is not integrated/documented")
+    need("EscrowOpenStep" in escrow and "EscrowReleaseStep" in escrow and
+         "EscrowCancelStep" in escrow and "escrowFinancialStep_preserves_invariant" in escrow,
+         "escrow lifecycle is missing an operation or invariant-preservation theorem")
+    for theorem in (
+        "escrowDemo_open_exact_balances",
+        "escrowDemo_release_exact_balances",
+        "escrowDemo_cancel_exact_balances",
+        "escrowDemo_open_denied_without_escrow_permission",
+        "escrowDemo_open_cannot_repeat",
+        "escrowDemo_release_cannot_repeat",
+        "escrowDemo_cancel_cannot_repeat",
+        "escrowDemo_open_after_release_is_denied",
+        "escrowDemo_open_after_cancel_is_denied",
+        "escrowDemo_cancel_after_release_is_denied",
+        "escrowDemo_after_release_invariant",
+        "escrowDemo_after_cancel_invariant",
+    ):
+        need(theorem in regression, f"SIRMTests.lean missing {theorem}")
 
     ids = re.findall(r"(?m)^\s+- id:", workflow)
     need(len(ids) == 17, f"expected 17 static matrix jobs, found {len(ids)}")

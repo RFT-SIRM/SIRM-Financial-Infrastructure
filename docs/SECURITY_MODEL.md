@@ -37,3 +37,7 @@ Open source and a public ledger improve inspectability; they do not make theft o
 ## Key rule
 
 No founder, operator, or single gate key should have an unrestricted unilateral ability to rewrite finalized history, mint without policy limits, confiscate balances, or silently change the protocol. Emergency powers must be narrow, disclosed, time-limited, auditable, and subject to independent governance review.
+
+## Formalized escrow boundary
+
+The first Lean escrow model requires both the normal transfer-policy witness and an independent escrow-policy witness for opening, release and cancellation. A pending record is backed by exactly the recorded amount in a dedicated vault holder account; release and cancellation consume the pending phase and return the vault balance to zero. The record is single-use and cannot be reopened after a terminal phase. These are formal transition constraints, not proof of legal title, external custody, delivery, settlement finality, dispute fairness, or resistance to compromised production credentials. Multiple concurrent escrows, expiry and external settlement evidence require additional models and operational controls.

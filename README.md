@@ -135,6 +135,7 @@ The source is organized by responsibility rather than a wide module table.
 ### Integrated financial transition
 
 - `SIRM.AuthorizedFinancialMachine` combines holder balances and the signed general ledger in one abstract financial state. Its authorized transfer, issuance, and burn steps update both projections together.
+- `SIRM.EscrowAccounting` adds a separately authorized, single-use escrow lifecycle: deposit to a dedicated vault holder, release to the recorded beneficiary, or cancellation back to the depositor. Exact vault backing, supply reconciliation, mapped subledger agreement and aggregate GL conservation are preserved.
 - Its machine invariant preserves holder/supply reconciliation, mapped subledger agreement, and aggregate signed-ledger balance relative to the opening ledger.
 - `SIRMTests.lean` contains concrete theorem-level regression scenarios, including an integrated transfer → issuance → burn trace.
 
@@ -208,7 +209,7 @@ The RFT Network is a later, independent stage. No consensus algorithm is selecte
 
 ## 9. Verification and current test scope
 
-The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs.
+The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs. The theorem suite also covers single-use escrow deposit/release/cancel transitions; concurrent escrow IDs, dispute handling and external settlement finality remain open.
 
 
 ```bash
