@@ -26,3 +26,4 @@ import SIRM.ReplayProtectedFinancialMachine
 import SIRM.FinancialTransactionEnvelope
 import SIRM.FinancialTransactionDenials
 import SIRM.CanonicalEncoding
+import SIRM.CanonicalRequestEncoding
