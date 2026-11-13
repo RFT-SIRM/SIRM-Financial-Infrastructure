@@ -9,6 +9,8 @@
 //! value is parsed into these types.
 #![forbid(unsafe_code)]
 
+pub mod envelope;
+
 use sha2::{Digest, Sha256};
 
 pub const DOMAIN: [u8; 12] = *b"SIRM/FTX/v0\0";
