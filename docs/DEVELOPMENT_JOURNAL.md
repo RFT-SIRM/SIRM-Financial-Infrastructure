@@ -301,3 +301,12 @@ git diff --check
 ### Outcome
 
 PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with all 18 checks green (one Lean build/theorem-test job and 17 static audits). Open follow-ups are unchanged: dispute adjudication, evidence validation/provenance, outcome-specific settlement, appeals, and wall-clock/scheduler binding.
+
+## Work block: canonical request encoding v0 and Rust reference codec (merged, PRs #25–#31)
+
+- Starting point: `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` (PR #24). End point: `85f69841b13d9ff62604685e158449904f15c3eb` (PR #31).
+- Docs/lint: PR #25 synchronized roadmap, workflow and journal with PR #24 and replaced an obsolete branch/base audit assertion with a merged-baseline assertion. PR #26 prefixed six unused binders with an underscore (no logic change).
+- Encoding: PR #27 added `scripts/canonical_encoding_reference.py`, `engineering/canonical_encoding/SPEC_v0.md` and vectors; the checks cover 5 boundary vectors, 2268 exhaustive small-domain requests, malformed-input rejection, out-of-range rejection and byte-identical reruns.
+- Lean: PR #28 added `SIRM.CanonicalEncoding` (value recovery, length, digit bound, injectivity on `[0, 256^n)`); PR #29 added `SIRM.CanonicalRequestEncoding` (`decode_encode`, `encodeRequest_injective` for in-range requests). The first build attempts failed on a nonexistent Mathlib import (`Mathlib.Data.Nat.Defs`, replaced by `import Mathlib`), on a `v % 1` base case (closed with `Nat.mod_one`), and on a final field that lacked a trailing list (added `takeNum_beDigits`). No theorem was weakened and no `sorry`/`admit` was introduced.
+- Rust: PR #31 added `rust/sirm-codec` with three conformance tests (vectors and SHA-256 against the Python reference, malformed-input rejection, 2268-case round trip and injectivity). Not part of CI.
+- Open: link the concrete request record to `FinancialTransactionRequest`; inverse direction on arbitrary digit lists; response/receipt encoding; chain id, signatures, expiry and state commitments; running the Rust tests in CI (this requires changing the one-workflow, 17-audit CI topology assertion deliberately).
