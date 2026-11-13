@@ -75,3 +75,7 @@ No theorem is described as proving more than its exact statement. The holder-sup
 
 
 The original single-record escrow primitive remains limited to one record and one dedicated vault holder, while later registry, pooled-reserve and financial-integration layers compose it for concurrent IDs and exact vault/GL backing. `EscrowTimeLocks` adds discrete deadline gating and an authorized `expired` terminal transition. `EscrowDisputes` composes over the timed machine and records a permanent per-ID filing that blocks release, voluntary cancellation and expiry for that ID, without blocking clock advancement or operations on other IDs. None of these abstract layers proves a wall-clock source, autonomous scheduler liveness, dispute adjudication, evidence authenticity, outcome settlement, external settlement finality, persisted idempotent responses or runtime atomicity.
+
+## Canonical encoding (proposal v0)
+
+- `SIRM.CanonicalEncoding` and `SIRM.CanonicalRequestEncoding` formalize a fixed-width big-endian codec and a concrete bounded request layout with round-trip and injectivity theorems for in-range requests. This is a proposal checked against an executable Python reference (`scripts/canonical_encoding_reference.py`) and vectors in `engineering/canonical_encoding/results/vectors_v0.json`; it is not yet adopted as the protocol format and is not linked to `FinancialTransactionRequest`. Chain id, signatures, expiry, receipt/response encoding and state commitments remain open.
