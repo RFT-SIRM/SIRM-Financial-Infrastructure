@@ -9,6 +9,7 @@
 //! value is parsed into these types.
 #![forbid(unsafe_code)]
 
+pub mod auth;
 pub mod envelope;
 pub mod ledger;
 
