@@ -1,0 +1,90 @@
+{
+  "checks": {
+    "injectivity_roundtrip_cases": 2268,
+    "malformed_rejected": 4,
+    "out_of_range_rejected": 4,
+    "vectors_roundtrip": 5
+  },
+  "format": "SIRM/FTX/v0 (proposal)",
+  "vectors": [
+    {
+      "bytes_hex": "5349524d2f4654582f76300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "length": 85,
+      "name": "transfer_min",
+      "nonce": 0,
+      "op": [
+        "transfer",
+        "0",
+        "0",
+        "0",
+        "0"
+      ],
+      "principal": 0,
+      "request_id": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "8230061c7626616ea1ee88a1e077bbc610f4c619a6a77cd42d5668ecbae8a0bb"
+    },
+    {
+      "bytes_hex": "5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8",
+      "length": 85,
+      "name": "transfer_basic",
+      "nonce": 7,
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "07962aebfc3423506e84330e959420e17168c08232bef04cb4bf78f4778c9f58"
+    },
+    {
+      "bytes_hex": "5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000",
+      "length": 85,
+      "name": "issue_basic",
+      "nonce": 0,
+      "op": [
+        "issue",
+        "2",
+        "5",
+        "0",
+        "1000000000000000000"
+      ],
+      "principal": 2,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "9b5f1ae1f5a69bf3067cf14d895830963db73b1e1e6bf78681be39433c468d2a"
+    },
+    {
+      "bytes_hex": "5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000003000000000000002902000000030000000100000000000000000000000000000019",
+      "length": 81,
+      "name": "burn_basic",
+      "nonce": 41,
+      "op": [
+        "burn",
+        "3",
+        "1",
+        "25"
+      ],
+      "principal": 3,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "174458741577faa20bd480c65bdc68ab29292f7109e0ae3c1160c922865184d2"
+    },
+    {
+      "bytes_hex": "5349524d2f4654582f763000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "length": 85,
+      "name": "max_values",
+      "nonce": 18446744073709551615,
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 4294967295,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sha256": "cbbf68406cf0b2c5f7cf913110fa1aa95f09e8e5b700cf2ac2ebb350c4565d3a"
+    }
+  ]
+}
