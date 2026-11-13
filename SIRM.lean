@@ -6,6 +6,7 @@ import SIRM.AuthorityRegistry
 import SIRM.AccountControl
 import SIRM.HolderAccountingBridge
 import SIRM.TypedRegistry
+import SIRM.CanonicalEncoding
 import SIRM.AssetUnits
 import SIRM.AssetMigration
 import SIRM.StateMachine
@@ -24,3 +25,4 @@ import SIRM.EscrowDisputes
 import SIRM.ReplayProtectedFinancialMachine
 import SIRM.FinancialTransactionEnvelope
 import SIRM.FinancialTransactionDenials
+import SIRM.CanonicalEncoding
