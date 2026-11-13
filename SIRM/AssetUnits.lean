@@ -178,8 +178,8 @@ def toBaseUnitsWithin?
 /-- Any bounded conversion result is no greater than the supplied maximum. -/
 theorem toBaseUnitsWithin?_value_le
     {accountCount : Nat}
-    (asset : AssetMetadata accountCount)
-    (amount : DecimalAmount)
+    (_asset : AssetMetadata accountCount)
+    (_amount : DecimalAmount)
     (maxBaseUnits : Nat)
     (units : Fin (Nat.succ maxBaseUnits)) :
     units.val ≤ maxBaseUnits :=

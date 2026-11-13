@@ -260,7 +260,7 @@ def AuthorizedAssetMigrationStep
       (AccountId accountCount) (AssetId assetCount))
     (mapping : HolderLedgerMap (AccountId accountCount) LedgerAccount)
     (counterpart : LedgerAccount)
-    (hCounterpart : ∀ holder : AccountId accountCount,
+    (_hCounterpart : ∀ holder : AccountId accountCount,
       counterpart ≠ mapping.ledgerAccount holder)
     (partition : AuthorizedAssetMigrationPartition registry)
     (principal : Principal)

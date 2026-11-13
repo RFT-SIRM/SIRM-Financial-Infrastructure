@@ -115,7 +115,7 @@ def FinancialOperationStep
   | .issue issuer recipient asset amount =>
       ∃ (hAuthorized :
           policy.mayIssue before.holdings principal issuer recipient asset amount),
-        ∃ (hCounterpart :
+        ∃ (_hCounterpart :
           ∀ holder, counterpart ≠ mapping.ledgerAccount holder),
           after =
             { holdings := executeAuthorizedIssue policy before.holdings
@@ -126,7 +126,7 @@ def FinancialOperationStep
       ∃ (hAuthorized :
           policy.mayBurn before.holdings principal holder asset amount),
         ∃ (hEnough : (amount : Int) ≤ before.holdings.balance holder asset),
-        ∃ (hCounterpart :
+        ∃ (_hCounterpart :
           ∀ mappedHolder, counterpart ≠ mapping.ledgerAccount mappedHolder),
           after =
             { holdings := executeAuthorizedBurn policy before.holdings

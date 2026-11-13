@@ -2895,7 +2895,7 @@ theorem escrowRegistryDemo_alpha_id_not_free_after_release :
   simp
 
 theorem escrowRegistryDemo_alpha_cannot_be_reopened :
-    ¬ ∃ replacement : EscrowRecord EscrowDemoHolder EscrowDemoAsset,
+    ¬ ∃ _replacement : EscrowRecord EscrowDemoHolder EscrowDemoAsset,
       escrowRegistryDemoAfterReleaseAlpha.records false = none := by
   intro hFree
   rcases hFree with ⟨replacement, hNone⟩
