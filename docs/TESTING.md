@@ -216,3 +216,13 @@ This is a discrete abstract-time safety specification. It does not bind `Nat` to
 ## Escrow dispute-freeze regressions
 
 The dispute fixture raises an authorized claim against the pending 25-unit beta escrow before its deadline. It proves that the disputed ID cannot be released or voluntarily cancelled, advances the discrete clock to the deadline, and proves that timeout expiry remains blocked even though the deadline has elapsed. The 65 units backing both pending escrows remain in the vault, and the independent alpha ID is not marked disputed. The wrapper's reachable-state theorem continues to preserve the timed holder/supply, vault, pooled-liability and mapped-GL invariant. This is a permanent first-stage freeze: adjudication, evidence verification, appeals, outcome-specific settlement and external finality remain open.
+
+## Canonical encoding checks (proposal v0)
+
+Three independent checks use the same byte layout (`engineering/canonical_encoding/SPEC_v0.md`):
+
+- Python reference: `python3 -I scripts/canonical_encoding_reference.py` regenerates `engineering/canonical_encoding/results/vectors_v0.json` and checks round trip, exhaustive small-domain injectivity (2268 requests), malformed-input rejection and byte-identical output.
+- Lean: `SIRM.CanonicalEncoding` and `SIRM.CanonicalRequestEncoding` prove round trip and injectivity for in-range requests of a concrete bounded record; they are compiled by `lake build` in the Lean job.
+- Rust: `cd rust/sirm-codec && cargo test` compares bytes and SHA-256 with the Python vectors and repeats the round-trip and rejection checks. This step is run locally and is not in the CI gate.
+
+These checks show agreement of three descriptions of one proposed layout. They do not adopt it as the protocol format, and the Lean statements are not linked to the polymorphic `FinancialTransactionRequest`.

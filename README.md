@@ -141,6 +141,7 @@ The source is organized by responsibility rather than a wide module table.
 - `SIRM.EscrowAccounting` defines the separately authorized single-record deposit/release/cancel primitive. `SIRM.EscrowRegistry` supports concurrent IDs; `SIRM.EscrowPooledReserve` derives aggregate pending liabilities by asset; and `SIRM.EscrowFinancialIntegration` ties those liabilities directly to the designated vault-holder balance and mapped GL subledger in one abstract transition.
 - `SIRM.EscrowTimeLocks` adds a discrete monotone clock, immutable per-ID deadlines, pre-deadline release/voluntary-cancel guards, and a separately authorized post-deadline refund that records the distinct `expired` terminal phase. Its reachable-state theorem reuses the integrated holder/GL/pool invariant. It does not prove wall-clock binding or scheduler liveness.
 - `SIRM.EscrowDisputes` adds authorized dispute intake for a pending escrow before its deadline. A filed dispute freezes release, voluntary cancellation, and timeout expiry for that ID while preserving the existing timed vault/GL/pool invariant; other IDs and clock advancement remain independent. This first stage is a permanent safety freeze, not adjudication or external settlement finality.
+- `SIRM.CanonicalEncoding` and `SIRM.CanonicalRequestEncoding` formalize the proposed v0 canonical request encoding: a fixed-width big-endian codec and a concrete bounded request record, with proofs of value recovery, digit bounds, round trip (`decode_encode`) and injectivity for in-range requests. This is a proposal, not an adopted protocol format, and it is not yet linked to the polymorphic `FinancialTransactionRequest`. See [the v0 specification](engineering/canonical_encoding/SPEC_v0.md).
 - The integrated escrow invariant preserves holder/supply reconciliation, mapped subledger agreement, aggregate signed-ledger balance, and exact per-asset vault backing across all reachable multi-record states, including expiry refunds.
 - `SIRMTests.lean` contains concrete theorem-level regression scenarios, including an integrated transfer → issuance → burn trace.
 
@@ -224,6 +225,8 @@ lake test
 
 See [Lean CI](.github/workflows/lean.yml) and [Testing and Verification](docs/TESTING.md). The test driver compiles concrete theorem scenarios in `SIRMTests.lean`; it is not a randomized node test, runtime fuzzing campaign, or network test. Linting remains disabled until a dedicated lint driver is configured.
 
+The Rust reference codec in `rust/sirm-codec` is checked locally with `cargo test` against the shared test vectors in `engineering/canonical_encoding/results/vectors_v0.json`; it is not part of the 18-job CI gate.
+
 A passing build is evidence about the exact source revision and pinned toolchain. It is not evidence that the future Rust implementation, consensus protocol, production system, or institutional operations have passed their separate gates.
 
 ## 10. What remains outside the current proofs
@@ -234,7 +237,7 @@ The current declarations do **not** yet establish:
 - legal ownership of accounts or a concrete principal-to-account mapping;
 - cryptographic signatures, key custody, signer thresholds, or production permission administration;
 - a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
-- the production execution envelope: canonical bytes and hashing, signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model has an abstract global financial nonce, typed request-ID success receipts, and cached authorization/insufficient-funds denials, but does not prove a database/runtime implementation;
+- the production execution envelope: canonical bytes and hashing (a v0 request-encoding proposal with a Python reference, Lean round-trip proofs and a Rust codec exists but is not adopted), signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model has an abstract global financial nonce, typed request-ID success receipts, and cached authorization/insufficient-funds denials, but does not prove a database/runtime implementation;
 - production runtime atomicity or Rust/Lean refinement;
 - reserve backing, solvency, redemption, or external asset existence;
 - governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;
@@ -260,6 +263,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 
 - [Formalization Status](docs/FORMALIZATION_STATUS.md) — present Lean declarations and open proof obligations.
 - [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md) — precise theorem scope, assumptions, and limits.
+- [Canonical encoding v0](engineering/canonical_encoding/SPEC_v0.md) — proposed request byte layout, checked properties and explicit gaps.
 - [Testing](docs/TESTING.md) — pinned build and theorem-level regression scope, including exact fee arithmetic.
 - [Release Gates](docs/RELEASE_GATES.md) — staged proof, implementation, network, and production gates.
 - [Roadmap](docs/ROADMAP.md) — development phases and incomplete work.

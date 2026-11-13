@@ -71,12 +71,13 @@ The next session must read the newest journal entry and verify its SHAs against 
 
 ## 6. Current workflow baseline
 
-As of 2026-11-12, the verified `main` baseline is `5bb3fd4f4d58436debce6abfab4c87df132632c8`.
+As of 2026-11-12, the verified `main` baseline is `85f69841b13d9ff62604685e158449904f15c3eb`.
 
 - PR #16 merge commit: `5755c728b551a2838f505c6a9f9eaf6c1d19b03c` — concurrent escrow IDs and pooled reserve.
 - PR #17 merge commit: `ed928ecdc34e2740ea87a55925fad8ab8386ddb2` — pooled reserve tied to the actual `FinancialState` vault-holder and mapped GL subledger.
 - PR #23 merge commit: `998bec99364832c0273d8680993f453b44c3dbb9` — abstract monotone discrete time, per-ID deadlines, and a permission-gated expiry/refund transition; its exact PR head passed all 18 checks.
 - PR #24 merge commit: `5bb3fd4f4d58436debce6abfab4c87df132632c8` — first-stage per-ID escrow dispute intake/freeze over the timed escrow machine; the exact post-merge `main` commit passed all 18 checks.
+- PR #25 `7ffddc2`: documentation sync after PR #24. PR #26 `5fd4770`: unused-binder lint cleanup. PR #27 `60c7cc8`: canonical request encoding v0 reference and test vectors. PR #28 `7ea1255`: Lean fixed-width big-endian codec. PR #29 `36e722c`: Lean request round trip and injectivity. PR #30 `de79c17`: documentation of the proof status. PR #31 `85f6984`: Rust reference codec. PRs #26–#31 passed all 18 checks on their heads before merge.
 - The current escrow model is layered across `EscrowAccounting`, `EscrowRegistry`, `EscrowPooledReserve`, `EscrowFinancialIntegration`, `EscrowTimeLocks`, and `EscrowDisputes`.
 
 The dispute-freeze feature branch has been merged (PR #24) and is closed. The next feature branch must be created from the exact `main` SHA above after confirming a clean working tree.

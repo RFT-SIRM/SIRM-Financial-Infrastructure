@@ -1,6 +1,6 @@
 # Roadmap and Completion Gates
 
-**Verified baseline:** PR #24 is merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8`. The exact post-merge `main` commit passed 18/18 GitHub Actions jobs: one Lean build/theorem-test job and 17 static audits. PR #24 adds first-stage escrow dispute intake/freeze on top of PR #23 (expiry/time locks).
+**Verified baseline:** `main` is at `85f69841b13d9ff62604685e158449904f15c3eb` (PR #31). PRs #26–#31 each passed all 18 GitHub Actions jobs on the PR head before squash merge: one Lean build/theorem-test job and 17 static audits. Earlier escrow milestones (PR #23 time locks, PR #24 dispute freeze) are recorded below.
 
 **Status rule:** [x] means the stated scope exists in the Lean model and passed the recorded CI gate. It does not mean a production implementation or external service exists.
 
@@ -54,7 +54,8 @@
 
 ## Phase 3 — deterministic Rust reference implementation
 - [ ] Implement the stabilized state-transition model separately in Rust.
-- [ ] Define canonical transaction and state serialization.
+- [ ] Define canonical transaction and state serialization. Partial: request encoding v0 is a proposal with a Python reference, Lean round-trip/injectivity theorems for a bounded request record, and a Rust codec; adoption, response/receipt encoding, chain id, signatures, expiry and state commitments are open.
+- [x] Rust reference codec for request encoding v0 with conformance tests against the shared Python vectors (`rust/sirm-codec`; proposal level, local `cargo test`, not in CI).
 - [ ] Use checked integer arithmetic and deterministic failure behavior.
 - [ ] Add differential tests against Lean examples, plus property, fuzz, replay and migration tests.
 - [ ] Document Lean-to-Rust refinement/conformance and obtain independent review.
