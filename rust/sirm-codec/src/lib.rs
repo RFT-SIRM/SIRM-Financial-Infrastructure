@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 pub mod envelope;
+pub mod ledger;
 
 use sha2::{Digest, Sha256};
 
