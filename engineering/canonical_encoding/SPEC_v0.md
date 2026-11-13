@@ -28,6 +28,6 @@ Total 85 bytes (transfer, issue) or 81 bytes (burn). Digest: SHA-256 of the full
 ## Not covered (explicit gaps)
 
 - Lean models `Nat` (unbounded). Here nonce and amount are bounded; a Lean-to-Rust refinement must state the bound and prove no in-range request is rejected and every overflow is rejected deterministically.
-- Not proved in Lean. Finite checks do not establish injectivity for all inputs; for this fixed-width layout injectivity follows from the layout, but that argument is not formalized yet.
+- Lean (`SIRM/CanonicalEncoding.lean`, `SIRM/CanonicalRequestEncoding.lean`) proves, for a concrete bounded request record: fixed-width big-endian digit codec (value recovery, length, digit bound, injectivity on [0, 256^n)), `decode_encode` and `encodeRequest_injective` for in-range requests. Not proved: the link to the polymorphic `FinancialTransactionRequest`, the inverse direction on arbitrary digit lists (every digit list of the right length decodes and re-encodes to itself), the constant domain-tag prefix, and the byte-range bound for the whole encoding.
 - Chain id, protocol version negotiation, expiry, signatures/thresholds, response and receipt encoding, and state commitments are not defined.
 - Field widths are proposals; the real account/asset universe size (`accountCount`) may allow narrower or require wider indices.
