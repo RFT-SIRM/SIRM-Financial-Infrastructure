@@ -27,3 +27,4 @@ import SIRM.FinancialTransactionEnvelope
 import SIRM.FinancialTransactionDenials
 import SIRM.CanonicalEncoding
 import SIRM.CanonicalRequestEncoding
+import SIRM.CanonicalRequestLink
