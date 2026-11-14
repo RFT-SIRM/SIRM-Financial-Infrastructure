@@ -53,11 +53,11 @@
 - [ ] Verify that new operations compose without weakening existing invariants.
 
 ## Phase 3 — deterministic Rust reference implementation
-- [ ] Implement the stabilized state-transition model separately in Rust.
+- [ ] Implement the stabilized state-transition model separately in Rust. Partial: holdings-level ports with differential tests exist (`rust/sirm-codec`: envelope policy, ledger core, authorization/account control, integrated processor, fees, escrow, time-locks, dispute freeze, asset migration); registries, typed authorization and the full registry-aware machine are not ported.
 - [ ] Define canonical transaction and state serialization. Partial: request encoding v0 is a proposal with a Python reference, Lean round-trip/injectivity theorems for a bounded request record, and a Rust codec; adoption, response/receipt encoding, chain id, signatures, expiry and state commitments are open.
-- [x] Rust reference codec for request encoding v0 with conformance tests against the shared Python vectors (`rust/sirm-codec`; proposal level, local `cargo test`, not in CI).
-- [ ] Use checked integer arithmetic and deterministic failure behavior.
-- [ ] Add differential tests against Lean examples, plus property, fuzz, replay and migration tests.
+- [x] Rust reference codec for request encoding v0 with conformance tests against the shared Python vectors (`rust/sirm-codec`; proposal level; checked by the `Rust` CI job).
+- [ ] Use checked integer arithmetic and deterministic failure behavior. Partial: the ported modules use checked `u128` and validate before writing; the bounded-width extension of Lean's unbounded `Nat` is documented per module and not proved.
+- [ ] Add differential tests against Lean examples, plus property, fuzz, replay and migration tests. Partial: seeded differential traces against independent Python references run in CI for every ported module; Lean-example extraction, fuzzing and crash/replay campaigns are open.
 - [ ] Document Lean-to-Rust refinement/conformance and obtain independent review.
 
 ## Phase 4 — RFT Network

@@ -57,7 +57,7 @@ This file separates Lean declarations present in source from protocol properties
 - Redemption obligations and their legal/operational preconditions.
 - Reserve evidence and external attestations as explicit assumptions with freshness and provenance.
 - Governance, validator-set changes, upgrades, rollback and recovery transitions.
-- The correspondence between Lean definitions and Rust code.
+- The correspondence between Lean definitions and Rust code. Differential tests of holdings-level Rust ports against independent Python references run in CI, but they are conformance evidence, not a refinement proof.
 - Consensus safety, liveness, data availability and privacy proofs.
 
 ## Test execution
