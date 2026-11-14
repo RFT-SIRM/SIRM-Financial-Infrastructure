@@ -424,6 +424,9 @@ def docs_and_ci_topology():
     need(len(workflows) == 1, f"expected one workflow file, found {len(workflows)}")
     need("build: true" in workflow and "test: true" in workflow and "lint: false" in workflow,
          "Lean workflow must build, test, and explicitly keep lint disabled")
+    need("cargo test --locked" in workflow and "cargo clippy --all-targets --locked -- -D warnings" in workflow
+         and "cargo fmt --check" in workflow,
+         "Lean workflow must run the Rust crate fmt, clippy and tests")
 
     broken = []
     for match in re.finditer(r"!?\[[^\]]*\]\(([^)]+)\)", readme):
