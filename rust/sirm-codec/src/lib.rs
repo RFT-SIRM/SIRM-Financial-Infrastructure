@@ -12,6 +12,7 @@
 pub mod auth;
 pub mod envelope;
 pub mod ledger;
+pub mod machine;
 
 use sha2::{Digest, Sha256};
 
