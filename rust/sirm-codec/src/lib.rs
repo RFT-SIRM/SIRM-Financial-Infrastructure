@@ -16,6 +16,7 @@ pub mod escrow;
 pub mod fees;
 pub mod ledger;
 pub mod machine;
+pub mod migration;
 pub mod timelock;
 
 use sha2::{Digest, Sha256};
