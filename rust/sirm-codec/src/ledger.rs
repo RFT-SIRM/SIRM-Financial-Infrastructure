@@ -32,6 +32,8 @@ pub enum LedgerError {
     UnknownAsset(u32),
     Insufficient,
     Overflow,
+    /// Fee larger than the gross amount (`FeeTransferAllowed` fails; see `fees`).
+    FeeExceedsGross,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
