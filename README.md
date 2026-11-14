@@ -4,7 +4,7 @@
 [![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-4777bd?style=flat-square)](LICENSE)
 [![Lean CI](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml/badge.svg?branch=main&style=flat-square)](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml)
 [![Lean 4 specification](https://img.shields.io/badge/Formal%20specification-Lean%204-168f83?style=flat-square)](docs/FORMALIZATION_STATUS.md)
-[![Rust reference implementation](https://img.shields.io/badge/Rust%20reference-Planned-d97706?style=flat-square)](docs/ARCHITECTURE.md)
+[![Rust reference implementation](https://img.shields.io/badge/Rust%20reference-In%20progress-d97706?style=flat-square)](docs/ARCHITECTURE.md)
 
 **The normative financial-state and accounting specification for SIRM Protocol, formalized in Lean 4.**
 
@@ -187,10 +187,10 @@ Formal proof does not remove the need to review the model. A proof may be correc
 Formal financial-state and transition model, checked through Lean builds and theorem-level regressions.
 </td>
 <td width="50%" valign="top">
-<p align="center"><img src="docs/assets/overview/rust-reference.svg" width="88" height="88" alt="Planned deterministic Rust reference implementation"/></p>
+<p align="center"><img src="docs/assets/overview/rust-reference.svg" width="88" height="88" alt="Deterministic Rust reference implementation, in progress"/></p>
 <strong>2. Rust Reference Implementation</strong><br/>
-<sub><strong>Planned · deterministic execution</strong></sub><br/>
-A separate implementation of the specified transitions, with its own refinement and conformance evidence.
+<sub><strong>In progress · deterministic execution</strong></sub><br/>
+A separate implementation of the specified transitions, with its own refinement and conformance evidence. Holdings-level ports with differential tests exist; refinement to Lean is not established.
 </td>
 </tr>
 <tr>
@@ -215,7 +215,7 @@ The RFT Network is a later, independent stage. No consensus algorithm is selecte
 
 ## 9. Verification and current test scope
 
-The repository's pinned workflow exposes 18 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs. The theorem suite covers single-use and pooled escrow accounting, discrete per-ID expiry guards and timeout refunds, and first-stage per-ID dispute intake/freeze. Wall-clock sources, automatic expiry scheduling, dispute adjudication, evidence validation, appeals, outcome-specific settlement and external settlement finality remain open.
+The repository's pinned workflow exposes 19 independent job checks on each pull request: one Lean job runs the normative build and theorem-level test driver, one Rust job runs the format, lint and differential tests of `rust/sirm-codec`, while 17 lightweight static audits independently check authorization boundaries, account control, integration, toolchain pins, and documentation. The Lean build is not repeated by the static jobs. The theorem suite covers single-use and pooled escrow accounting, discrete per-ID expiry guards and timeout refunds, and first-stage per-ID dispute intake/freeze. Wall-clock sources, automatic expiry scheduling, dispute adjudication, evidence validation, appeals, outcome-specific settlement and external settlement finality remain open.
 
 
 ```bash
@@ -225,7 +225,7 @@ lake test
 
 See [Lean CI](.github/workflows/lean.yml) and [Testing and Verification](docs/TESTING.md). The test driver compiles concrete theorem scenarios in `SIRMTests.lean`; it is not a randomized node test, runtime fuzzing campaign, or network test. Linting remains disabled until a dedicated lint driver is configured.
 
-The Rust reference codec in `rust/sirm-codec` is checked locally with `cargo test` against the shared test vectors in `engineering/canonical_encoding/results/vectors_v0.json`; it is not part of the 18-job CI gate.
+The Rust crate `rust/sirm-codec` is checked by the `Rust` CI job (`cargo fmt --check`, `cargo clippy --all-targets --locked -- -D warnings`, `cargo test --locked`). It contains the request codec (shared vectors in `engineering/canonical_encoding/results/vectors_v0.json`) and holdings-level ports of the envelope idempotency policy, the ledger core, static authorization and account control, the integrated transaction processor, fee accounting, single-use escrow, pooled time-locked escrow, first-stage dispute freeze, and asset migration. Each port is compared against an independent Python reference trace committed under `engineering/`. These are differential tests of a separate implementation, not a refinement proof; Lean `Nat` is unbounded while Rust uses checked `u128` and rejects an overflowing step without writes. Registries, typed authorization and network/consensus layers are not ported.
 
 A passing build is evidence about the exact source revision and pinned toolchain. It is not evidence that the future Rust implementation, consensus protocol, production system, or institutional operations have passed their separate gates.
 
