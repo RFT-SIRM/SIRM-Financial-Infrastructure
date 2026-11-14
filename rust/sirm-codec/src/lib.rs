@@ -17,6 +17,7 @@ pub mod fees;
 pub mod ledger;
 pub mod machine;
 pub mod migration;
+pub mod receipt;
 pub mod registry;
 pub mod timelock;
 
