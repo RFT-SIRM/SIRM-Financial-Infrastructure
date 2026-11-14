@@ -1,0 +1,239 @@
+{
+  "checks": {
+    "encoder_rejections": 7,
+    "injectivity_roundtrip_cases": 4374,
+    "malformed_rejected": 12,
+    "vectors_roundtrip": 11
+  },
+  "format": "SIRM/RCT/v0 (proposal)",
+  "vectors": [
+    {
+      "bytes_hex": "5349524d2f5243542f763000005349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e800000000000000070000000000000008",
+      "length": 114,
+      "name": "accepted_transfer",
+      "nonce": 7,
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "accepted",
+        "7",
+        "8"
+      ],
+      "sha256": "d754c40528ebb06d9f2e8e8075c39e159a02b8108aad93745e877bfdfc5f3a54"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8000000000000000700",
+      "length": 107,
+      "name": "denied_transfer_transferAuthorizationDenied",
+      "nonce": 7,
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "denied",
+        "7",
+        "transferAuthorizationDenied"
+      ],
+      "sha256": "0fe7c0d7bd12b5641e37b628741349b8f4d15c8e161f7979ebaf53499487f67b"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8000000000000000703",
+      "length": 107,
+      "name": "denied_transfer_transferInsufficientFunds",
+      "nonce": 7,
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "denied",
+        "7",
+        "transferInsufficientFunds"
+      ],
+      "sha256": "5768554e1cc3e997402190eb76e662eef19ebcbf3420bf11fdc2803ec7451c07"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000005349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a764000000000000000000000000000000000001",
+      "length": 114,
+      "name": "accepted_issue",
+      "nonce": 0,
+      "op": [
+        "issue",
+        "2",
+        "5",
+        "0",
+        "1000000000000000000"
+      ],
+      "principal": 2,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "accepted",
+        "0",
+        "1"
+      ],
+      "sha256": "000b3c762511ff06ab808ee963ff31e0009fa833b6bb47407aba1ad3cc13f3f9"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000000000000000000001",
+      "length": 107,
+      "name": "denied_issue_issueAuthorizationDenied",
+      "nonce": 0,
+      "op": [
+        "issue",
+        "2",
+        "5",
+        "0",
+        "1000000000000000000"
+      ],
+      "principal": 2,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "denied",
+        "0",
+        "issueAuthorizationDenied"
+      ],
+      "sha256": "f9ac576266ff00dedf5b2fb24611e59217ce8cf2aa391de4ec3d1afaf1890533"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000005349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000030000000000000029020000000300000001000000000000000000000000000000190000000000000029000000000000002a",
+      "length": 110,
+      "name": "accepted_burn",
+      "nonce": 41,
+      "op": [
+        "burn",
+        "3",
+        "1",
+        "25"
+      ],
+      "principal": 3,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "accepted",
+        "41",
+        "42"
+      ],
+      "sha256": "a70d2cd152e913a2b21a81db7ccd4a9688f3a82dd3471a2a5b71396cd9ce2829"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000003000000000000002902000000030000000100000000000000000000000000000019000000000000002902",
+      "length": 103,
+      "name": "denied_burn_burnAuthorizationDenied",
+      "nonce": 41,
+      "op": [
+        "burn",
+        "3",
+        "1",
+        "25"
+      ],
+      "principal": 3,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "denied",
+        "41",
+        "burnAuthorizationDenied"
+      ],
+      "sha256": "949c1a7c0416d5feff4721712effcc234c4ff194b3331e16e75152ea0180fc73"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000003000000000000002902000000030000000100000000000000000000000000000019000000000000002904",
+      "length": 103,
+      "name": "denied_burn_burnInsufficientFunds",
+      "nonce": 41,
+      "op": [
+        "burn",
+        "3",
+        "1",
+        "25"
+      ],
+      "principal": 3,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "response": [
+        "denied",
+        "41",
+        "burnInsufficientFunds"
+      ],
+      "sha256": "23dc6b89cecc47e02a78dc4f51d5d2b7adc5b280fa0a5760f35eb05aedb4993a"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000005349524d2f4654582f763000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffff",
+      "length": 114,
+      "name": "accepted_max",
+      "nonce": 18446744073709551614,
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 4294967295,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "response": [
+        "accepted",
+        "18446744073709551614",
+        "18446744073709551615"
+      ],
+      "sha256": "dcc1c41cd358abe7ebbe5dfc71fe284c37cb93789d1c7138573f2fcefdb62e53"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe00",
+      "length": 107,
+      "name": "denied_max_transferAuthorizationDenied",
+      "nonce": 18446744073709551614,
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 4294967295,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "response": [
+        "denied",
+        "18446744073709551614",
+        "transferAuthorizationDenied"
+      ],
+      "sha256": "9df290686907d0de40a377be2f76107f55fbf8f6bf5e077dfa620d4e3973e7b5"
+    },
+    {
+      "bytes_hex": "5349524d2f5243542f763000015349524d2f4654582f763000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe00fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03",
+      "length": 107,
+      "name": "denied_max_transferInsufficientFunds",
+      "nonce": 18446744073709551614,
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 4294967295,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "response": [
+        "denied",
+        "18446744073709551614",
+        "transferInsufficientFunds"
+      ],
+      "sha256": "a2fbd7f75a5165068990bf83c2adfd013adf681b12d000f71b296ce40cdb0427"
+    }
+  ]
+}
