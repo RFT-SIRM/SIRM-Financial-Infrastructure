@@ -11,6 +11,7 @@
 
 pub mod auth;
 pub mod envelope;
+pub mod escrow;
 pub mod fees;
 pub mod ledger;
 pub mod machine;
