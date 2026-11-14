@@ -10,6 +10,7 @@
 #![forbid(unsafe_code)]
 
 pub mod auth;
+pub mod dispute;
 pub mod envelope;
 pub mod escrow;
 pub mod fees;

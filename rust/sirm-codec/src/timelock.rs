@@ -57,6 +57,10 @@ impl TimeLockedEscrow {
         self.now
     }
 
+    pub fn deadline(&self, id: usize) -> Option<u64> {
+        self.expires_at.get(id).copied()
+    }
+
     pub fn record(&self, id: usize) -> Option<Record> {
         self.records.get(&id).copied()
     }
