@@ -27,6 +27,25 @@ jobs:
           test: true
           lint: false
 
+  rust:
+    name: Rust / codec, ledger, auth and machine conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: rust/sirm-codec
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Tests (differential traces against committed Python references)
+        run: cargo test --locked
+
   static-audit:
     name: Static / ${{ matrix.check.label }}
     runs-on: ubuntu-latest

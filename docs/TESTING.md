@@ -223,6 +223,6 @@ Three independent checks use the same byte layout (`engineering/canonical_encodi
 
 - Python reference: `python3 -I scripts/canonical_encoding_reference.py` regenerates `engineering/canonical_encoding/results/vectors_v0.json` and checks round trip, exhaustive small-domain injectivity (2268 requests), malformed-input rejection and byte-identical output.
 - Lean: `SIRM.CanonicalEncoding` and `SIRM.CanonicalRequestEncoding` prove round trip and injectivity for in-range requests of a concrete bounded record; they are compiled by `lake build` in the Lean job.
-- Rust: `cd rust/sirm-codec && cargo test` compares bytes and SHA-256 with the Python vectors and repeats the round-trip and rejection checks. This step is run locally and is not in the CI gate.
+- Rust: `cd rust/sirm-codec && cargo test` compares bytes and SHA-256 with the Python vectors and repeats the round-trip and rejection checks. The `Rust` job in the CI workflow also runs `cargo fmt --check`, `cargo clippy --all-targets --locked -- -D warnings` and `cargo test --locked` (codec, envelope, ledger, auth and machine differential traces against committed Python references); the 17 static audit jobs are unchanged.
 
 These checks show agreement of three descriptions of one proposed layout. They do not adopt it as the protocol format, and the Lean statements are not linked to the polymorphic `FinancialTransactionRequest`.
