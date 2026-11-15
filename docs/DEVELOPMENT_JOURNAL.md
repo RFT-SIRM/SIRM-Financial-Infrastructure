@@ -351,6 +351,12 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
 - Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
 
+## Work block: Lean authenticated step (phase P3 groundwork)
+
+- Added `SIRM/AuthenticatedStep.lean`: a generic wrapper `authStep` that authenticates a request with `SIRM.SignatureSuite` and only then runs an arbitrary state machine. Proved: a request whose authorization is not accepted leaves the state unchanged (no nonce, no cache entry); a processed request was accepted under its principal's registered suite; frozen or revoked accounts never reach the machine; any invariant the machine preserves is preserved by the wrapper. Three concrete examples with a toy counter.
+- The wrapper is deliberately generic, so it has not yet been instantiated with the real integrated processor (`SIRM.ReplayProtectedFinancialMachine`), which needs Mathlib and is built only in CI. Assumed, not proved: the signed message determines the request, and signature unforgeability.
+- Checked with Lean 4.33.1 in the sandbox (core Lean); standard axioms only.
+
 ## Work block: Lean threshold authorization and delayed recovery (phase P2)
 
 - Added `SIRM/ThresholdAuth.lean` and `SIRM/RecoveryDelay.lean`. Threshold: a plain list of `(index, signature)` pairs, no aggregation assumed; accepted only when at least `k` distinct registered indices have a verified signature of a permitted suite; `k = 0` never accepts; duplicates never count twice; a lower threshold is easier. Delayed recovery: a recovery is announced by the recovery actor, can be cancelled only by the current key, finalizes only after the delay, and the key change is exactly the `recover` transition of `SIRM.KeyRegistry`, so the legacy-key rule (`finalize_preserves_pqSound`) carries over.
