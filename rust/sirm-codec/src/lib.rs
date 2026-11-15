@@ -19,6 +19,7 @@ pub mod machine;
 pub mod migration;
 pub mod receipt;
 pub mod registry;
+pub mod signed;
 pub mod timelock;
 
 use sha2::{Digest, Sha256};

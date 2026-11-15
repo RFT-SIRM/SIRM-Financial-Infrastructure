@@ -1,0 +1,178 @@
+{
+  "checks": {
+    "rfc8032_vector": 1,
+    "single_byte_mutations_rejected": "all",
+    "structured_negatives": 9,
+    "valid_roundtrip": 8
+  },
+  "format": "SIRM/SRQ/v0 (proposal)",
+  "test_keys": [
+    {
+      "principal": 0,
+      "public_hex": "0dc0ff7160d924705f3edd60d770393979d920ab4c73f556e3d71bf60924b3e9",
+      "seed_hex": "3d37b753e9f849f35152c6be330ac004c5d658efef9e21c8d37ad37637278a0f"
+    },
+    {
+      "principal": 1,
+      "public_hex": "037e38acdaa310c20968f900850944381a52e3a8d946229dd29547253a00d9d3",
+      "seed_hex": "ffd36b9571e3172f106c955fc2de0eb0e68a5d441758584ff7453b9d31d2cb34"
+    },
+    {
+      "principal": 2,
+      "public_hex": "d4a1436dd1edd2d7e0a6d6c71a399ab0f987a7cd046b58871b84ead490dc03cd",
+      "seed_hex": "52f7fcedc4dff424ca365bd4c3030b60e49cb24f105abb21aa71a1ca75c09882"
+    }
+  ],
+  "vectors": [
+    {
+      "chain_id": "1",
+      "length": 169,
+      "name": "transfer_chain_1",
+      "nonce": "7",
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "63023571aac9f380c5ef9b5e0405101f20dfdc1ef0b1a4619e6813cd76600fe0",
+      "signature_hex": "adc0b12a47dd3c8f42dbcc5f53a693ecb75096018241d583d8dc567fa134b584d0fc4f228359fbe59e00be5724528e4d61c74ea3b72004e682500ec1b1a36308",
+      "signing_message_hex": "5349524d2f5349472f76300000000000000000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8",
+      "wire_hex": "5349524d2f5352512f76300000000000000000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8adc0b12a47dd3c8f42dbcc5f53a693ecb75096018241d583d8dc567fa134b584d0fc4f228359fbe59e00be5724528e4d61c74ea3b72004e682500ec1b1a36308"
+    },
+    {
+      "chain_id": "18446744073709551615",
+      "length": 169,
+      "name": "transfer_chain_18446744073709551615",
+      "nonce": "7",
+      "op": [
+        "transfer",
+        "1",
+        "2",
+        "3",
+        "1000"
+      ],
+      "principal": 1,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "7a8f9af8f107c214a2e7915201c649d77259e46bb305c52d8cbb54afd9471ca9",
+      "signature_hex": "84476d2185b5ba70c89bd468b5d771f966c55d3b85af63aba22ff4f531dc442682a548dbca9a37f09b5cac8f5b5a022c3a711717467539d492fa20c6dc55b708",
+      "signing_message_hex": "5349524d2f5349472f763000ffffffffffffffff5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e8",
+      "wire_hex": "5349524d2f5352512f763000ffffffffffffffff5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f00000001000000000000000700000000010000000200000003000000000000000000000000000003e884476d2185b5ba70c89bd468b5d771f966c55d3b85af63aba22ff4f531dc442682a548dbca9a37f09b5cac8f5b5a022c3a711717467539d492fa20c6dc55b708"
+    },
+    {
+      "chain_id": "1",
+      "length": 169,
+      "name": "issue_chain_1",
+      "nonce": "0",
+      "op": [
+        "issue",
+        "2",
+        "5",
+        "0",
+        "1000000000000000000"
+      ],
+      "principal": 2,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "a771a64f9c4383af01ece9b7eeaab6b74ba814b23f868d47e56d1636186c05b2",
+      "signature_hex": "032e005a68c12ae4a236d895bf924a8eafdd3c8eb956b830f77e32972049c08a7206ce99f9c060323e1a19941fff3a029794c41c8bea445a7a0ed68dd5a42e0c",
+      "signing_message_hex": "5349524d2f5349472f76300000000000000000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000",
+      "wire_hex": "5349524d2f5352512f76300000000000000000015349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000032e005a68c12ae4a236d895bf924a8eafdd3c8eb956b830f77e32972049c08a7206ce99f9c060323e1a19941fff3a029794c41c8bea445a7a0ed68dd5a42e0c"
+    },
+    {
+      "chain_id": "18446744073709551615",
+      "length": 169,
+      "name": "issue_chain_18446744073709551615",
+      "nonce": "0",
+      "op": [
+        "issue",
+        "2",
+        "5",
+        "0",
+        "1000000000000000000"
+      ],
+      "principal": 2,
+      "request_id": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sha256": "e85ef956d73a83efa49900111d5f41eac40872d014556fe157c0e3549a57010a",
+      "signature_hex": "e324a415b91c7e1a98f22a95f098d669b04b95e6b8ef6433d4034e6de131f6ae48d7806457d0992f0208ffe81df202f623462cf8bea03feab4f5f14edc09ca06",
+      "signing_message_hex": "5349524d2f5349472f763000ffffffffffffffff5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000",
+      "wire_hex": "5349524d2f5352512f763000ffffffffffffffff5349524d2f4654582f763000000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0000000200000000000000000100000002000000050000000000000000000000000de0b6b3a7640000e324a415b91c7e1a98f22a95f098d669b04b95e6b8ef6433d4034e6de131f6ae48d7806457d0992f0208ffe81df202f623462cf8bea03feab4f5f14edc09ca06"
+    },
+    {
+      "chain_id": "1",
+      "length": 165,
+      "name": "burn_chain_1",
+      "nonce": "41",
+      "op": [
+        "burn",
+        "0",
+        "1",
+        "25"
+      ],
+      "principal": 0,
+      "request_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sha256": "50426b9b9be22c932382f14652f136d7335e6589520c9296d3feaacd706e4a40",
+      "signature_hex": "c1b3064f4f6b6dd6136650445346fd3965cb33abb88efa520de799b847df2574f4c09d5e4112d20fedfabbceac74e32482c9acd353e80614835eb2f9fe3b5d0d",
+      "signing_message_hex": "5349524d2f5349472f76300000000000000000015349524d2f4654582f763000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00000000000000000000002902000000000000000100000000000000000000000000000019",
+      "wire_hex": "5349524d2f5352512f76300000000000000000015349524d2f4654582f763000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00000000000000000000002902000000000000000100000000000000000000000000000019c1b3064f4f6b6dd6136650445346fd3965cb33abb88efa520de799b847df2574f4c09d5e4112d20fedfabbceac74e32482c9acd353e80614835eb2f9fe3b5d0d"
+    },
+    {
+      "chain_id": "18446744073709551615",
+      "length": 165,
+      "name": "burn_chain_18446744073709551615",
+      "nonce": "41",
+      "op": [
+        "burn",
+        "0",
+        "1",
+        "25"
+      ],
+      "principal": 0,
+      "request_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sha256": "e85d85676757710fd64edbdfbdb0be943dbcf6f0408021b83aea7d68e0c6f4b4",
+      "signature_hex": "f6ef830050f4a896ca4ee1b69850b3c32b3aebad013c2d3579adb0eabefeee6e4ec09c1ed961f64706b8d42d1363572bd6038fb8f310ae18992f8f366152a60e",
+      "signing_message_hex": "5349524d2f5349472f763000ffffffffffffffff5349524d2f4654582f763000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00000000000000000000002902000000000000000100000000000000000000000000000019",
+      "wire_hex": "5349524d2f5352512f763000ffffffffffffffff5349524d2f4654582f763000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00000000000000000000002902000000000000000100000000000000000000000000000019f6ef830050f4a896ca4ee1b69850b3c32b3aebad013c2d3579adb0eabefeee6e4ec09c1ed961f64706b8d42d1363572bd6038fb8f310ae18992f8f366152a60e"
+    },
+    {
+      "chain_id": "1",
+      "length": 169,
+      "name": "max_chain_1",
+      "nonce": "18446744073709551615",
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 2,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sha256": "a78a1797adbbbdfa6b961354c7ce838a05183e26e7ac43b6f1ebffd9aba9a9b7",
+      "signature_hex": "72ccfdd61ee8dff89d13948d49868be4e948e547510122140bda78b9d2b4cb95dae491b56d69dc7eef1dd092b627eee69d63c0713c7c3e449f36925667e74d09",
+      "signing_message_hex": "5349524d2f5349472f76300000000000000000015349524d2f4654582f763000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000002ffffffffffffffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "wire_hex": "5349524d2f5352512f76300000000000000000015349524d2f4654582f763000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000002ffffffffffffffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff72ccfdd61ee8dff89d13948d49868be4e948e547510122140bda78b9d2b4cb95dae491b56d69dc7eef1dd092b627eee69d63c0713c7c3e449f36925667e74d09"
+    },
+    {
+      "chain_id": "18446744073709551615",
+      "length": 169,
+      "name": "max_chain_18446744073709551615",
+      "nonce": "18446744073709551615",
+      "op": [
+        "transfer",
+        "4294967295",
+        "4294967295",
+        "4294967295",
+        "340282366920938463463374607431768211455"
+      ],
+      "principal": 2,
+      "request_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sha256": "ea8a8a3b327fcd5e2bb0a8b804a21583ac4f992bd9e3699730b844d0daa1fb1c",
+      "signature_hex": "994fbf3e6d431414d1e6ab8545a9f005dbcda2f73f0f44f9f689cb7444e49a90b78f43ff4555e720fcc96ef86ea9f257053bcefd2dcfc0a62640cd4c0f8a8f04",
+      "signing_message_hex": "5349524d2f5349472f763000ffffffffffffffff5349524d2f4654582f763000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000002ffffffffffffffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "wire_hex": "5349524d2f5352512f763000ffffffffffffffff5349524d2f4654582f763000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000002ffffffffffffffff00ffffffffffffffffffffffffffffffffffffffffffffffffffffffff994fbf3e6d431414d1e6ab8545a9f005dbcda2f73f0f44f9f689cb7444e49a90b78f43ff4555e720fcc96ef86ea9f257053bcefd2dcfc0a62640cd4c0f8a8f04"
+    }
+  ]
+}
