@@ -66,6 +66,16 @@ impl Policy {
         })
     }
 
+    /// Grants as (principal, scope, asset, limit), ascending by key.
+    pub fn grants(&self) -> impl Iterator<Item = (u32, Scope, u32, u128)> + '_ {
+        self.grants.iter().map(|((p, s, a), m)| (*p, *s, *a, *m))
+    }
+
+    /// Account control pairs (principal, account), ascending.
+    pub fn control_pairs(&self) -> impl Iterator<Item = (u32, u32)> + '_ {
+        self.control.iter().copied()
+    }
+
     pub fn controls(&self, principal: u32, account: u32) -> bool {
         self.control.contains(&(principal, account))
     }

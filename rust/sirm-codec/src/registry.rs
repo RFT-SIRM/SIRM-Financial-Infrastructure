@@ -109,6 +109,14 @@ impl Registry {
         Ok(Registry { accounts, assets })
     }
 
+    pub fn accounts(&self) -> &[AccountMeta] {
+        &self.accounts
+    }
+
+    pub fn assets(&self) -> &[AssetMeta] {
+        &self.assets
+    }
+
     pub fn account(&self, id: u32) -> Option<&AccountMeta> {
         self.accounts.get(id as usize)
     }
