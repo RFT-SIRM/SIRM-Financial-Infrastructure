@@ -137,6 +137,9 @@ Ownership, registration, permissible use, and enforcement of project
 marks require a separate review of the relevant names, logos, jurisdictions,
 and rights holders.
 
+Proposed naming and conformance-claim rules are in
+[`TRADEMARK_AND_NAMING_POLICY.md`](TRADEMARK_AND_NAMING_POLICY.md) (proposal, not in force).
+
 ## 6. Formal specification and future commercial products
 
 This repository publishes the formal financial specification and its
@@ -194,6 +197,10 @@ component's published grant, but the commercial terms must be explicit.
 
 The standard BUSL-1.1 text must not be casually rewritten. Any adoption
 must be checked against the license's own terms and covenants.
+
+A concrete proposal for splitting the licensing of the specification and a future
+production implementation, with draft BUSL-1.1 parameters and adoption gates, is in
+[`LICENSE_SPLIT_PROPOSAL.md`](LICENSE_SPLIT_PROPOSAL.md). It is a proposal and not in force.
 
 ## 8. Copyright, patents, and technical disclosures
 
