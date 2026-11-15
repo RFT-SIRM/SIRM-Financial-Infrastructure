@@ -114,6 +114,16 @@ impl Processor {
         self.next_nonce.iter().map(|(p, n)| (*p, *n))
     }
 
+    /// The static authorization policy this processor enforces.
+    pub fn policy(&self) -> &Policy {
+        &self.policy
+    }
+
+    /// Cache entries (request id, exact request, stored response), ascending by id.
+    pub fn cache_entries(&self) -> impl Iterator<Item = (&RequestId, &Request, &Stored)> + '_ {
+        self.cache.iter().map(|(id, (r, s))| (id, r, s))
+    }
+
     pub fn cached(&self) -> usize {
         self.cache.len()
     }
