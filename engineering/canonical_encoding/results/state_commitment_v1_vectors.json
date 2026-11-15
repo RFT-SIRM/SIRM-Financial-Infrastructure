@@ -1,0 +1,118 @@
+{
+ "args": {
+  "chain_id": 7,
+  "hash_suite": 1,
+  "version": 1
+ },
+ "empty_registries": {
+  "chain1": "f39373c4a23b29a817e961751308bbbd50b3099d72e1c5f636918452f76670e7",
+  "chain2": "b4314304e1fecae94c70ce6e9f2420f52455e0a2a612a941b70ead4fe9b660ec"
+ },
+ "format": "SIRM state commitment reference vectors v1",
+ "key_root": "b5bf8514f13c6571bea61b4edd6b7c0e59e287fac1241f4a144deefa7daa56f8",
+ "key_value_hex": {
+  "0": "0002dc1f67f2bd8392ce9b65634c8c2011a492b4930d160e88d53da75d420f1af9440401a7998f247bd965694ff227fa325c81169a07471a8b6808d3e002a486c4e659750000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "1": "010101761604fffb30922a09937779621b9e734d3c34025afa66d4f8616ee379c2e404019fd6552a9d81aaa4708f976a5db980f5082607d76c86e8267ec56a920398aef80187b123fa49c2bd0ea014d4bd096377cb0f40c7337dcd02075261d8f7a320d61d00000000000001f4",
+  "2": "00015d6319a2d1c7bf35a804fa4edd0ac5861522401ce32d369ae2280f8fa31620b7010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+ },
+ "keys": {
+  "0": {
+   "frozen": false,
+   "key_id": "dc1f67f2bd8392ce9b65634c8c2011a492b4930d160e88d53da75d420f1af944",
+   "pending": null,
+   "pq_bound": true,
+   "recovery": "a7998f247bd965694ff227fa325c81169a07471a8b6808d3e002a486c4e65975",
+   "revoked": false,
+   "suite": 2
+  },
+  "1": {
+   "frozen": false,
+   "key_id": "01761604fffb30922a09937779621b9e734d3c34025afa66d4f8616ee379c2e4",
+   "pending": [
+    "87b123fa49c2bd0ea014d4bd096377cb0f40c7337dcd02075261d8f7a320d61d",
+    500
+   ],
+   "pq_bound": true,
+   "recovery": "9fd6552a9d81aaa4708f976a5db980f5082607d76c86e8267ec56a920398aef8",
+   "revoked": false,
+   "suite": 257
+  },
+  "2": {
+   "frozen": true,
+   "key_id": "5d6319a2d1c7bf35a804fa4edd0ac5861522401ce32d369ae2280f8fa31620b7",
+   "pending": null,
+   "pq_bound": false,
+   "recovery": null,
+   "revoked": false,
+   "suite": 1
+  }
+ },
+ "machine_accounts": 4,
+ "machine_assets": 2,
+ "state_root": "142294295f4d866ae87142f85361e9ff91911f4779a91bd176bebb7276885174",
+ "suite_root": "f305f4a0c0afd5561c5f85b5f02606fd2aee155cd42f71f57a8d73b4e6cd65b0",
+ "suite_value_hex": {
+  "1": "0002000000200000004000000000000000000000000000000064ffffffffffffffff",
+  "2": "0001000007a000000ced0000000000000000ffffffffffffffffffffffffffffffff",
+  "257": "0001000007c000000d2d0000000000000000ffffffffffffffffffffffffffffffff",
+  "3": "00000000002000001eb0ffffffffffffffffffffffffffffffffffffffffffffffff"
+ },
+ "suites": {
+  "1": {
+   "activation": 0,
+   "deprecation": 100,
+   "disable": "18446744073709551615",
+   "kind": "sign",
+   "pk_len": 32,
+   "sig_len": 64,
+   "status": "deprecated"
+  },
+  "2": {
+   "activation": 0,
+   "deprecation": "18446744073709551615",
+   "disable": "18446744073709551615",
+   "kind": "sign",
+   "pk_len": 1952,
+   "sig_len": 3309,
+   "status": "active"
+  },
+  "257": {
+   "activation": 0,
+   "deprecation": "18446744073709551615",
+   "disable": "18446744073709551615",
+   "kind": "sign",
+   "pk_len": 1984,
+   "sig_len": 3373,
+   "status": "active"
+  },
+  "3": {
+   "activation": "18446744073709551615",
+   "deprecation": "18446744073709551615",
+   "disable": "18446744073709551615",
+   "kind": "sign",
+   "pk_len": 32,
+   "sig_len": 7856,
+   "status": "proposed"
+  }
+ },
+ "variants": {
+  "chain_id": "45ecd38242412a76f9aaa1c2c28a3642592e466c504fd9056932f5e4695d8648",
+  "hash_suite": "a82c6bf50b43941c92d3860b22ab11ff1ae24e645218e99cf290f788fb3e65ac",
+  "key_account_removed": "9da7f3c9aa4b8c05fbf5778b5be69e59d44ceaf8add739ad474b86c928e0dbdd",
+  "key_frozen": "3fbcd58af1627b9ffc8fbd9b9a7d5f366b1ef4bf4d9a7125d8026ea542534fe1",
+  "key_id": "30ab12cdd4d17d3cd307dc2d1f1f8cd878809de170d47ee7043a38c118a4cf39",
+  "key_pending_added": "db3718c4572cba4521acba5d41b241f58cc52c899808d60490c23c622d61c964",
+  "key_pending_removed": "bae845b86e5aa8e302cbdad1552a3f137453e08a938ae5a1e0e4d3dafb4f5159",
+  "key_pending_start": "b83592f9ac7a2c2183cbc6044b02c7cea20de8f7ebf33595ef6cf31c9d3bced4",
+  "key_pq_bound": "3f8930cfbfa3b99c453005a4d432d9bb1222497d0be2cc37da730e2ef4e1a5a0",
+  "key_recovery_changed": "bcbddab00cca388fa8f187dd7eb1a4eda8a5eac9d7195d727f6bb7e252fcb727",
+  "key_recovery_removed": "7719b5f91815bd069e3275523edde69f5afef8c160d074eb542a631643a58b22",
+  "key_revoked": "012df43a5ba7a412c85377878ab6ee59b67fb616c77f6525dc5cc1d471a3154c",
+  "key_suite": "47d9c7e3b728541f20c33ab6c99bda0a3602bc2b66ee7816e6fad51ccb67451b",
+  "suite_added": "0992907ca8925a8aae4d6e9651535fca7b86e81b9e664acf5a456db61647e75f",
+  "suite_deprecation": "9f7db1349b1ee492bb531142ac70d2789a0bf8a8121173c603d4b7c5d122a3b3",
+  "suite_pk_len": "d59c5f08802d54014b6613f7615d26fedd146424ab5f15b672abdbb5a11ae94e",
+  "suite_status": "1bf42783bc8ff636141be966daa14135ea80d3b9a6d492b42d92ba92bfa72c6d",
+  "version": "f55326739d3c411a6a96759ea098f0ba2a8ef01de5319883c73254fc218e5a19"
+ }
+}
