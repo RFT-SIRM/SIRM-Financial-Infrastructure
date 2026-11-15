@@ -109,6 +109,11 @@ impl Processor {
         self.next_nonce.get(&principal).copied().unwrap_or(0)
     }
 
+    /// Principals with a stored nonce, ascending, with that nonce.
+    pub fn nonces(&self) -> impl Iterator<Item = (u32, u64)> + '_ {
+        self.next_nonce.iter().map(|(p, n)| (*p, *n))
+    }
+
     pub fn cached(&self) -> usize {
         self.cache.len()
     }

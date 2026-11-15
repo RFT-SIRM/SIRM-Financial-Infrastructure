@@ -58,6 +58,14 @@ impl Holdings {
         self.balance.get(&(account, asset)).copied().unwrap_or(0)
     }
 
+    pub fn accounts(&self) -> u32 {
+        self.accounts
+    }
+
+    pub fn assets(&self) -> u32 {
+        self.assets
+    }
+
     pub fn supply(&self, asset: u32) -> SupplyState {
         self.supply.get(&asset).copied().unwrap_or_default()
     }
