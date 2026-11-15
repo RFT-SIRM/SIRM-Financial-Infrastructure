@@ -350,3 +350,9 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Added `engineering/canonical_encoding/SPEC_state_commitment_v0.md`, `scripts/state_commitment_reference.py`, `results/state_commitment_vectors_v0.json`, `rust/sirm-codec/src/commit.rs` and `tests/commit_conformance.rs`. Decision: depth-64 sparse Merkle tree (SHA-256) over balances, supply and nonces, combined with the dimensions into a state root; inclusion and absence proofs. The response cache and the policy, fee, escrow, dispute, migration and registry state are not committed.
 - Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
 - Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
+
+## Work block: post-quantum security architecture (proposal)
+
+- Added `docs/POST_QUANTUM_SECURITY_ARCHITECTURE.md` and `docs/PQ_DECISIONS_PROPOSED.md`. Documents only: no Lean or Rust change, nothing adopted. Standards were checked against csrc.nist.gov on 2026-11-15 (FIPS 203/204/205 final, SP 800-227 final, IR 8547 final in October 2026, CSWP 39 final; FIPS 206 status not verified).
+- Findings recorded: the v0 signed request and state commitment are proposals, Ed25519 is quantum-vulnerable, the v0 state root is partial, and no audited Rust post-quantum implementation was known in a 2025 survey (to re-verify).
+- Open: independent review of the proposal, then the phased plan P1 to P5 in the architecture document.
