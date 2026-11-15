@@ -351,6 +351,12 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
 - Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
 
+## Work block: Rust port of the key lifecycle models (phase P2/P3)
+
+- Added `rust/sirm-codec/src/keys.rs`, `tests/keys_trace.rs`, `scripts/key_registry_reference.py` and `engineering/ledger_core/results/key_registry_trace_v0.json`. The Rust registry ports `SIRM/KeyRegistry.lean`, `SIRM/RecoveryDelay.lean` and `SIRM/ThresholdAuth.lean` (register, rotate, freeze, revoke, recover, initiate, cancel, finalize, k-of-n acceptance over a plain signature list). One explicit difference from the Lean per-account `DelayState`: the registry holds all accounts, so initiate, cancel and finalize on a missing account fail with `unknownAccount` first.
+- Evidence: an independent Python reference with three seeded traces (3,600 operations) and 1,500 threshold cases; Rust matches every per-operation outcome and the final state, rejected operations leave state unchanged, and the legacy-key invariant holds after every step. A deliberate mutation (removing the downgrade check) is caught by the test. All 12 outcome classes occur.
+- This is differential evidence, not a refinement proof. The actor is the outcome of an earlier signature check, the clock is a caller-supplied value, and no signature scheme is involved.
+
 ## Work block: state commitment v1 (phase P4 start, proposal)
 
 - Added `engineering/canonical_encoding/SPEC_state_commitment_v1.md`, `scripts/state_commitment_v1_reference.py`, `results/state_commitment_v1_vectors.json`, `rust/sirm-codec/src/commit_v1.rs`, `tests/commit_v1_conformance.rs` and a shared replay helper `tests/support/machine_replay.rs`. v1 keeps the three v0 roots and adds a key registry tree, a suite registry tree and a protocol header (chain id, version, hash suite). v0 is untouched.

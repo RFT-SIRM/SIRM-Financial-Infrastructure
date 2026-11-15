@@ -16,6 +16,7 @@ pub mod dispute;
 pub mod envelope;
 pub mod escrow;
 pub mod fees;
+pub mod keys;
 pub mod ledger;
 pub mod machine;
 pub mod migration;
