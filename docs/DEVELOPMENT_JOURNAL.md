@@ -351,6 +351,12 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
 - Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
 
+## Work block: Lean key registry transitions (phase P2)
+
+- Added `SIRM/KeyRegistry.lean` (imports `SIRM.SignatureSuite` only). A state machine for register, rotate, freeze, revoke and recover with an `Actor` (current key or recovery key) that is the outcome of an earlier signature check. Proved: only the target principal's entry changes; the legacy-key rule (no successful transition replaces the post-quantum key of a bound account by a non-post-quantum key, as the invariant `PqSound`); a frozen account cannot rotate; recovery and revocation need the recovery actor and a registered recovery credential; frozen or revoked accounts are not authorized by the signature check of `SIRM.SignatureSuite`; key transitions never change the financial state (frame property for any invariant) and a rejected command changes nothing. Four concrete examples.
+- Checked with Lean 4.33.1 in the sandbox (core Lean, no Mathlib); theorems depend only on `propext` and `Quot.sound`. The full `lake build` runs in CI.
+- Not modelled: who may register, expiry, thresholds, challenge delays, hash commitment to a successor key, linking to the processor and to the committed state.
+
 ## Work block: Lean signature-suite model (phase P1)
 
 - Added `SIRM/SignatureSuite.lean` (imports nothing but core Lean). An abstract model of the v1 authorization step: suite identifiers, key records that carry the suite, a node policy, a total `authorize` function with explicit rejection reasons, and a hybrid verifier as a conjunction. Proved: acceptance characterization, an accepted authorization uses the registered suite (no downgrade or substitution), only policy-permitted suites authorize, proposed and disabled suites never authorize, deprecated suites need an opt-in, acceptance implies the abstract verifier accepted, unregistered principals are rejected, a hybrid needs both components. Four concrete regression examples.

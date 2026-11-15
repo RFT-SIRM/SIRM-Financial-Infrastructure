@@ -29,3 +29,4 @@ import SIRM.CanonicalEncoding
 import SIRM.CanonicalRequestEncoding
 import SIRM.CanonicalRequestLink
 import SIRM.SignatureSuite
+import SIRM.KeyRegistry
