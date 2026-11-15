@@ -283,6 +283,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 - [Migration from Rift](docs/MIGRATION_FROM_RIFT.md) — treatment of legacy prototype material.
 - [Open Source and Transparency](docs/OPEN_SOURCE_AND_TRANSPARENCY.md) — public development and evidence practices.
 - [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) — repository license and intellectual-property boundaries.
+- [License split proposal](docs/LICENSE_SPLIT_PROPOSAL.md) and [naming policy](docs/TRADEMARK_AND_NAMING_POLICY.md) — proposals, not in force; this repository stays Apache-2.0.
 - [Contributing](CONTRIBUTING.md) — contribution and review requirements.
 - [Security Policy](SECURITY.md) — responsible vulnerability reporting.
 
