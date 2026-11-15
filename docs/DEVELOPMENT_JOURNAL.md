@@ -351,6 +351,12 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
 - Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
 
+## Work block: signed request layer v1 (phase P1, proposal)
+
+- Added `engineering/canonical_encoding/SPEC_signed_request_v1.md`, `scripts/signed_request_v1_reference.py` and `results/signed_request_v1_vectors.json`. Suite registry, suite id and key id inside the signed bytes, ML-DSA-65 and a hybrid Ed25519+ML-DSA-65 suite, downgrade and substitution rejected because the suite comes from the registered key. v0 is untouched.
+- Evidence: 10 valid and 18 negative vectors, 13,792 single-byte mutations rejected. ML-DSA signatures from OpenSSL are randomized, so the vector file is frozen and checked rather than regenerated. Not claimed: Rust or Lean agreement, second ML-DSA implementation, adoption.
+- Open: Lean abstract verification model, Rust port after the library choice, key registry transitions.
+
 ## Work block: post-quantum security architecture (proposal)
 
 - Added `docs/POST_QUANTUM_SECURITY_ARCHITECTURE.md` and `docs/PQ_DECISIONS_PROPOSED.md`. Documents only: no Lean or Rust change, nothing adopted. Standards were checked against csrc.nist.gov on 2026-11-15 (FIPS 203/204/205 final, SP 800-227 final, IR 8547 final in October 2026, CSWP 39 final; FIPS 206 status not verified).
