@@ -237,7 +237,7 @@ The current declarations do **not** yet establish:
 - legal ownership of accounts or a concrete principal-to-account mapping;
 - cryptographic signatures, key custody, signer thresholds, or production permission administration;
 - a complete genesis assignment to founder, treasury, validators, ecosystem, community, and other real accounts;
-- the production execution envelope: canonical bytes and hashing (a v0 request-encoding proposal with a Python reference, Lean round-trip proofs and a Rust codec exists but is not adopted), signer/threshold rules, expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model has an abstract global financial nonce, typed request-ID success receipts, and cached authorization/insufficient-funds denials, but does not prove a database/runtime implementation;
+- the production execution envelope: canonical bytes and hashing (a v0 request-encoding proposal with a Python reference, Lean round-trip proofs and a Rust codec exists but is not adopted), signer/threshold rules (a v0 chain-id and Ed25519 signed-request proposal exists in Python and Rust only), expiry, fees, events, deterministic error schemas, persisted idempotent responses, rollback/recovery, and a concrete runtime refinement. The Lean model has an abstract global financial nonce, typed request-ID success receipts, and cached authorization/insufficient-funds denials, but does not prove a database/runtime implementation;
 - production runtime atomicity or Rust/Lean refinement;
 - reserve backing, solvency, redemption, or external asset existence;
 - governance, validator-set changes, consensus safety/finality, censorship resistance, or data availability;

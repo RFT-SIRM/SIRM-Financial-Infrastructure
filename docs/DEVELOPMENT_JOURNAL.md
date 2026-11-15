@@ -337,3 +337,10 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Added `engineering/canonical_encoding/SPEC_receipt_v0.md`, `scripts/canonical_receipt_reference.py`, `results/receipt_vectors_v0.json` and `rust/sirm-codec/src/receipt.rs` with `tests/receipt_conformance.rs`. Decisions (each recorded in the specification): the receipt embeds the full canonical request encoding; only responses that Lean stores are encoded (success, authorization denial, insufficient-funds denial); no state hash, signature or chain id in v0 (they are the next two protocol items and would be new versions with their own domain tags); the decoder rejects every receipt that violates the Lean construction (accepted nonce = request nonce, next = accepted + 1, expected nonce = request nonce for denials, reason matches the operation family).
 - Evidence: 11 vectors, 4374 receipts exhaustively on a small domain (distinct, exact round trip, exact lengths), 12 malformed-input rejections, 7 encoder rejections, and in Rust a link to the integrated processor (every stored response encodes and decodes back; an exact retry is byte-identical). Not claimed: any Lean theorem, adoption, authentication.
 - Open: protocol item 2 (signatures, chain id) and item 3 (state commitments).
+
+## Work block: signed request layer v0 (protocol item 2, proposal)
+
+- Added `engineering/canonical_encoding/SPEC_signed_request_v0.md`, `scripts/signed_request_reference.py`, `results/signed_request_vectors_v0.json`, `rust/sirm-codec/src/signed.rs` and `tests/signed_conformance.rs`. Design: chain id u64 inside the signed bytes, separate signing/wire domains, Ed25519 over the signing message, key looked up by principal, strict verification, rejected messages never reach the processor.
+- New dependency: `ed25519-dalek` 2 (default features off, `std`); `Cargo.lock` grew accordingly and deserves review.
+- Evidence: RFC 8032 vector 1, 8 vectors with byte-identical signatures from OpenSSL and ed25519-dalek, every single-byte mutation rejected, 9 structured negatives, node pipeline test. Not claimed: Lean theorem, adoption, key management.
+- Open: protocol item 3 (state commitments).
