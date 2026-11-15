@@ -32,3 +32,4 @@ import SIRM.SignatureSuite
 import SIRM.KeyRegistry
 import SIRM.ThresholdAuth
 import SIRM.RecoveryDelay
+import SIRM.AuthenticatedStep
