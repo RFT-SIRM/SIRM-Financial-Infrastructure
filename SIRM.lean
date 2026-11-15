@@ -28,3 +28,4 @@ import SIRM.FinancialTransactionDenials
 import SIRM.CanonicalEncoding
 import SIRM.CanonicalRequestEncoding
 import SIRM.CanonicalRequestLink
+import SIRM.SignatureSuite
