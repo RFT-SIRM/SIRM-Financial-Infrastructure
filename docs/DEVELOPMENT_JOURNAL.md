@@ -398,3 +398,5 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Added `docs/POST_QUANTUM_SECURITY_ARCHITECTURE.md` and `docs/PQ_DECISIONS_PROPOSED.md`. Documents only: no Lean or Rust change, nothing adopted. Standards were checked against csrc.nist.gov on 2026-11-15 (FIPS 203/204/205 final, SP 800-227 final, IR 8547 final in October 2026, CSWP 39 final; FIPS 206 status not verified).
 - Findings recorded: the v0 signed request and state commitment are proposals, Ed25519 is quantum-vulnerable, the v0 state root is partial, and no audited Rust post-quantum implementation was known in a 2025 survey (to re-verify).
 - Open: independent review of the proposal, then the phased plan P1 to P5 in the architecture document.
+
+- Added `docs/PQ_RUST_LIBRARY_EVALUATION.md` and PQ-13. A throwaway crate (not committed) checked that RustCrypto `ml-dsa` 0.1.2 and `aws-lc-rs` 1.19.0 accept the 8 frozen ML-DSA-65 signatures of the v1 vectors and reject 473 single-byte mutations. Verification only, one platform, not an audit; no dependency added, no library chosen.

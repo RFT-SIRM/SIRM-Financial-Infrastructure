@@ -18,6 +18,7 @@ moving an item there together with the matching Lean, specification and tests. S
 | PQ-10 | Successor-key hash commitments for any legacy identity that needs migration (Rift imports). | Proposed | none |
 | PQ-11 | The state commitment must cover all consensus-critical state before being called a commitment to the protocol state; v0 is partial and says so. | Proposed | none |
 | PQ-12 | No implementation phase starts before independent cryptographic review of the architecture. | Proposed | who reviews |
+| PQ-13 | Signature bytes are never used as identifiers or deduplication keys; identity comes from the signed message (request hash, nonce), not from the signature. | Proposed | none |
 
-Not decided: library choice, consensus and validator signing, HSM support, concrete threshold
+Not decided: library choice (see `PQ_RUST_LIBRARY_EVALUATION.md`), consensus and validator signing, HSM support, concrete threshold
 policies, expiry fields, privacy and confidential-transaction cryptography.
