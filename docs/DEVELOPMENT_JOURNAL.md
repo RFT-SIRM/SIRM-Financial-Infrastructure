@@ -343,4 +343,10 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Added `engineering/canonical_encoding/SPEC_signed_request_v0.md`, `scripts/signed_request_reference.py`, `results/signed_request_vectors_v0.json`, `rust/sirm-codec/src/signed.rs` and `tests/signed_conformance.rs`. Design: chain id u64 inside the signed bytes, separate signing/wire domains, Ed25519 over the signing message, key looked up by principal, strict verification, rejected messages never reach the processor.
 - New dependency: `ed25519-dalek` 2 (default features off, `std`); `Cargo.lock` grew accordingly and deserves review.
 - Evidence: RFC 8032 vector 1, 8 vectors with byte-identical signatures from OpenSSL and ed25519-dalek, every single-byte mutation rejected, 9 structured negatives, node pipeline test. Not claimed: Lean theorem, adoption, key management.
-- Open: protocol item 3 (state commitments).
+- Closed by the next block: protocol item 3.
+
+## Work block: state commitment v0 (protocol item 3, proposal)
+
+- Added `engineering/canonical_encoding/SPEC_state_commitment_v0.md`, `scripts/state_commitment_reference.py`, `results/state_commitment_vectors_v0.json`, `rust/sirm-codec/src/commit.rs` and `tests/commit_conformance.rs`. Decision: depth-64 sparse Merkle tree (SHA-256) over balances, supply and nonces, combined with the dimensions into a state root; inclusion and absence proofs. The response cache and the policy, fee, escrow, dispute, migration and registry state are not committed.
+- Evidence: two independent Python algorithms agree, proofs verify and tampering fails, Rust matches the vectors and the root of the replayed 4000-request processor trace; accepted requests move the root, rejections and replays do not. Not claimed: Lean theorem, adoption, whole-system coverage.
+- Open: adoption of the three v0 proposals as a protocol, key management, expiry, commitments for the remaining modules, Lean statements for the receipt, signature and commitment layers.
