@@ -400,3 +400,5 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Open: independent review of the proposal, then the phased plan P1 to P5 in the architecture document.
 
 - Added `docs/PQ_RUST_LIBRARY_EVALUATION.md` and PQ-13. A throwaway crate (not committed) checked that RustCrypto `ml-dsa` 0.1.2 and `aws-lc-rs` 1.19.0 accept the 8 frozen ML-DSA-65 signatures of the v1 vectors and reject 473 single-byte mutations. Verification only, one platform, not an audit; no dependency added, no library chosen.
+
+- Extended `docs/PQ_RUST_LIBRARY_EVALUATION.md` with a duplicate-hint (CVE-2026-24850 class) check: `ml-dsa` 0.1.2 and `aws-lc-rs` 1.19.0 reject 4 of 4 constructed signatures, the known-vulnerable `ml-dsa` 0.1.0-rc.3 accepts all 4. One malformed-encoding construction, not a full negative suite. Documents only.

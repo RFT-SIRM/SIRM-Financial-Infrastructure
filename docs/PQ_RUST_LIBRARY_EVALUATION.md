@@ -15,6 +15,22 @@ A throwaway crate outside the repository (not committed) verified the frozen vec
 | 8 vectors with an ML-DSA-65 signature (4 ML-DSA, 4 hybrid, ML half) | 8 / 8 accepted | 8 / 8 accepted |
 | 473 single-byte flips of one signature | 0 accepted | 0 accepted |
 
+### Non-canonical signature check (CVE-2026-24850 class)
+
+From each of the 4 ML-DSA-65 vectors a signature was built that differs only by one duplicated
+hint index (counts adjusted so the encoding is otherwise well formed). Result:
+
+| Library | Duplicate-hint signatures rejected |
+|---|---|
+| RustCrypto `ml-dsa` 0.1.2 | 4 / 4 |
+| `aws-lc-rs` 1.19.0 | 4 / 4 |
+| RustCrypto `ml-dsa` 0.1.0-rc.3 (known vulnerable, built without default features) | 0 / 4 (all accepted) |
+
+The last row shows the test can detect the defect: the vulnerable version accepts what the
+fixed one rejects. This is one construction of one malformed-encoding class, not a full
+negative suite. On the Rust side already in the repository, Ed25519 uses `verify_strict`
+and a test rejects `S + L` (see `rust/sirm-codec/tests/signed_conformance.rs`).
+
 The vectors were produced by a third implementation (OpenSSL through Python `cryptography`),
 so three independent implementations agree on these vectors. The Ed25519 half of the hybrid
 vectors is already covered by the existing Rust conformance tests.
