@@ -260,7 +260,7 @@ pub struct Machine {
     cfg: Config,
     pub ledger: Holdings,
     nonces: BTreeMap<u32, u64>,
-    cache: BTreeMap<u64, (Request, Stored)>,
+    cache: BTreeMap<[u8; 32], (Request, Stored)>,
     now: u64,
     records: BTreeMap<usize, Record>,
     filings: BTreeMap<usize, Filing>,
@@ -634,7 +634,7 @@ impl Machine {
         }
     }
 
-    pub fn process(&mut self, id: u64, req: Request) -> Outcome {
+    pub fn process(&mut self, id: [u8; 32], req: Request) -> Outcome {
         if let Some((prior, stored)) = self.cache.get(&id) {
             return if *prior == req {
                 Outcome::Replay(*stored)
