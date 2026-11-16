@@ -53,6 +53,15 @@ impl TimeLockedEscrow {
         }
     }
 
+    pub fn vault(&self) -> u32 {
+        self.vault
+    }
+
+    /// Number of IDs in the deadline schedule.
+    pub fn ids(&self) -> usize {
+        self.expires_at.len()
+    }
+
     pub fn now(&self) -> u64 {
         self.now
     }
