@@ -76,6 +76,35 @@ impl Migration {
         })
     }
 
+    pub fn source_holder(&self) -> u32 {
+        self.source_holder
+    }
+
+    pub fn recipient(&self) -> u32 {
+        self.recipient
+    }
+
+    pub fn source_asset(&self) -> u32 {
+        self.source_asset
+    }
+
+    pub fn dest_asset(&self) -> u32 {
+        self.dest_asset
+    }
+
+    /// (numerator, denominator) of the exact rate.
+    pub fn rate(&self) -> (u128, u128) {
+        (self.numerator, self.denominator)
+    }
+
+    /// Principals with a non-zero next nonce, ascending.
+    pub fn nonces(&self) -> impl Iterator<Item = (u32, u64)> + '_ {
+        self.next_nonce
+            .iter()
+            .filter(|(_, n)| **n != 0)
+            .map(|(p, n)| (*p, *n))
+    }
+
     pub fn total_source(&self) -> u128 {
         self.total_source
     }
