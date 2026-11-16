@@ -1,7 +1,8 @@
 # Integrated state machine — proposal, nothing implemented
 
-Status: **proposal**. Step I1 (an independent Python reference with seeded traces) exists in
-`scripts/integrated_machine_reference.py`; no Rust, Lean or encoding change yet. This document records the
+Status: **proposal**. Steps I1 (an independent Python reference with seeded traces,
+`scripts/integrated_machine_reference.py`) and I2 (a Rust port with a differential test,
+`rust/sirm-codec/src/integrated.rs`) exist; no Lean or encoding change yet. This document records the
 design and a staged plan so the work can be checked step by step.
 
 ## The problem
@@ -89,3 +90,22 @@ pipeline above, and writes `engineering/ledger_core/results/integrated_trace_v0.
 
 This is a reference, not a proof: the rules for the new operations (who is authorized, what is
 denied) are defined here and have no Lean counterpart yet.
+
+## Step I2 result (Rust port)
+
+`rust/sirm-codec/src/integrated.rs` ports the reference; `rust/sirm-codec/tests/integrated_trace.rs`
+replays all 402 episodes of `integrated_trace_v0.json` and checks every outcome token, the final
+balances, supply, nonces, clock, receipt count, escrow records, dispute filings and migration totals;
+after every step the Rust invariants hold (conservation, vault equals pending escrow, dust equation,
+filings imply records) and every rejected request leaves the state unchanged. The old integrated
+processor trace (4000 requests) replayed through the new machine gives the same tokens and final
+state. This is differential evidence on seeded traces, not a refinement proof.
+
+The comparison found two defects in the reference itself, both fixed: the code `dispute:a` meant
+both "authorization denied" and "already filed" (authorization is now `<op>:auth`), and the trace
+generator produced replayed requests with an extra argument that no typed request can express (it now
+mutates the last argument instead).
+
+Not yet done: request encoding with the new operation tags (I3), the single state commitment (I4),
+Lean statements (I5). The existing escrow and migration ports (own ledgers) and commitments v3 and v4
+remain as they are until I4 replaces them.
