@@ -106,6 +106,7 @@ both "authorization denied" and "already filed" (authorization is now `<op>:auth
 generator produced replayed requests with an extra argument that no typed request can express (it now
 mutates the last argument instead).
 
-Not yet done: request encoding with the new operation tags (I3), the single state commitment (I4),
-Lean statements (I5). The existing escrow and migration ports (own ledgers) and commitments v3 and v4
+Step I3 (request encoding v1, `engineering/canonical_encoding/SPEC_request_v1.md`): all 10 operations have a canonical encoding with an independent Python reference and a Rust codec; the Rust side reproduces the vectors and the digest over 27816 trace requests, accepts only canonical inputs, and replays decoded requests through the machine with identical outcomes. Request ids are now 32 bytes in the Rust machine. Signed requests still embed only v0 request bytes.
+
+Not yet done: the single state commitment (I4), Lean statements (I5), a signed-request version that carries request v1. The existing escrow and migration ports (own ledgers) and commitments v3 and v4
 remain as they are until I4 replaces them.
