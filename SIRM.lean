@@ -33,3 +33,4 @@ import SIRM.KeyRegistry
 import SIRM.ThresholdAuth
 import SIRM.RecoveryDelay
 import SIRM.AuthenticatedStep
+import SIRM.IntegratedPipeline
