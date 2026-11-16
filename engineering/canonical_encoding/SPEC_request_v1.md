@@ -47,6 +47,6 @@ The prefix is 57 bytes. Fields by tag (ids of escrows are u32 on the wire):
 
 ## Not covered
 
-- Signed requests (versions v0 and v1) still embed only the v0 request bytes. Carrying request v1 needs a
-  new signed version; it is not defined yet.
+- Signed requests v0 and v1 embed only the v0 request bytes. Signed request v2
+  (`SPEC_signed_request_v2.md`) carries request v1.
 - Differential evidence, not a refinement proof. Proposal only, not adopted.

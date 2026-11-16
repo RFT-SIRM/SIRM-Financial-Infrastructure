@@ -133,6 +133,11 @@ fn body_len(tag: u8) -> Option<usize> {
     })
 }
 
+/// Total encoded length of a request with this tag; `None` for an unknown tag.
+pub fn encoded_len(tag: u8) -> Option<usize> {
+    body_len(tag).map(|b| PREFIX + b)
+}
+
 pub fn decode(bytes: &[u8]) -> Result<WireRequest, DecodeError> {
     if bytes.len() < DOMAIN.len() || bytes[..DOMAIN.len()] != DOMAIN {
         return Err(DecodeError::BadDomain);
