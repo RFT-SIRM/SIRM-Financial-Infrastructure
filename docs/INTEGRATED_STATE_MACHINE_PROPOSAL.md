@@ -1,6 +1,7 @@
 # Integrated state machine — proposal, nothing implemented
 
-Status: **proposal**. No code, Lean file or encoding changes with this document. It records a
+Status: **proposal**. Step I1 (an independent Python reference with seeded traces) exists in
+`scripts/integrated_machine_reference.py`; no Rust, Lean or encoding change yet. This document records the
 design and a staged plan so the work can be checked step by step.
 
 ## The problem
@@ -66,3 +67,25 @@ independent review (no reviewer exists yet; this is the main open risk).
 It does not change anything that is adopted, it does not prove the new machine correct (I1 and I2
 are differential evidence, not a refinement proof), and it does not decide governance or fee
 policy. Fees have no persistent state, and there is no governance module.
+
+## Step I1 result (Python reference)
+
+`scripts/integrated_machine_reference.py` implements the design with one shared ledger and the
+pipeline above, and writes `engineering/ledger_core/results/integrated_trace_v0.json` (402 episodes:
+2 hand-built at the u128 boundary, 400 seeded). Results:
+
+- **Backward compatible:** with escrow, migration and the new grants unused, it reproduces the 4000
+  tokens, final balances, supply, nonces and receipt count of the old processor trace byte for byte.
+- **Invariants at every step:** conservation per asset; vault balance equals the pending escrow
+  amounts per asset; the dust equation; every filing belongs to a stored record; and a rejected,
+  replayed, conflicting, stale or future request changes none of the ledger, nonces, records,
+  filings or clock.
+- **Coverage:** all ten operations have at least 30 accepted cases each (the script asserts this),
+  the denial classes of every operation occur, and the u128 boundary denials are present.
+- **Reserved vault:** transfer, issue to it and burn from it are rejected. This rule is new and is
+  needed for the vault invariant; it is a design choice, not taken from the Lean models.
+- Credit overflow in escrow settlement cannot occur because every balance is bounded by the supply
+  and issue is rejected before the supply passes 2^128 - 1.
+
+This is a reference, not a proof: the rules for the new operations (who is authorized, what is
+denied) are defined here and have no Lean counterpart yet.
