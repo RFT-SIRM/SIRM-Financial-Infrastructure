@@ -14,6 +14,7 @@ pub mod commit;
 pub mod commit_v1;
 pub mod commit_v2;
 pub mod commit_v3;
+pub mod commit_v4;
 pub mod dispute;
 pub mod envelope;
 pub mod escrow;
