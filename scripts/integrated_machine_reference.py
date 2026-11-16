@@ -25,7 +25,7 @@ holds exactly the pending escrow amounts. Credit overflow cannot occur in escrow
 balance is bounded by the supply, and issue is rejected before the supply passes 2^128 - 1.
 
 Denial codes: old operations keep ta, ia, ba (authorization) and tf, bf (funds); every other
-code is "<op>:<c>" with c = a (authorization), r (reserved vault), v (overflow or vault is a
+code is "<op>:<c>" with c = auth (authorization), r (reserved vault), v (overflow or vault is a
 party), and the escrow/time letters of dispute_reference_trace.py
 (x frozen, w unknown id or no record, k id used, n not pending, d deadline passed, e deadline not
 reached, z zero amount, u unknown account or asset, i insufficient funds, t time not forward,
@@ -195,7 +195,7 @@ class IM:
         if nonce > n: return "F"
         code = None
         if not self.authorized(p, op, args):
-            code = {"transfer": "ta", "issue": "ia", "burn": "ba"}.get(op, op + ":a")
+            code = {"transfer": "ta", "issue": "ia", "burn": "ba"}.get(op, op + ":auth")
         else:
             code = self.domain(op, args)
         if code:
@@ -305,7 +305,7 @@ def episode(rnd, n):
             rid, p, nonce, op, args = rnd.choice(issued)
         elif issued and roll < 0.18:
             rid, p, nonce, op, args = rnd.choice(issued)
-            args = args[:-1] + (args[-1] + 1,) if op in OLD + ("open", "migrate") else args + (0,)
+            args = args[:-1] + (args[-1] + 1,)
         else:
             op = "issue" if step < 6 else rnd.choice(codes)
             p = rnd.randrange(PRINCIPALS)
@@ -365,8 +365,13 @@ def episode(rnd, n):
         if tok[0] in "AN":
             issued.append((rid, p, nonce, op, tuple(args)))
     pol = policy_json(lim, idg, clock, controls)
-    return {"vault": vault, "deadlines": deadlines, "start_now": start_now, "migration": mig,
+    return {"vault": vault, "deadlines": deadlines, "start_now": start_now, "migration": mig_json(mig),
             "policy": pol, "requests": reqs, "tokens": tokens, "final": m.state()}
+
+
+def mig_json(m):
+    """Rates may exceed 2^53, so they are written as decimal strings."""
+    return {**m, "num": str(m["num"]), "den": str(m["den"])}
 
 
 def policy_json(lim, idg, clock, controls):
@@ -391,7 +396,7 @@ def boundary():
             nonce = m.nxt.get(0, 0)
             toks.append(m.process(i + 1, 0, nonce, op, args)); m.check()
             reqs.append([i + 1, 0, nonce, op] + [None if x is None else str(x) for x in args])
-        eps.append({"vault": vault, "deadlines": [10, 10, 10], "start_now": 0, "migration": mig,
+        eps.append({"vault": vault, "deadlines": [10, 10, 10], "start_now": 0, "migration": mig_json(mig),
                     "policy": policy_json(lim, set(), set(), controls), "requests": reqs, "tokens": toks,
                     "final": m.state()})
     return eps
