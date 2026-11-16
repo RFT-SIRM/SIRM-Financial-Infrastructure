@@ -302,6 +302,27 @@ impl Machine {
         self.now
     }
 
+    pub fn config(&self) -> &Config {
+        &self.cfg
+    }
+
+    /// Cached responses in request-id order: (id, request, stored outcome).
+    pub fn cache_entries(&self) -> impl Iterator<Item = (&[u8; 32], &Request, &Stored)> {
+        self.cache.iter().map(|(id, (r, s))| (id, r, s))
+    }
+
+    pub fn nonces(&self) -> &BTreeMap<u32, u64> {
+        &self.nonces
+    }
+
+    pub fn records(&self) -> &BTreeMap<usize, Record> {
+        &self.records
+    }
+
+    pub fn filings(&self) -> &BTreeMap<usize, Filing> {
+        &self.filings
+    }
+
     pub fn cached(&self) -> usize {
         self.cache.len()
     }

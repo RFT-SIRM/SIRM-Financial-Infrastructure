@@ -108,5 +108,7 @@ mutates the last argument instead).
 
 Step I3 (request encoding v1, `engineering/canonical_encoding/SPEC_request_v1.md`): all 10 operations have a canonical encoding with an independent Python reference and a Rust codec; the Rust side reproduces the vectors and the digest over 27816 trace requests, accepts only canonical inputs, and replays decoded requests through the machine with identical outcomes. Request ids are now 32 bytes in the Rust machine. Signed requests still embed only v0 request bytes.
 
-Not yet done: the single state commitment (I4), Lean statements (I5), a signed-request version that carries request v1. The existing escrow and migration ports (own ledgers) and commitments v3 and v4
+Step I4 (state commitment v5, `engineering/canonical_encoding/SPEC_state_commitment_v5.md`): one root over the shared ledger, nonces, configuration (policy, deadlines, vault, migration rate), request cache (full request v1 bytes plus outcome), escrow table and migration totals. Independent Python reference over the final states of the 402 episodes; Rust reproduces all 402 roots byte for byte.
+
+Not yet done: Lean statements (I5), a signed-request version that carries request v1, the key, suite and registry parts in the integrated root. The existing escrow and migration ports (own ledgers) and commitments v3 and v4
 remain as they are until I4 replaces them.
