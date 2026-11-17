@@ -30,8 +30,13 @@ What this does **not** cover, stated so that no reader assumes it:
 * **Time:** the clock never goes backwards and a filing is never removed or changed, for every request
   (`pipeline_now_monotone`, `pipeline_files_stable`).
 
-The real validation is stricter than `pre`. Not modelled: which principal may do what (authorization is
-arbitrary), the order in which deadline conditions are reported, and anything about the request cache
+* **Authorization:** a `Policy` (control of accounts, per-kind amount caps, per-id grants, a clock
+  grant; empty by default) with `authorizedOp` mirroring the Rust `authorized`. Deny by default
+  (`empty_policy_changes_nothing`); `no_debit_without_control` (a request cannot lower a balance the
+  sender does not control, vault excepted), `time_only_by_clock`, `filing_only_by_grant`,
+  `mint_only_by_grant` (supply grows only by an issue grant with a cap, or the migration stream).
+
+The real validation is stricter than `pre`. Not modelled: how policies are configured and signed, the order in which deadline conditions are reported, and anything about the request cache
 beyond the generic pipeline.
 * Nothing connects this model to the Rust or Python machines except the shape of the operations; that
   evidence is differential testing. No Mathlib is used.
@@ -163,7 +168,7 @@ def pendingSum (recs : Nat → Option Rec) (s ids : Nat) : Nat :=
 
 inductive Op where
   | transfer (src dst asset amount : Nat)
-  | issue (recipient asset amount : Nat)
+  | issue (issuer recipient asset amount : Nat)
   | burn (holder asset amount : Nat)
   | open (id dep ben asset amount : Nat)
   | release (id : Nat)
@@ -209,7 +214,7 @@ def migrateEff (c : Core) (m : MigCfg) (amt : Nat) : Core :=
 /-- The effect of a request on the core state (meaningful when `pre` holds). -/
 def applyOp (cfg : Cfg) (c : Core) : Op → Core
   | .transfer src dst s amt => { c with bal := move c.bal s src dst amt }
-  | .issue r s amt => issueEff c r s amt
+  | .issue _ r s amt => issueEff c r s amt
   | .burn h s amt => burnEff c h s amt
   | .open id dep ben s amt =>
       { c with bal := move c.bal s dep cfg.vault amt
@@ -228,7 +233,7 @@ amounts, overflow, unknown accounts); the proofs only need these. -/
 def pre (cfg : Cfg) (c : Core) : Op → Prop
   | .transfer src dst s amt =>
       src < cfg.accounts ∧ dst < cfg.accounts ∧ src ≠ cfg.vault ∧ dst ≠ cfg.vault ∧ amt ≤ c.bal s src
-  | .issue r _ _ => r < cfg.accounts ∧ r ≠ cfg.vault
+  | .issue _ r _ _ => r < cfg.accounts ∧ r ≠ cfg.vault
   | .burn h s amt => h < cfg.accounts ∧ h ≠ cfg.vault ∧ amt ≤ c.bal s h
   | .open id dep ben s amt =>
       id < cfg.ids ∧ c.recs id = none ∧ dep < cfg.accounts ∧ ben < cfg.accounts ∧
@@ -361,8 +366,8 @@ theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst
     · rw [move_other c.bal src dst amt ht]
       exact inv.backing t
 
-theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {r s amt : Nat}
-    (h : pre cfg c (.issue r s amt)) : Inv cfg (applyOp cfg c (.issue r s amt)) := by
+theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {iss r s amt : Nat}
+    (h : pre cfg c (.issue iss r s amt)) : Inv cfg (applyOp cfg c (.issue iss r s amt)) := by
   obtain ⟨hr, hrv⟩ := h
   refine ⟨?_, ?_, inv.recsOk, inv.migration, inv.filesOk⟩
   · intro t
@@ -540,7 +545,7 @@ theorem inv_migrate (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {amt : Nat
     inv_burn hv inv (show pre cfg c (.burn m.holder m.src amt) from ⟨hh, hhv, ha⟩)
   have i2 : Inv cfg (issueEff (burnEff c m.holder m.src amt) m.recipient m.dst
       ((amt * m.num + c.dust) / m.den)) :=
-    inv_issue hv i1 (show pre cfg (burnEff c m.holder m.src amt) (.issue m.recipient m.dst _)
+    inv_issue hv i1 (show pre cfg (burnEff c m.holder m.src amt) (.issue m.holder m.recipient m.dst _)
       from ⟨hr, hrv⟩)
   obtain ⟨hlt, heq⟩ := inv.migration m hm hden
   refine ⟨i2.conserve, i2.backing, i2.recsOk, ?_, i2.filesOk⟩
@@ -581,7 +586,7 @@ theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) 
     Inv cfg (applyOp cfg c op) := by
   cases op with
   | transfer src dst s amt => exact inv_transfer hv inv h
-  | issue r s amt => exact inv_issue hv inv h
+  | issue iss r s amt => exact inv_issue hv inv h
   | burn x s amt => exact inv_burn hv inv h
   | «open» id dep ben s amt => exact inv_open hv inv h
   | migrate amt => exact inv_migrate hv inv h
@@ -715,17 +720,350 @@ theorem reachable_safe (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
     Inv cfg s.core :=
   invariant_of_reachable (machine cfg hv auth validate hval) h
 
+/-! ### Authorization -/
+
+/-- The kinds of grant a policy keys on. -/
+inductive Kind where
+  | transfer
+  | issue
+  | burn
+  | open
+  | migrate
+  | release
+  | cancel
+  | expire
+  | dispute
+  deriving DecidableEq
+
+/-- A static policy; nothing is granted by default. `controls p a`: principal `p` controls account
+`a`. `limit p k a b s`: the cap on amounts of kind `k` for (`a`, `b`) in asset `s`. `ids p k i`:
+principal `p` may perform `k` on escrow `i`. `clock p`: `p` may advance time. -/
+structure Policy where
+  controls : Nat → Nat → Bool
+  limit : Nat → Kind → Nat → Option Nat → Nat → Option Nat
+  ids : Nat → Kind → Nat → Bool
+  clock : Nat → Bool
+
+def Policy.empty : Policy where
+  controls := fun _ _ => false
+  limit := fun _ _ _ _ _ => none
+  ids := fun _ _ _ => false
+  clock := fun _ => false
+
+/-- An absent cap allows nothing. -/
+def within (l : Option Nat) (amt : Nat) : Bool :=
+  match l with
+  | some l => decide (amt ≤ l)
+  | none => false
+
+/-- Authorization of a request by principal `p` (the reference `authorized`). -/
+def authorizedOp (cfg : Cfg) (pol : Policy) (p : Nat) : Op → Bool
+  | .transfer src dst s amt =>
+      pol.controls p src && within (pol.limit p .transfer src (some dst) s) amt
+  | .issue iss r s amt => pol.controls p iss && within (pol.limit p .issue iss (some r) s) amt
+  | .burn h s amt => pol.controls p h && within (pol.limit p .burn h none s) amt
+  | .open _ dep ben s amt => pol.controls p dep && within (pol.limit p .open dep (some ben) s) amt
+  | .release id => pol.ids p .release id
+  | .cancel id => pol.ids p .cancel id
+  | .expire id => pol.ids p .expire id
+  | .dispute id cl => pol.ids p .dispute id && pol.controls p cl
+  | .advance _ => pol.clock p
+  | .migrate amt =>
+      match cfg.mig with
+      | some m =>
+          pol.controls p m.holder &&
+            within (pol.limit p .migrate m.holder (some m.recipient) m.src) amt
+      | none => false
+
+def policyAuth (cfg : Cfg) (pol : Policy) : Core → Req → Bool :=
+  fun _ r => authorizedOp cfg pol r.principal r.op
+
+/-- Deny by default: the empty policy authorizes nothing. -/
+theorem auth_empty (cfg : Cfg) (p : Nat) (op : Op) : authorizedOp cfg Policy.empty p op = false := by
+  cases op with
+  | migrate amt =>
+      unfold authorizedOp
+      cases cfg.mig <;> simp [Policy.empty]
+  | _ => simp [authorizedOp, Policy.empty, within]
+
+/-- A transfer is authorized only for a principal that controls the source and stays within its cap. -/
+theorem auth_transfer {cfg : Cfg} {pol : Policy} {p src dst s amt : Nat}
+    (h : authorizedOp cfg pol p (.transfer src dst s amt) = true) :
+    pol.controls p src = true ∧ ∃ l, pol.limit p .transfer src (some dst) s = some l ∧ amt ≤ l := by
+  simp only [authorizedOp, Bool.and_eq_true] at h
+  obtain ⟨hc, hw⟩ := h
+  refine ⟨hc, ?_⟩
+  revert hw
+  cases pol.limit p .transfer src (some dst) s with
+  | none => simp [within]
+  | some l => simp [within]
+
+/-- With the empty policy no request ever changes the core state: nothing is granted by default. -/
+theorem empty_policy_changes_nothing (cfg : Cfg) (validate : Core → Req → Option Nat)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) :
+    (process (rules cfg (policyAuth cfg Policy.empty) validate) s id r).1.core = s.core := by
+  rcases process_cases (rules cfg (policyAuth cfg Policy.empty) validate) s id r with
+    hc | ⟨_, d, hc⟩ | ⟨_, ha, _, _, _⟩
+  · rw [hc]
+  · rw [hc]
+  · exfalso
+    have h2 : authorizedOp cfg Policy.empty r.principal r.op = true := ha
+    rw [auth_empty] at h2
+    cases h2
+
+/-- A property between a core and its successor under every request, parametrised by the sender,
+that is reflexive and holds for every authorized, valid effect, holds for every request. -/
+theorem pipeline_rel_p (cfg : Cfg) (pol : Policy) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (Rel : Nat → Core → Core → Prop) (hrefl : ∀ p c, Rel p c c)
+    (hstep : ∀ c op p, authorizedOp cfg pol p op = true → pre cfg c op → Rel p c (applyOp cfg c op))
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) :
+    Rel r.principal s.core (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core := by
+  rcases process_cases (rules cfg (policyAuth cfg pol) validate) s id r with
+    hc | ⟨_, d, hc⟩ | ⟨_, ha, hv, hc, _⟩
+  · rw [hc]; exact hrefl _ _
+  · rw [hc]; exact hrefl _ _
+  · rw [hc]; exact hstep _ r.op r.principal ha (hval _ r hv)
+
+/-! ### What authorization buys: no debit without control -/
+
+theorem upd_eq_of_ne (bal : Nat → Nat → Nat) (s r v t a : Nat) (h : a ≠ r) :
+    upd bal s r v t a = bal t a := by
+  by_cases ht : t = s
+  · subst ht; simp [upd, setAt, h]
+  · simp [upd, ht]
+
+theorem upd_ge (bal : Nat → Nat → Nat) (s r amt t a : Nat) :
+    bal t a ≤ upd bal s r (bal s r + amt) t a := by
+  by_cases ht : t = s
+  · subst ht
+    by_cases ha : a = r
+    · subst ha; simp [upd, setAt]
+    · simp [upd, setAt, ha]
+  · simp [upd, ht]
+
+theorem move_ge (bal : Nat → Nat → Nat) (s src dst amt t x : Nat) (hx : x ≠ src) :
+    bal t x ≤ move bal s src dst amt t x := by
+  by_cases ht : t = s
+  · subst ht
+    by_cases hd : x = dst
+    · subst hd
+      rw [move_dst bal t src x amt hx]
+      omega
+    · rw [move_elsewhere bal t src dst amt x hx hd]; exact Nat.le_refl _
+  · rw [move_other bal src dst amt ht]; exact Nat.le_refl _
+
+theorem settle_bal {cfg : Cfg} {c : Core} {id : Nat} {b : Bool} {ph : Phase} {r : Rec}
+    (hr : c.recs id = some r) :
+    (settle cfg c id b ph).bal = move c.bal r.asset cfg.vault (if b then r.ben else r.dep) r.amount := by
+  simp [settle, hr]
+
+/-- One authorized, valid effect never lowers the balance of an account the sender does not
+control (the reserved vault is excluded: settlement pays out of it). -/
+theorem bal_ge_step (cfg : Cfg) (pol : Policy) (c : Core) (p : Nat) (op : Op)
+    (hauth : authorizedOp cfg pol p op = true) (hpre : pre cfg c op) (a t : Nat)
+    (hav : a ≠ cfg.vault) (hca : pol.controls p a = false) :
+    c.bal t a ≤ (applyOp cfg c op).bal t a := by
+  have key : ∀ x, pol.controls p x = true → a ≠ x := fun x hx e => by
+    rw [e, hx] at hca; cases hca
+  cases op with
+  | transfer src dst s amt =>
+      obtain ⟨hc, _⟩ := auth_transfer hauth
+      exact move_ge c.bal s src dst amt t a (key src hc)
+  | issue iss r s amt => exact upd_ge c.bal s r amt t a
+  | burn h s amt =>
+      simp only [authorizedOp, Bool.and_eq_true] at hauth
+      have hne := key h hauth.1
+      show c.bal t a ≤ upd c.bal s h (c.bal s h - amt) t a
+      rw [upd_eq_of_ne _ _ _ _ _ _ hne]; exact Nat.le_refl _
+  | «open» id dep ben s amt =>
+      simp only [authorizedOp, Bool.and_eq_true] at hauth
+      exact move_ge c.bal s dep cfg.vault amt t a (key dep hauth.1)
+  | release id =>
+      obtain ⟨_, _, _, r, hr, _⟩ := hpre
+      show c.bal t a ≤ (settle cfg c id true Phase.released).bal t a
+      rw [settle_bal hr]; exact move_ge _ _ _ _ _ _ _ hav
+  | cancel id =>
+      obtain ⟨_, _, _, r, hr, _⟩ := hpre
+      show c.bal t a ≤ (settle cfg c id false Phase.cancelled).bal t a
+      rw [settle_bal hr]; exact move_ge _ _ _ _ _ _ _ hav
+  | expire id =>
+      obtain ⟨_, _, _, r, hr, _⟩ := hpre
+      show c.bal t a ≤ (settle cfg c id false Phase.expired).bal t a
+      rw [settle_bal hr]; exact move_ge _ _ _ _ _ _ _ hav
+  | dispute id cl => exact Nat.le_refl _
+  | advance t' => exact Nat.le_refl _
+  | migrate amt =>
+      obtain ⟨m, hm, _⟩ := hpre
+      have hauth' := hauth
+      simp only [authorizedOp, hm, Bool.and_eq_true] at hauth'
+      have hne := key m.holder hauth'.1
+      have e : applyOp cfg c (.migrate amt) = migrateEff c m amt := by simp [applyOp, hm]
+      rw [e]
+      show c.bal t a ≤ upd (upd c.bal m.src m.holder (c.bal m.src m.holder - amt)) m.dst m.recipient
+        ((upd c.bal m.src m.holder (c.bal m.src m.holder - amt)) m.dst m.recipient +
+          (amt * m.num + c.dust) / m.den) t a
+      have h1 := upd_ge (upd c.bal m.src m.holder (c.bal m.src m.holder - amt)) m.dst m.recipient
+        ((amt * m.num + c.dust) / m.den) t a
+      have h2 : upd c.bal m.src m.holder (c.bal m.src m.holder - amt) t a = c.bal t a :=
+        upd_eq_of_ne _ _ _ _ _ _ hne
+      omega
+
+/-- For any request from principal `p` (accepted or not), the balance of every account that `p` does
+not control, other than the vault, does not decrease. Whoever moves, burns or locks funds out of an
+account must control it. -/
+theorem no_debit_without_control (cfg : Cfg) (pol : Policy) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) (a t : Nat) (hav : a ≠ cfg.vault)
+    (hca : pol.controls r.principal a = false) :
+    s.core.bal t a ≤ (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core.bal t a :=
+  pipeline_rel_p cfg pol validate hval
+    (fun p c c' => ∀ a t, a ≠ cfg.vault → pol.controls p a = false → c.bal t a ≤ c'.bal t a)
+    (fun _ _ _ _ _ _ => Nat.le_refl _)
+    (fun c op p h hp a t hav hca => bal_ge_step cfg pol c p op h hp a t hav hca) s id r a t hav hca
+
+/-! ### Time, filings and supply move only under a grant -/
+
+theorem settle_minted (cfg : Cfg) (c : Core) (id : Nat) (b : Bool) (ph : Phase) :
+    (settle cfg c id b ph).minted = c.minted := by
+  unfold settle; split <;> rfl
+
+/-- Only a principal holding the clock grant can change the clock. -/
+theorem time_only_by_clock (cfg : Cfg) (pol : Policy) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req)
+    (h : (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core.now ≠ s.core.now) :
+    pol.clock r.principal = true :=
+  pipeline_rel_p cfg pol validate hval
+    (fun p c c' => c'.now ≠ c.now → pol.clock p = true)
+    (fun _ _ h => absurd rfl h)
+    (fun c op p ha _ => by
+      cases op with
+      | advance t => intro _; exact ha
+      | migrate amt =>
+          intro h
+          exfalso; apply h
+          show (match cfg.mig with | some m => migrateEff c m amt | none => c).now = c.now
+          cases cfg.mig <;> rfl
+      | release id => intro h; exact absurd (settle_now cfg c id true Phase.released) h
+      | cancel id => intro h; exact absurd (settle_now cfg c id false Phase.cancelled) h
+      | expire id => intro h; exact absurd (settle_now cfg c id false Phase.expired) h
+      | _ => intro h; exact absurd rfl h)
+    s id r h
+
+/-- A dispute filing appears only for a principal holding the dispute grant for that escrow who also
+controls the claimant. -/
+theorem filing_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) {i : Nat} {f : Filing}
+    (h0 : s.core.files i = none)
+    (h1 : (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core.files i = some f) :
+    pol.ids r.principal .dispute i = true ∧ pol.controls r.principal f.claimant = true :=
+  pipeline_rel_p cfg pol validate hval
+    (fun p c c' => ∀ i f, c.files i = none → c'.files i = some f →
+      pol.ids p .dispute i = true ∧ pol.controls p f.claimant = true)
+    (fun _ c i f h0 h1 => by rw [h0] at h1; cases h1)
+    (fun c op p ha _ i f h0 h1 => by
+      cases op with
+      | dispute id' cl =>
+          simp only [authorizedOp, Bool.and_eq_true] at ha
+          have h1' : setFile c.files id' (some ⟨cl, c.now⟩) i = some f := h1
+          by_cases hi : i = id'
+          · subst hi
+            simp [setFile] at h1'
+            subst h1'
+            exact ha
+          · simp [setFile, hi] at h1'
+            rw [h0] at h1'; cases h1'
+      | migrate amt =>
+          exfalso
+          have h2 : (match cfg.mig with | some m => migrateEff c m amt | none => c).files i = some f := h1
+          cases hm : cfg.mig with
+          | none => rw [hm] at h2
+                    have h3 : c.files i = some f := h2
+                    rw [h0] at h3; cases h3
+          | some m => rw [hm] at h2
+                      have h3 : c.files i = some f := h2
+                      rw [h0] at h3; cases h3
+      | release id' =>
+          exfalso
+          have : (settle cfg c id' true Phase.released).files i = some f := h1
+          rw [settle_files, h0] at this; cases this
+      | cancel id' =>
+          exfalso
+          have : (settle cfg c id' false Phase.cancelled).files i = some f := h1
+          rw [settle_files, h0] at this; cases this
+      | expire id' =>
+          exfalso
+          have : (settle cfg c id' false Phase.expired).files i = some f := h1
+          rw [settle_files, h0] at this; cases this
+      | _ => exfalso; have h2 : c.files i = some f := h1
+             rw [h0] at h2; cases h2)
+    s id r i f h0 h1
+
+/-- Supply grows only through an issue grant (the issuer is controlled and the asset has a cap) or
+through the configured migration stream, whose holder the sender controls. -/
+theorem mint_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) (t : Nat)
+    (h : s.core.minted t < (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core.minted t) :
+    (∃ iss rcp l, pol.controls r.principal iss = true ∧ pol.limit r.principal .issue iss (some rcp) t = some l) ∨
+      (∃ m, cfg.mig = some m ∧ m.dst = t ∧ pol.controls r.principal m.holder = true) :=
+  pipeline_rel_p cfg pol validate hval
+    (fun p c c' => ∀ t, c.minted t < c'.minted t →
+      (∃ iss rcp l, pol.controls p iss = true ∧ pol.limit p .issue iss (some rcp) t = some l) ∨
+        (∃ m, cfg.mig = some m ∧ m.dst = t ∧ pol.controls p m.holder = true))
+    (fun _ _ t h => absurd h (Nat.lt_irrefl _))
+    (fun c op p ha _ t h => by
+      cases op with
+      | issue iss rcp s' amt =>
+          left
+          simp only [authorizedOp, Bool.and_eq_true] at ha
+          have h' : (if t = s' then c.minted t + amt else c.minted t) > c.minted t := h
+          by_cases ht : t = s'
+          · rw [ht]
+            obtain ⟨hc, hw⟩ := ha
+            cases hl : pol.limit p .issue iss (some rcp) s' with
+            | none => simp [within, hl] at hw
+            | some l => exact ⟨iss, rcp, l, hc, hl⟩
+          · simp [ht] at h'
+      | migrate amt =>
+          right
+          obtain ⟨m, hm⟩ : ∃ m, cfg.mig = some m := by
+            cases hmig : cfg.mig with
+            | none =>
+                exfalso
+                have : (match cfg.mig with | some m => migrateEff c m amt | none => c).minted t > c.minted t := h
+                rw [hmig] at this; exact Nat.lt_irrefl _ this
+            | some m => exact ⟨m, rfl⟩
+          have hauth := ha
+          simp only [authorizedOp, hm, Bool.and_eq_true] at hauth
+          have h' : (migrateEff c m amt).minted t > c.minted t := by
+            have e : applyOp cfg c (.migrate amt) = migrateEff c m amt := by simp [applyOp, hm]
+            rw [← e]; exact h
+          by_cases ht : m.dst = t
+          · exact ⟨m, hm, ht, hauth.1⟩
+          · exfalso
+            have : (migrateEff c m amt).minted t = c.minted t := by
+              simp [migrateEff, issueEff, burnEff, Ne.symm ht]
+            omega
+      | release id' => exfalso; rw [show (applyOp cfg c (.release id')).minted t = c.minted t from by rw [show applyOp cfg c (.release id') = settle cfg c id' true Phase.released from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
+      | cancel id' => exfalso; rw [show (applyOp cfg c (.cancel id')).minted t = c.minted t from by rw [show applyOp cfg c (.cancel id') = settle cfg c id' false Phase.cancelled from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
+      | expire id' => exfalso; rw [show (applyOp cfg c (.expire id')).minted t = c.minted t from by rw [show applyOp cfg c (.expire id') = settle cfg c id' false Phase.expired from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
+      | _ => exfalso; exact Nat.lt_irrefl _ h)
+    s id r t h
+
 /-! ### A concrete scenario (the invariants are not vacuous) -/
 
 section Demo
 
 def cfg3 : Cfg := { accounts := 3, ids := 2, vault := 2, mig := none, deadline := fun _ => 10 }
 
-def c1 : Core := applyOp cfg3 Core.empty (.issue 0 0 100)
+def c1 : Core := applyOp cfg3 Core.empty (.issue 0 0 0 100)
 def c2 : Core := applyOp cfg3 c1 (.open 0 0 1 0 40)
 def c3 : Core := applyOp cfg3 c2 (.release 0)
 
-theorem pre_issue : pre cfg3 Core.empty (.issue 0 0 100) := by
+theorem pre_issue : pre cfg3 Core.empty (.issue 0 0 0 100) := by
   simp [pre, cfg3]
 
 theorem pre_open : pre cfg3 c1 (.open 0 0 1 0 40) := by
@@ -748,10 +1086,10 @@ example : Inv cfg3 c3 :=
 def cfgM : Cfg :=
   { accounts := 3, ids := 2, vault := 2, mig := some ⟨0, 1, 0, 1, 3, 2⟩, deadline := fun _ => 10 }
 
-def m1 : Core := applyOp cfgM Core.empty (.issue 0 0 100)
+def m1 : Core := applyOp cfgM Core.empty (.issue 0 0 0 100)
 def m2 : Core := applyOp cfgM m1 (.migrate 5)
 
-theorem pre_issueM : pre cfgM Core.empty (.issue 0 0 100) := by
+theorem pre_issueM : pre cfgM Core.empty (.issue 0 0 0 100) := by
   simp [pre, cfgM]
 
 theorem pre_migrate : pre cfgM m1 (.migrate 5) := by
