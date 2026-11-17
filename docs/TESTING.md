@@ -266,3 +266,5 @@ The signed request layer v2 (`rust/sirm-codec/src/signed_v2.rs`, test `rust/sirm
 `SIRM.IntegratedLedger` has a concrete scenario (issue, open an escrow, release it) with `decide` checks of the balances and an invariant proof along it, so the invariants are shown not to be vacuous; its theorems depend only on `propext` and `Quot.sound` (checked with `#print axioms`).
 
 The `SIRM.IntegratedLedger` scenarios include a migration at rate 3/2 (5 source units give 7 target units and dust 1; `5 * 3 = 7 * 2 + 1` checked with `decide`) with an invariant proof along it.
+
+The `SIRM.IntegratedLedger` scenarios include a dispute (after filing, release and expire are refused, the invariants still hold) and time (`advance` only forward), checked with `decide`.

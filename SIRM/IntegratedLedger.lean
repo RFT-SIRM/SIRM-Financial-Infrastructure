@@ -5,8 +5,8 @@ import SIRM.StateMachine
 # Integrated Ledger Invariants (proposal, not adopted)
 
 A concrete core state for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`)
-with the ledger operations transfer, issue, burn, the escrow operations open, release, cancel and
-expire, and the asset migration over one shared ledger, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
+with all ten operations over one shared ledger: transfer, issue, burn, the escrow operations open,
+release, cancel and expire, dispute, advance (time) and the asset migration, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
 
 Proved, for any authorization function and any validation that implies the ledger preconditions
 (`pre`), by induction over the pipeline:
@@ -24,8 +24,15 @@ What this does **not** cover, stated so that no reader assumes it:
 * Amounts are natural numbers: the `u128` overflow checks of the Rust and Python machines are not
   modelled (they only add denials, so they cannot break these invariants, but that is an argument, not
   a theorem here).
-* Time, deadlines, disputes (filings) and the clock are not modelled; they are further validation
-  conditions or have their own state. The real validation is stricter than `pre`.
+* **Disputes:** every filing belongs to a pending escrow record and its claimant is a party to it, so a
+  disputed escrow is frozen (release, cancel and expire need an empty filing slot): its funds stay in
+  the vault.
+* **Time:** the clock never goes backwards and a filing is never removed or changed, for every request
+  (`pipeline_now_monotone`, `pipeline_files_stable`).
+
+The real validation is stricter than `pre`. Not modelled: which principal may do what (authorization is
+arbitrary), the order in which deadline conditions are reported, and anything about the request cache
+beyond the generic pipeline.
 * Nothing connects this model to the Rust or Python machines except the shape of the operations; that
   evidence is differential testing. No Mathlib is used.
 -/
@@ -85,6 +92,12 @@ inductive Phase where
   | expired
   deriving DecidableEq
 
+/-- A dispute filing: the claimant and the time of filing. -/
+structure Filing where
+  claimant : Nat
+  filedAt : Nat
+  deriving DecidableEq
+
 structure Rec where
   dep : Nat
   ben : Nat
@@ -103,6 +116,10 @@ structure Core where
   tsrc : Nat
   ttgt : Nat
   dust : Nat
+  /-- The clock. -/
+  now : Nat
+  /-- Dispute filings by escrow id. -/
+  files : Nat → Option Filing
 
 /-- The asset-migration stream: `holder` burns `src`, `recipient` is issued `dst` at `num / den`. -/
 structure MigCfg where
@@ -118,9 +135,14 @@ structure Cfg where
   ids : Nat
   vault : Nat
   mig : Option MigCfg
+  /-- Escrow deadlines by id. -/
+  deadline : Nat → Nat
 
 def upd (bal : Nat → Nat → Nat) (s a v : Nat) : Nat → Nat → Nat :=
   fun s' => if s' = s then setAt (bal s) a v else bal s'
+
+def setFile (files : Nat → Option Filing) (id : Nat) (o : Option Filing) : Nat → Option Filing :=
+  fun i => if i = id then o else files i
 
 def setRec (recs : Nat → Option Rec) (id : Nat) (o : Option Rec) : Nat → Option Rec :=
   fun i => if i = id then o else recs i
@@ -148,6 +170,8 @@ inductive Op where
   | cancel (id : Nat)
   | expire (id : Nat)
   | migrate (amount : Nat)
+  | dispute (id claimant : Nat)
+  | advance (t : Nat)
   deriving DecidableEq
 
 structure Req where
@@ -196,6 +220,8 @@ def applyOp (cfg : Cfg) (c : Core) : Op → Core
   | .migrate amt => match cfg.mig with
       | some m => migrateEff c m amt
       | none => c
+  | .dispute id cl => { c with files := setFile c.files id (some ⟨cl, c.now⟩) }
+  | .advance t => { c with now := t }
 
 /-- Ledger preconditions of each operation. The real validation is stricter (time, filings, zero
 amounts, overflow, unknown accounts); the proofs only need these. -/
@@ -206,13 +232,23 @@ def pre (cfg : Cfg) (c : Core) : Op → Prop
   | .burn h s amt => h < cfg.accounts ∧ h ≠ cfg.vault ∧ amt ≤ c.bal s h
   | .open id dep ben s amt =>
       id < cfg.ids ∧ c.recs id = none ∧ dep < cfg.accounts ∧ ben < cfg.accounts ∧
-      dep ≠ cfg.vault ∧ ben ≠ cfg.vault ∧ amt ≤ c.bal s dep
-  | .release id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
-  | .cancel id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
-  | .expire id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
+      dep ≠ cfg.vault ∧ ben ≠ cfg.vault ∧ amt ≤ c.bal s dep ∧ c.now < cfg.deadline id
+  | .release id =>
+      id < cfg.ids ∧ c.files id = none ∧ c.now < cfg.deadline id ∧
+        ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
+  | .cancel id =>
+      id < cfg.ids ∧ c.files id = none ∧ c.now < cfg.deadline id ∧
+        ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
+  | .expire id =>
+      id < cfg.ids ∧ c.files id = none ∧ cfg.deadline id ≤ c.now ∧
+        ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
   | .migrate amt =>
       ∃ m, cfg.mig = some m ∧ 0 < m.den ∧ m.holder < cfg.accounts ∧ m.recipient < cfg.accounts ∧
         m.holder ≠ cfg.vault ∧ m.recipient ≠ cfg.vault ∧ amt ≤ c.bal m.src m.holder
+  | .dispute id cl =>
+      id < cfg.ids ∧ c.files id = none ∧ c.now < cfg.deadline id ∧
+        ∃ r, c.recs id = some r ∧ r.phase = Phase.pending ∧ (cl = r.dep ∨ cl = r.ben)
+  | .advance t => c.now < t
 
 /-- The invariants. -/
 structure Inv (cfg : Cfg) (c : Core) : Prop where
@@ -223,10 +259,14 @@ structure Inv (cfg : Cfg) (c : Core) : Prop where
   /-- The migration equation: `source * num = target * den + dust` and `dust < den`. -/
   migration : ∀ m, cfg.mig = some m → 0 < m.den →
     c.dust < m.den ∧ c.tsrc * m.num = c.ttgt * m.den + c.dust
+  /-- Every filing belongs to a pending escrow record and its claimant is a party to it, so a disputed
+  escrow is frozen: its funds stay in the vault. -/
+  filesOk : ∀ i f, c.files i = some f →
+    ∃ r, c.recs i = some r ∧ r.phase = Phase.pending ∧ (f.claimant = r.dep ∨ f.claimant = r.ben)
 
 def Core.empty : Core :=
   { bal := fun _ _ => 0, minted := fun _ => 0, burned := fun _ => 0, recs := fun _ => none,
-    tsrc := 0, ttgt := 0, dust := 0 }
+    tsrc := 0, ttgt := 0, dust := 0, now := 0, files := fun _ => none }
 
 theorem inv_empty (cfg : Cfg) : Inv cfg Core.empty where
   conserve := by intro s; simp [Core.empty, total_zero]
@@ -238,6 +278,7 @@ theorem inv_empty (cfg : Cfg) : Inv cfg Core.empty where
   migration := by
     intro m _ hden
     simp [Core.empty, hden]
+  filesOk := by intro i f h; simp [Core.empty] at h
 
 /-! ### Lemmas about `upd`, `move` and the pending sum -/
 
@@ -302,7 +343,7 @@ variable {cfg : Cfg} {c : Core}
 theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst s amt : Nat}
     (h : pre cfg c (.transfer src dst s amt)) : Inv cfg (applyOp cfg c (.transfer src dst s amt)) := by
   obtain ⟨hs, hd, hsv, hdv, ha⟩ := h
-  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration, inv.filesOk⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal s src dst amt t) cfg.accounts
     by_cases ht : t = s
@@ -323,7 +364,7 @@ theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst
 theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {r s amt : Nat}
     (h : pre cfg c (.issue r s amt)) : Inv cfg (applyOp cfg c (.issue r s amt)) := by
   obtain ⟨hr, hrv⟩ := h
-  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration, inv.filesOk⟩
   · intro t
     show (if t = s then c.minted t + amt else c.minted t) =
       c.burned t + total (upd c.bal s r (c.bal s r + amt) t) cfg.accounts
@@ -350,7 +391,7 @@ theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {r s amt : 
 theorem inv_burn (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {h s amt : Nat}
     (hp : pre cfg c (.burn h s amt)) : Inv cfg (applyOp cfg c (.burn h s amt)) := by
   obtain ⟨hh, hhv, ha⟩ := hp
-  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration, inv.filesOk⟩
   · intro t
     show c.minted t = (if t = s then c.burned t + amt else c.burned t) +
       total (upd c.bal s h (c.bal s h - amt) t) cfg.accounts
@@ -377,8 +418,8 @@ theorem inv_burn (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {h s amt : N
 theorem inv_open (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id dep ben s amt : Nat}
     (h : pre cfg c (.open id dep ben s amt)) :
     Inv cfg (applyOp cfg c (.open id dep ben s amt)) := by
-  obtain ⟨hid, hnone, hdep, hben, hdepv, hbenv, ha⟩ := h
-  refine ⟨?_, ?_, ?_, inv.migration⟩
+  obtain ⟨hid, hnone, hdep, hben, hdepv, hbenv, ha, _⟩ := h
+  refine ⟨?_, ?_, ?_, inv.migration, ?_⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal s dep cfg.vault amt t) cfg.accounts
     by_cases ht : t = s
@@ -414,10 +455,20 @@ theorem inv_open (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id dep ben s
       exact ⟨hdep, hben, hdepv, hbenv⟩
     · simp [setRec, hi] at hr'
       exact inv.recsOk i r hr'
+  · intro i f hf
+    by_cases hi : i = id
+    · subst hi
+      obtain ⟨r, hr, _⟩ := inv.filesOk i f hf
+      rw [hnone] at hr
+      cases hr
+    · obtain ⟨r, hr, hp, hcl⟩ := inv.filesOk i f hf
+      refine ⟨r, ?_, hp, hcl⟩
+      show setRec c.recs id (some ⟨dep, ben, s, amt, Phase.pending⟩) i = some r
+      simp [setRec, hi, hr]
 
 theorem inv_settle (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} {toBen : Bool}
     {ph : Phase} (hph : ph ≠ Phase.pending) {r : Rec} (hid : id < cfg.ids)
-    (hr : c.recs id = some r) (hp : r.phase = Phase.pending) :
+    (hr : c.recs id = some r) (hp : r.phase = Phase.pending) (hfree : c.files id = none) :
     Inv cfg (settle cfg c id toBen ph) := by
   have e : settle cfg c id toBen ph =
       { c with bal := move c.bal r.asset cfg.vault (if toBen then r.ben else r.dep) r.amount
@@ -433,7 +484,7 @@ theorem inv_settle (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} 
     rw [inv.backing r.asset]
     have := contrib_le_pendingSum c.recs id r.asset cfg.ids hid
     omega
-  refine ⟨?_, ?_, ?_, inv.migration⟩
+  refine ⟨?_, ?_, ?_, inv.migration, ?_⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal r.asset cfg.vault (if toBen then r.ben else r.dep) r.amount t) cfg.accounts
     by_cases ht : t = r.asset
@@ -469,6 +520,16 @@ theorem inv_settle (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} 
       exact ⟨hdep, hben, hdepv, hbenv⟩
     · simp [setRec, hi] at hr''
       exact inv.recsOk i r' hr''
+  · intro i f hf
+    by_cases hi : i = id
+    · exfalso
+      have hf' : c.files i = some f := hf
+      rw [hi, hfree] at hf'
+      cases hf'
+    · obtain ⟨r2, hr2, hp2, hcl⟩ := inv.filesOk i f hf
+      refine ⟨r2, ?_, hp2, hcl⟩
+      show setRec c.recs id (some { r with phase := ph }) i = some r2
+      simp [setRec, hi, hr2]
 
 theorem inv_migrate (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {amt : Nat}
     (h : pre cfg c (.migrate amt)) : Inv cfg (applyOp cfg c (.migrate amt)) := by
@@ -482,7 +543,7 @@ theorem inv_migrate (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {amt : Nat
     inv_issue hv i1 (show pre cfg (burnEff c m.holder m.src amt) (.issue m.recipient m.dst _)
       from ⟨hr, hrv⟩)
   obtain ⟨hlt, heq⟩ := inv.migration m hm hden
-  refine ⟨i2.conserve, i2.backing, i2.recsOk, ?_⟩
+  refine ⟨i2.conserve, i2.backing, i2.recsOk, ?_, i2.filesOk⟩
   intro m' hm' _
   have hmm : m' = m := by rw [hm] at hm'; exact (Option.some.inj hm').symm
   subst hmm
@@ -497,6 +558,24 @@ theorem inv_migrate (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {amt : Nat
   generalize (amt * m'.num + c.dust) / m'.den * m'.den = q at hdm ⊢
   omega
 
+theorem inv_dispute (inv : Inv cfg c) {id cl : Nat} (h : pre cfg c (.dispute id cl)) :
+    Inv cfg (applyOp cfg c (.dispute id cl)) := by
+  obtain ⟨hid, hfree, htime, r, hr, hp, hcl⟩ := h
+  refine ⟨inv.conserve, inv.backing, inv.recsOk, inv.migration, ?_⟩
+  intro i f hf
+  have hf' : setFile c.files id (some ⟨cl, c.now⟩) i = some f := hf
+  by_cases hi : i = id
+  · subst hi
+    simp [setFile] at hf'
+    subst hf'
+    exact ⟨r, hr, hp, hcl⟩
+  · simp [setFile, hi] at hf'
+    exact inv.filesOk i f hf'
+
+theorem inv_advance (inv : Inv cfg c) {t : Nat} :
+    Inv cfg (applyOp cfg c (.advance t)) :=
+  ⟨inv.conserve, inv.backing, inv.recsOk, inv.migration, inv.filesOk⟩
+
 /-- Every operation whose ledger preconditions hold preserves the invariants. -/
 theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) (h : pre cfg c op) :
     Inv cfg (applyOp cfg c op) := by
@@ -506,15 +585,55 @@ theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) 
   | burn x s amt => exact inv_burn hv inv h
   | «open» id dep ben s amt => exact inv_open hv inv h
   | migrate amt => exact inv_migrate hv inv h
+  | dispute id cl => exact inv_dispute inv h
+  | advance t => exact inv_advance inv
   | release id =>
-      obtain ⟨hid, r, hr, hp⟩ := h
-      exact inv_settle hv inv (by decide) hid hr hp
+      obtain ⟨hid, hfree, _, r, hr, hp⟩ := h
+      exact inv_settle hv inv (by decide) hid hr hp hfree
   | cancel id =>
-      obtain ⟨hid, r, hr, hp⟩ := h
-      exact inv_settle hv inv (by decide) hid hr hp
+      obtain ⟨hid, hfree, _, r, hr, hp⟩ := h
+      exact inv_settle hv inv (by decide) hid hr hp hfree
   | expire id =>
-      obtain ⟨hid, r, hr, hp⟩ := h
-      exact inv_settle hv inv (by decide) hid hr hp
+      obtain ⟨hid, hfree, _, r, hr, hp⟩ := h
+      exact inv_settle hv inv (by decide) hid hr hp hfree
+
+/-! ### Time and filings never go backwards -/
+
+theorem settle_now (cfg : Cfg) (c : Core) (id : Nat) (b : Bool) (ph : Phase) :
+    (settle cfg c id b ph).now = c.now := by
+  unfold settle; split <;> rfl
+
+theorem settle_files (cfg : Cfg) (c : Core) (id : Nat) (b : Bool) (ph : Phase) :
+    (settle cfg c id b ph).files = c.files := by
+  unfold settle; split <;> rfl
+
+theorem now_le_applyOp (op : Op) (h : pre cfg c op) : c.now ≤ (applyOp cfg c op).now := by
+  cases op with
+  | advance t => exact Nat.le_of_lt h
+  | migrate amt =>
+      show c.now ≤ (match cfg.mig with | some m => migrateEff c m amt | none => c).now
+      cases cfg.mig <;> exact Nat.le_refl _
+  | release id => exact Nat.le_of_eq (settle_now cfg c id true Phase.released).symm
+  | cancel id => exact Nat.le_of_eq (settle_now cfg c id false Phase.cancelled).symm
+  | expire id => exact Nat.le_of_eq (settle_now cfg c id false Phase.expired).symm
+  | _ => exact Nat.le_refl _
+
+/-- A filing is never removed or changed: the only operation that writes one needs the slot empty. -/
+theorem files_stable_applyOp (op : Op) (h : pre cfg c op) {i : Nat} {f : Filing}
+    (hf : c.files i = some f) : (applyOp cfg c op).files i = some f := by
+  cases op with
+  | dispute id cl =>
+      obtain ⟨_, hfree, _⟩ := h
+      have hne : i ≠ id := fun e => by rw [e, hfree] at hf; cases hf
+      show setFile c.files id (some ⟨cl, c.now⟩) i = some f
+      simp [setFile, hne, hf]
+  | migrate amt =>
+      show (match cfg.mig with | some m => migrateEff c m amt | none => c).files i = some f
+      cases cfg.mig <;> exact hf
+  | release id => show (settle cfg c id true Phase.released).files i = some f; rw [settle_files]; exact hf
+  | cancel id => show (settle cfg c id false Phase.cancelled).files i = some f; rw [settle_files]; exact hf
+  | expire id => show (settle cfg c id false Phase.expired).files i = some f; rw [settle_files]; exact hf
+  | _ => exact hf
 
 /-! ### The pipeline over this core -/
 
@@ -538,6 +657,37 @@ theorem pipeline_invariant (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
     Inv cfg (process (rules cfg auth validate) s id r).1.core :=
   process_preserves (rules cfg auth validate) s id r (Inv cfg)
     (fun c q _ hq hi => inv_applyOp hv hi q.op (hval c q hq)) h
+
+/-- A property that holds between a core and its successor under every accepted request, and is
+reflexive, holds between a state and the state after any request (denials, replays and rejected
+nonces leave the core as it was). -/
+theorem pipeline_rel (cfg : Cfg) (auth : Core → Req → Bool) (validate : Core → Req → Option Nat)
+    (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (Rel : Core → Core → Prop) (hrefl : ∀ c, Rel c c)
+    (hstep : ∀ c op, pre cfg c op → Rel c (applyOp cfg c op))
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) :
+    Rel s.core (process (rules cfg auth validate) s id r).1.core := by
+  rcases process_cases (rules cfg auth validate) s id r with hc | ⟨_, d, hc⟩ | ⟨_, ha, hv, hc, _⟩
+  · rw [hc]; exact hrefl _
+  · rw [hc]; exact hrefl _
+  · rw [hc]; exact hstep _ r.op (hval _ r hv)
+
+/-- The clock never goes backwards, for any request. -/
+theorem pipeline_now_monotone (cfg : Cfg) (auth : Core → Req → Bool)
+    (validate : Core → Req → Option Nat) (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) :
+    s.core.now ≤ (process (rules cfg auth validate) s id r).1.core.now :=
+  pipeline_rel cfg auth validate hval (fun a b => a.now ≤ b.now) (fun _ => Nat.le_refl _)
+    (fun _ op h => now_le_applyOp op h) s id r
+
+/-- A dispute filing is never removed or changed, for any request. -/
+theorem pipeline_files_stable (cfg : Cfg) (auth : Core → Req → Bool)
+    (validate : Core → Req → Option Nat) (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) {i : Nat} {f : Filing}
+    (hf : s.core.files i = some f) :
+    (process (rules cfg auth validate) s id r).1.core.files i = some f :=
+  pipeline_rel cfg auth validate hval (fun a b => a.files i = some f → b.files i = some f)
+    (fun _ h => h) (fun _ op h hf' => files_stable_applyOp op h hf') s id r hf
 
 /-- The machine: initial states have the empty core; a step is the processing of one request. -/
 def machine (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
@@ -569,7 +719,7 @@ theorem reachable_safe (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
 
 section Demo
 
-def cfg3 : Cfg := { accounts := 3, ids := 2, vault := 2, mig := none }
+def cfg3 : Cfg := { accounts := 3, ids := 2, vault := 2, mig := none, deadline := fun _ => 10 }
 
 def c1 : Core := applyOp cfg3 Core.empty (.issue 0 0 100)
 def c2 : Core := applyOp cfg3 c1 (.open 0 0 1 0 40)
@@ -582,7 +732,7 @@ theorem pre_open : pre cfg3 c1 (.open 0 0 1 0 40) := by
   simp [pre, cfg3, c1, applyOp, issueEff, upd, setAt, Core.empty]
 
 theorem pre_release : pre cfg3 c2 (.release 0) := by
-  refine ⟨by decide, ⟨0, 1, 0, 40, Phase.pending⟩, ?_, rfl⟩
+  refine ⟨by decide, by decide, by decide, ⟨0, 1, 0, 40, Phase.pending⟩, ?_, rfl⟩
   decide
 
 example : c2.bal 0 0 = 60 ∧ c2.bal 0 1 = 0 ∧ c2.bal 0 2 = 40 := by decide
@@ -595,7 +745,8 @@ example : Inv cfg3 c3 :=
     _ pre_release
 
 -- migration at rate 3/2 from asset 0 (account 0) to asset 1 (account 1): 5 * 3 = 15 = 7 * 2 + 1
-def cfgM : Cfg := { accounts := 3, ids := 2, vault := 2, mig := some ⟨0, 1, 0, 1, 3, 2⟩ }
+def cfgM : Cfg :=
+  { accounts := 3, ids := 2, vault := 2, mig := some ⟨0, 1, 0, 1, 3, 2⟩, deadline := fun _ => 10 }
 
 def m1 : Core := applyOp cfgM Core.empty (.issue 0 0 100)
 def m2 : Core := applyOp cfgM m1 (.migrate 5)
@@ -610,6 +761,30 @@ example : m2.bal 0 0 = 95 ∧ m2.bal 1 1 = 7 ∧ m2.dust = 1 ∧ m2.tsrc = 5 ∧
 example : m2.tsrc * 3 = m2.ttgt * 2 + m2.dust := by decide
 example : Inv cfgM m2 :=
   inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfgM) _ pre_issueM) _ pre_migrate
+
+-- a dispute freezes the escrow: after filing, release, cancel and expire are no longer allowed
+def d2 : Core := applyOp cfg3 c2 (.dispute 0 1)
+
+theorem pre_dispute : pre cfg3 c2 (.dispute 0 1) := by
+  refine ⟨by decide, by decide, by decide, ⟨0, 1, 0, 40, Phase.pending⟩, ?_, rfl, Or.inr rfl⟩
+  decide
+
+example : d2.files 0 = some ⟨1, 0⟩ := by decide
+example : ¬ pre cfg3 d2 (.release 0) := by
+  intro h
+  obtain ⟨_, hf, _⟩ := h
+  simp [d2, applyOp, setFile] at hf
+example : ¬ pre cfg3 d2 (.expire 0) := by
+  intro h
+  obtain ⟨_, hf, _⟩ := h
+  simp [d2, applyOp, setFile] at hf
+example : Inv cfg3 d2 :=
+  inv_applyOp (by decide)
+    (inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfg3) _ pre_issue) _ pre_open)
+    _ pre_dispute
+-- time only moves forward
+example : ¬ pre cfg3 d2 (.advance 0) := fun h => Nat.not_lt_zero _ h
+example : (applyOp cfg3 d2 (.advance 11)).now = 11 := by decide
 
 end Demo
 
