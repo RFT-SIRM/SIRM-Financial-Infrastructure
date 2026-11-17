@@ -268,3 +268,5 @@ The signed request layer v2 (`rust/sirm-codec/src/signed_v2.rs`, test `rust/sirm
 The `SIRM.IntegratedLedger` scenarios include a migration at rate 3/2 (5 source units give 7 target units and dust 1; `5 * 3 = 7 * 2 + 1` checked with `decide`) with an invariant proof along it.
 
 The `SIRM.IntegratedLedger` scenarios include a dispute (after filing, release and expire are refused, the invariants still hold) and time (`advance` only forward), checked with `decide`.
+
+The `SIRM.IntegratedLedger` authorization theorems (`no_debit_without_control`, `time_only_by_clock`, `filing_only_by_grant`, `mint_only_by_grant`) are universally quantified over policies and requests; they are proofs, not tests, and rely only on `propext` and `Quot.sound`.
