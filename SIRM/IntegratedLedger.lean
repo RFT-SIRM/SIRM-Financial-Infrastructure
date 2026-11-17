@@ -5,8 +5,8 @@ import SIRM.StateMachine
 # Integrated Ledger Invariants (proposal, not adopted)
 
 A concrete core state for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`)
-with the ledger operations transfer, issue, burn and the escrow operations open, release, cancel and
-expire over one shared ledger, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
+with the ledger operations transfer, issue, burn, the escrow operations open, release, cancel and
+expire, and the asset migration over one shared ledger, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
 
 Proved, for any authorization function and any validation that implies the ledger preconditions
 (`pre`), by induction over the pipeline:
@@ -14,6 +14,8 @@ Proved, for any authorization function and any validation that implies the ledge
 * **Conservation:** for every asset, `minted = burned + sum of all balances`.
 * **Vault backing:** for every asset, the vault balance equals the sum of the amounts of the pending
   escrows of that asset.
+* **Migration equation:** `total source * num = total target * den + dust` and `dust < den`, for the
+  configured migration stream (burn the source, issue `(amount * num + dust) / den`, carry the remainder).
 * The accounts of every escrow record are real accounts and are not the vault, so settlement never
   credits outside the ledger or the vault.
 
@@ -22,8 +24,8 @@ What this does **not** cover, stated so that no reader assumes it:
 * Amounts are natural numbers: the `u128` overflow checks of the Rust and Python machines are not
   modelled (they only add denials, so they cannot break these invariants, but that is an argument, not
   a theorem here).
-* Time, deadlines, disputes (filings), the clock and the asset migration are not modelled; they are
-  further validation conditions or have their own state. The real validation is stricter than `pre`.
+* Time, deadlines, disputes (filings) and the clock are not modelled; they are further validation
+  conditions or have their own state. The real validation is stricter than `pre`.
 * Nothing connects this model to the Rust or Python machines except the shape of the operations; that
   evidence is differential testing. No Mathlib is used.
 -/
@@ -97,11 +99,25 @@ structure Core where
   minted : Nat → Nat
   burned : Nat → Nat
   recs : Nat → Option Rec
+  /-- Migration totals: source amount migrated, target amount released, remainder carried. -/
+  tsrc : Nat
+  ttgt : Nat
+  dust : Nat
+
+/-- The asset-migration stream: `holder` burns `src`, `recipient` is issued `dst` at `num / den`. -/
+structure MigCfg where
+  holder : Nat
+  recipient : Nat
+  src : Nat
+  dst : Nat
+  num : Nat
+  den : Nat
 
 structure Cfg where
   accounts : Nat
   ids : Nat
   vault : Nat
+  mig : Option MigCfg
 
 def upd (bal : Nat → Nat → Nat) (s a v : Nat) : Nat → Nat → Nat :=
   fun s' => if s' = s then setAt (bal s) a v else bal s'
@@ -131,6 +147,7 @@ inductive Op where
   | release (id : Nat)
   | cancel (id : Nat)
   | expire (id : Nat)
+  | migrate (amount : Nat)
   deriving DecidableEq
 
 structure Req where
@@ -148,19 +165,37 @@ def settle (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) (ph : Phase) : Core 
                recs := setRec c.recs id (some { r with phase := ph }) }
   | none => c
 
+/-- Credit a newly issued amount. -/
+def issueEff (c : Core) (r s amt : Nat) : Core :=
+  { c with bal := upd c.bal s r (c.bal s r + amt)
+           minted := fun t => if t = s then c.minted t + amt else c.minted t }
+
+/-- Debit a burned amount. -/
+def burnEff (c : Core) (h s amt : Nat) : Core :=
+  { c with bal := upd c.bal s h (c.bal s h - amt)
+           burned := fun t => if t = s then c.burned t + amt else c.burned t }
+
+/-- One migration: burn `amt` of the source asset, issue `(amt * num + dust) / den` of the target
+asset, carry the remainder (the reference `migrate`). -/
+def migrateEff (c : Core) (m : MigCfg) (amt : Nat) : Core :=
+  let acc := amt * m.num + c.dust
+  let c2 := issueEff (burnEff c m.holder m.src amt) m.recipient m.dst (acc / m.den)
+  { c2 with tsrc := c.tsrc + amt, ttgt := c.ttgt + acc / m.den, dust := acc % m.den }
+
 /-- The effect of a request on the core state (meaningful when `pre` holds). -/
 def applyOp (cfg : Cfg) (c : Core) : Op → Core
   | .transfer src dst s amt => { c with bal := move c.bal s src dst amt }
-  | .issue r s amt =>
-      { c with bal := upd c.bal s r (c.bal s r + amt), minted := fun t => if t = s then c.minted t + amt else c.minted t }
-  | .burn h s amt =>
-      { c with bal := upd c.bal s h (c.bal s h - amt), burned := fun t => if t = s then c.burned t + amt else c.burned t }
+  | .issue r s amt => issueEff c r s amt
+  | .burn h s amt => burnEff c h s amt
   | .open id dep ben s amt =>
       { c with bal := move c.bal s dep cfg.vault amt
                recs := setRec c.recs id (some ⟨dep, ben, s, amt, Phase.pending⟩) }
   | .release id => settle cfg c id true Phase.released
   | .cancel id => settle cfg c id false Phase.cancelled
   | .expire id => settle cfg c id false Phase.expired
+  | .migrate amt => match cfg.mig with
+      | some m => migrateEff c m amt
+      | none => c
 
 /-- Ledger preconditions of each operation. The real validation is stricter (time, filings, zero
 amounts, overflow, unknown accounts); the proofs only need these. -/
@@ -175,6 +210,9 @@ def pre (cfg : Cfg) (c : Core) : Op → Prop
   | .release id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
   | .cancel id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
   | .expire id => id < cfg.ids ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
+  | .migrate amt =>
+      ∃ m, cfg.mig = some m ∧ 0 < m.den ∧ m.holder < cfg.accounts ∧ m.recipient < cfg.accounts ∧
+        m.holder ≠ cfg.vault ∧ m.recipient ≠ cfg.vault ∧ amt ≤ c.bal m.src m.holder
 
 /-- The invariants. -/
 structure Inv (cfg : Cfg) (c : Core) : Prop where
@@ -182,9 +220,13 @@ structure Inv (cfg : Cfg) (c : Core) : Prop where
   backing : ∀ s, c.bal s cfg.vault = pendingSum c.recs s cfg.ids
   recsOk : ∀ i r, c.recs i = some r →
     r.dep < cfg.accounts ∧ r.ben < cfg.accounts ∧ r.dep ≠ cfg.vault ∧ r.ben ≠ cfg.vault
+  /-- The migration equation: `source * num = target * den + dust` and `dust < den`. -/
+  migration : ∀ m, cfg.mig = some m → 0 < m.den →
+    c.dust < m.den ∧ c.tsrc * m.num = c.ttgt * m.den + c.dust
 
 def Core.empty : Core :=
-  { bal := fun _ _ => 0, minted := fun _ => 0, burned := fun _ => 0, recs := fun _ => none }
+  { bal := fun _ _ => 0, minted := fun _ => 0, burned := fun _ => 0, recs := fun _ => none,
+    tsrc := 0, ttgt := 0, dust := 0 }
 
 theorem inv_empty (cfg : Cfg) : Inv cfg Core.empty where
   conserve := by intro s; simp [Core.empty, total_zero]
@@ -193,6 +235,9 @@ theorem inv_empty (cfg : Cfg) : Inv cfg Core.empty where
     show 0 = pendingSum (fun _ => none) s cfg.ids
     exact (total_zero cfg.ids).symm
   recsOk := by intro i r h; simp [Core.empty] at h
+  migration := by
+    intro m _ hden
+    simp [Core.empty, hden]
 
 /-! ### Lemmas about `upd`, `move` and the pending sum -/
 
@@ -257,7 +302,7 @@ variable {cfg : Cfg} {c : Core}
 theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst s amt : Nat}
     (h : pre cfg c (.transfer src dst s amt)) : Inv cfg (applyOp cfg c (.transfer src dst s amt)) := by
   obtain ⟨hs, hd, hsv, hdv, ha⟩ := h
-  refine ⟨?_, ?_, inv.recsOk⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal s src dst amt t) cfg.accounts
     by_cases ht : t = s
@@ -278,7 +323,7 @@ theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst
 theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {r s amt : Nat}
     (h : pre cfg c (.issue r s amt)) : Inv cfg (applyOp cfg c (.issue r s amt)) := by
   obtain ⟨hr, hrv⟩ := h
-  refine ⟨?_, ?_, inv.recsOk⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
   · intro t
     show (if t = s then c.minted t + amt else c.minted t) =
       c.burned t + total (upd c.bal s r (c.bal s r + amt) t) cfg.accounts
@@ -305,7 +350,7 @@ theorem inv_issue (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {r s amt : 
 theorem inv_burn (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {h s amt : Nat}
     (hp : pre cfg c (.burn h s amt)) : Inv cfg (applyOp cfg c (.burn h s amt)) := by
   obtain ⟨hh, hhv, ha⟩ := hp
-  refine ⟨?_, ?_, inv.recsOk⟩
+  refine ⟨?_, ?_, inv.recsOk, inv.migration⟩
   · intro t
     show c.minted t = (if t = s then c.burned t + amt else c.burned t) +
       total (upd c.bal s h (c.bal s h - amt) t) cfg.accounts
@@ -333,7 +378,7 @@ theorem inv_open (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id dep ben s
     (h : pre cfg c (.open id dep ben s amt)) :
     Inv cfg (applyOp cfg c (.open id dep ben s amt)) := by
   obtain ⟨hid, hnone, hdep, hben, hdepv, hbenv, ha⟩ := h
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, inv.migration⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal s dep cfg.vault amt t) cfg.accounts
     by_cases ht : t = s
@@ -388,7 +433,7 @@ theorem inv_settle (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} 
     rw [inv.backing r.asset]
     have := contrib_le_pendingSum c.recs id r.asset cfg.ids hid
     omega
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, inv.migration⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal r.asset cfg.vault (if toBen then r.ben else r.dep) r.amount t) cfg.accounts
     by_cases ht : t = r.asset
@@ -425,6 +470,33 @@ theorem inv_settle (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} 
     · simp [setRec, hi] at hr''
       exact inv.recsOk i r' hr''
 
+theorem inv_migrate (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {amt : Nat}
+    (h : pre cfg c (.migrate amt)) : Inv cfg (applyOp cfg c (.migrate amt)) := by
+  obtain ⟨m, hm, hden, hh, hr, hhv, hrv, ha⟩ := h
+  have e : applyOp cfg c (.migrate amt) = migrateEff c m amt := by simp [applyOp, hm]
+  rw [e]
+  have i1 : Inv cfg (burnEff c m.holder m.src amt) :=
+    inv_burn hv inv (show pre cfg c (.burn m.holder m.src amt) from ⟨hh, hhv, ha⟩)
+  have i2 : Inv cfg (issueEff (burnEff c m.holder m.src amt) m.recipient m.dst
+      ((amt * m.num + c.dust) / m.den)) :=
+    inv_issue hv i1 (show pre cfg (burnEff c m.holder m.src amt) (.issue m.recipient m.dst _)
+      from ⟨hr, hrv⟩)
+  obtain ⟨hlt, heq⟩ := inv.migration m hm hden
+  refine ⟨i2.conserve, i2.backing, i2.recsOk, ?_⟩
+  intro m' hm' _
+  have hmm : m' = m := by rw [hm] at hm'; exact (Option.some.inj hm').symm
+  subst hmm
+  show (amt * m'.num + c.dust) % m'.den < m'.den ∧
+    (c.tsrc + amt) * m'.num = (c.ttgt + (amt * m'.num + c.dust) / m'.den) * m'.den +
+      (amt * m'.num + c.dust) % m'.den
+  refine ⟨Nat.mod_lt _ hden, ?_⟩
+  have hdm : (amt * m'.num + c.dust) / m'.den * m'.den + (amt * m'.num + c.dust) % m'.den =
+      amt * m'.num + c.dust := by
+    rw [Nat.mul_comm]; exact Nat.div_add_mod _ _
+  rw [Nat.add_mul, Nat.add_mul, heq]
+  generalize (amt * m'.num + c.dust) / m'.den * m'.den = q at hdm ⊢
+  omega
+
 /-- Every operation whose ledger preconditions hold preserves the invariants. -/
 theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) (h : pre cfg c op) :
     Inv cfg (applyOp cfg c op) := by
@@ -433,6 +505,7 @@ theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) 
   | issue r s amt => exact inv_issue hv inv h
   | burn x s amt => exact inv_burn hv inv h
   | «open» id dep ben s amt => exact inv_open hv inv h
+  | migrate amt => exact inv_migrate hv inv h
   | release id =>
       obtain ⟨hid, r, hr, hp⟩ := h
       exact inv_settle hv inv (by decide) hid hr hp
@@ -496,7 +569,7 @@ theorem reachable_safe (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
 
 section Demo
 
-def cfg3 : Cfg := { accounts := 3, ids := 2, vault := 2 }
+def cfg3 : Cfg := { accounts := 3, ids := 2, vault := 2, mig := none }
 
 def c1 : Core := applyOp cfg3 Core.empty (.issue 0 0 100)
 def c2 : Core := applyOp cfg3 c1 (.open 0 0 1 0 40)
@@ -506,7 +579,7 @@ theorem pre_issue : pre cfg3 Core.empty (.issue 0 0 100) := by
   simp [pre, cfg3]
 
 theorem pre_open : pre cfg3 c1 (.open 0 0 1 0 40) := by
-  simp [pre, cfg3, c1, applyOp, upd, setAt, Core.empty]
+  simp [pre, cfg3, c1, applyOp, issueEff, upd, setAt, Core.empty]
 
 theorem pre_release : pre cfg3 c2 (.release 0) := by
   refine ⟨by decide, ⟨0, 1, 0, 40, Phase.pending⟩, ?_, rfl⟩
@@ -520,6 +593,23 @@ example : Inv cfg3 c3 :=
   inv_applyOp (by decide)
     (inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfg3) _ pre_issue) _ pre_open)
     _ pre_release
+
+-- migration at rate 3/2 from asset 0 (account 0) to asset 1 (account 1): 5 * 3 = 15 = 7 * 2 + 1
+def cfgM : Cfg := { accounts := 3, ids := 2, vault := 2, mig := some ⟨0, 1, 0, 1, 3, 2⟩ }
+
+def m1 : Core := applyOp cfgM Core.empty (.issue 0 0 100)
+def m2 : Core := applyOp cfgM m1 (.migrate 5)
+
+theorem pre_issueM : pre cfgM Core.empty (.issue 0 0 100) := by
+  simp [pre, cfgM]
+
+theorem pre_migrate : pre cfgM m1 (.migrate 5) := by
+  simp [pre, cfgM, m1, applyOp, issueEff, upd, setAt, Core.empty]
+
+example : m2.bal 0 0 = 95 ∧ m2.bal 1 1 = 7 ∧ m2.dust = 1 ∧ m2.tsrc = 5 ∧ m2.ttgt = 7 := by decide
+example : m2.tsrc * 3 = m2.ttgt * 2 + m2.dust := by decide
+example : Inv cfgM m2 :=
+  inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfgM) _ pre_issueM) _ pre_migrate
 
 end Demo
 
