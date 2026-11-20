@@ -22,8 +22,8 @@ Proved, for any authorization function and any validation that implies the ledge
 What this does **not** cover, stated so that no reader assumes it:
 
 * Amounts are natural numbers: the `u128` overflow checks of the Rust and Python machines are not
-  modelled (they only add denials, so they cannot break these invariants, but that is an argument, not
-  a theorem here).
+  modelled in this file. `SIRM.BoundedAmounts` adds a ceiling as one more validation step and proves
+  the invariants together with the bounds; that it matches the Rust checks is not proved.
 * **Disputes:** every filing belongs to a pending escrow record and its claimant is a party to it, so a
   disputed escrow is frozen (release, cancel and expire need an empty filing slot): its funds stay in
   the vault.
