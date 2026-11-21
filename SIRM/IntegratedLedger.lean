@@ -177,6 +177,7 @@ inductive Op where
   | migrate (amount : Nat)
   | dispute (id claimant : Nat)
   | advance (t : Nat)
+  | resolve (id : Nat) (toBen : Bool)
   deriving DecidableEq
 
 structure Req where
@@ -193,6 +194,15 @@ def settle (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) (ph : Phase) : Core 
       { c with bal := move c.bal r.asset cfg.vault (if toBen then r.ben else r.dep) r.amount
                recs := setRec c.recs id (some { r with phase := ph }) }
   | none => c
+
+/-- Remove the filing of one escrow. -/
+def clearFile (c : Core) (id : Nat) : Core :=
+  { c with files := setFile c.files id none }
+
+/-- Resolve a disputed escrow: the filing is consumed, then the vault pays the beneficiary (`toBen`,
+phase `released`) or the depositor (phase `cancelled`). -/
+def resolveEff (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) : Core :=
+  settle cfg (clearFile c id) id toBen (if toBen then Phase.released else Phase.cancelled)
 
 /-- Credit a newly issued amount. -/
 def issueEff (c : Core) (r s amt : Nat) : Core :=
@@ -227,6 +237,7 @@ def applyOp (cfg : Cfg) (c : Core) : Op → Core
       | none => c
   | .dispute id cl => { c with files := setFile c.files id (some ⟨cl, c.now⟩) }
   | .advance t => { c with now := t }
+  | .resolve id toBen => resolveEff cfg c id toBen
 
 /-- Ledger preconditions of each operation. The real validation is stricter (time, filings, zero
 amounts, overflow, unknown accounts); the proofs only need these. -/
@@ -254,6 +265,8 @@ def pre (cfg : Cfg) (c : Core) : Op → Prop
       id < cfg.ids ∧ c.files id = none ∧ c.now < cfg.deadline id ∧
         ∃ r, c.recs id = some r ∧ r.phase = Phase.pending ∧ (cl = r.dep ∨ cl = r.ben)
   | .advance t => c.now < t
+  | .resolve id _ =>
+      id < cfg.ids ∧ (∃ f, c.files id = some f) ∧ ∃ r, c.recs id = some r ∧ r.phase = Phase.pending
 
 /-- The invariants. -/
 structure Inv (cfg : Cfg) (c : Core) : Prop where
@@ -581,6 +594,24 @@ theorem inv_advance (inv : Inv cfg c) {t : Nat} :
     Inv cfg (applyOp cfg c (.advance t)) :=
   ⟨inv.conserve, inv.backing, inv.recsOk, inv.migration, inv.filesOk⟩
 
+theorem inv_clearFile {cfg : Cfg} {c : Core} (inv : Inv cfg c) (id : Nat) :
+    Inv cfg (clearFile c id) := by
+  refine ⟨inv.conserve, inv.backing, inv.recsOk, inv.migration, ?_⟩
+  intro i f h
+  by_cases hi : i = id
+  · simp [clearFile, setFile, hi] at h
+  · have h' : c.files i = some f := by simpa [clearFile, setFile, hi] using h
+    exact inv.filesOk i f h'
+
+theorem inv_resolveEff (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {id : Nat} {r : Rec}
+    (hid : id < cfg.ids) (hr : c.recs id = some r) (hp : r.phase = Phase.pending) (toBen : Bool) :
+    Inv cfg (resolveEff cfg c id toBen) := by
+  have hfree : (clearFile c id).files id = none := by simp [clearFile, setFile]
+  have hr' : (clearFile c id).recs id = some r := hr
+  have hph : (if toBen then Phase.released else Phase.cancelled) ≠ Phase.pending := by
+    cases toBen <;> decide
+  exact inv_settle hv (inv_clearFile inv id) hph hid hr' hp hfree
+
 /-- Every operation whose ledger preconditions hold preserves the invariants. -/
 theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) (h : pre cfg c op) :
     Inv cfg (applyOp cfg c op) := by
@@ -592,6 +623,9 @@ theorem inv_applyOp (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) (op : Op) 
   | migrate amt => exact inv_migrate hv inv h
   | dispute id cl => exact inv_dispute inv h
   | advance t => exact inv_advance inv
+  | resolve id toBen =>
+      obtain ⟨hid, _, r, hr, hp⟩ := h
+      exact inv_resolveEff hv inv hid hr hp toBen
   | release id =>
       obtain ⟨hid, hfree, _, r, hr, hp⟩ := h
       exact inv_settle hv inv (by decide) hid hr hp hfree
@@ -621,12 +655,20 @@ theorem now_le_applyOp (op : Op) (h : pre cfg c op) : c.now ≤ (applyOp cfg c o
   | release id => exact Nat.le_of_eq (settle_now cfg c id true Phase.released).symm
   | cancel id => exact Nat.le_of_eq (settle_now cfg c id false Phase.cancelled).symm
   | expire id => exact Nat.le_of_eq (settle_now cfg c id false Phase.expired).symm
+  | resolve id toBen =>
+      exact Nat.le_of_eq (settle_now cfg (clearFile c id) id toBen _).symm
   | _ => exact Nat.le_refl _
 
-/-- A filing is never removed or changed: the only operation that writes one needs the slot empty. -/
+/-- A filing is never changed, and removed only by `resolve` on that escrow: the only operation that
+writes one needs the slot empty. -/
 theorem files_stable_applyOp (op : Op) (h : pre cfg c op) {i : Nat} {f : Filing}
-    (hf : c.files i = some f) : (applyOp cfg c op).files i = some f := by
+    (hf : c.files i = some f) (hne : ∀ b, op ≠ .resolve i b) : (applyOp cfg c op).files i = some f := by
   cases op with
+  | resolve id toBen =>
+      have hne' : i ≠ id := fun e => hne toBen (by rw [e])
+      show (settle cfg (clearFile c id) id toBen _).files i = some f
+      rw [settle_files]
+      simpa [clearFile, setFile, hne'] using hf
   | dispute id cl =>
       obtain ⟨_, hfree, _⟩ := h
       have hne : i ≠ id := fun e => by rw [e, hfree] at hf; cases hf
@@ -685,14 +727,17 @@ theorem pipeline_now_monotone (cfg : Cfg) (auth : Core → Req → Bool)
   pipeline_rel cfg auth validate hval (fun a b => a.now ≤ b.now) (fun _ => Nat.le_refl _)
     (fun _ op h => now_le_applyOp op h) s id r
 
-/-- A dispute filing is never removed or changed, for any request. -/
+/-- A dispute filing is never removed or changed by a request that is not a `resolve` of that
+escrow. (Removal by `resolve` needs the arbiter grant: `filing_removed_only_by_resolve_grant`.) -/
 theorem pipeline_files_stable (cfg : Cfg) (auth : Core → Req → Bool)
     (validate : Core → Req → Option Nat) (hval : ∀ c r, validate c r = none → pre cfg c r.op)
     (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) {i : Nat} {f : Filing}
-    (hf : s.core.files i = some f) :
-    (process (rules cfg auth validate) s id r).1.core.files i = some f :=
-  pipeline_rel cfg auth validate hval (fun a b => a.files i = some f → b.files i = some f)
-    (fun _ h => h) (fun _ op h hf' => files_stable_applyOp op h hf') s id r hf
+    (hf : s.core.files i = some f) (hne : ∀ b, r.op ≠ .resolve i b) :
+    (process (rules cfg auth validate) s id r).1.core.files i = some f := by
+  rcases process_cases (rules cfg auth validate) s id r with hc | ⟨_, d, hc⟩ | ⟨_, ha, hv, hc, _⟩
+  · rw [hc]; exact hf
+  · rw [hc]; exact hf
+  · rw [hc]; exact files_stable_applyOp r.op (hval _ r hv) hf hne
 
 /-- The machine: initial states have the empty core; a step is the processing of one request. -/
 def machine (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
@@ -733,6 +778,7 @@ inductive Kind where
   | cancel
   | expire
   | dispute
+  | resolve
   deriving DecidableEq
 
 /-- A static policy; nothing is granted by default. `controls p a`: principal `p` controls account
@@ -768,6 +814,7 @@ def authorizedOp (cfg : Cfg) (pol : Policy) (p : Nat) : Op → Bool
   | .expire id => pol.ids p .expire id
   | .dispute id cl => pol.ids p .dispute id && pol.controls p cl
   | .advance _ => pol.clock p
+  | .resolve id _ => pol.ids p .resolve id
   | .migrate amt =>
       match cfg.mig with
       | some m =>
@@ -893,6 +940,10 @@ theorem bal_ge_step (cfg : Cfg) (pol : Policy) (c : Core) (p : Nat) (op : Op)
       rw [settle_bal hr]; exact move_ge _ _ _ _ _ _ _ hav
   | dispute id cl => exact Nat.le_refl _
   | advance t' => exact Nat.le_refl _
+  | resolve id toBen =>
+      obtain ⟨_, _, r, hr, _⟩ := hpre
+      show c.bal t a ≤ (settle cfg (clearFile c id) id toBen _).bal t a
+      rw [settle_bal (c := clearFile c id) (r := r) hr]; exact move_ge _ _ _ _ _ _ _ hav
   | migrate amt =>
       obtain ⟨m, hm, _⟩ := hpre
       have hauth' := hauth
@@ -948,6 +999,7 @@ theorem time_only_by_clock (cfg : Cfg) (pol : Policy) (validate : Core → Req �
       | release id => intro h; exact absurd (settle_now cfg c id true Phase.released) h
       | cancel id => intro h; exact absurd (settle_now cfg c id false Phase.cancelled) h
       | expire id => intro h; exact absurd (settle_now cfg c id false Phase.expired) h
+      | resolve id toBen => intro h; exact absurd (settle_now cfg (clearFile c id) id toBen _) h
       | _ => intro h; exact absurd rfl h)
     s id r h
 
@@ -997,9 +1049,35 @@ theorem filing_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req
           exfalso
           have : (settle cfg c id' false Phase.expired).files i = some f := h1
           rw [settle_files, h0] at this; cases this
+      | resolve id' toBen =>
+          exfalso
+          have h2 : (settle cfg (clearFile c id') id' toBen _).files i = some f := h1
+          rw [settle_files] at h2
+          by_cases hi : i = id'
+          · subst hi; simp [clearFile, setFile] at h2
+          · have h3 : c.files i = some f := by simpa [clearFile, setFile, hi] using h2
+            rw [h0] at h3; cases h3
       | _ => exfalso; have h2 : c.files i = some f := h1
              rw [h0] at h2; cases h2)
     s id r i f h0 h1
+
+/-- A filing disappears only through a `resolve` of that escrow by a principal holding the arbiter
+grant for it. -/
+theorem filing_removed_only_by_resolve_grant (cfg : Cfg) (pol : Policy)
+    (validate : Core → Req → Option Nat) (hval : ∀ c r, validate c r = none → pre cfg c r.op)
+    (s : State Nat Nat Req Core Nat) (id : Nat) (r : Req) {i : Nat} {f : Filing}
+    (h0 : s.core.files i = some f)
+    (h1 : (process (rules cfg (policyAuth cfg pol) validate) s id r).1.core.files i ≠ some f) :
+    pol.ids r.principal .resolve i = true :=
+  pipeline_rel_p cfg pol validate hval
+    (fun p c c' => ∀ f, c.files i = some f → c'.files i ≠ some f → pol.ids p .resolve i = true)
+    (fun _ _ f h0 h1 => absurd h0 h1)
+    (fun c op p ha hp f h0 h1 => by
+      by_cases hr : ∃ b, op = .resolve i b
+      · obtain ⟨b, rfl⟩ := hr
+        exact ha
+      · exact absurd (files_stable_applyOp op hp h0 (fun b e => hr ⟨b, e⟩)) h1)
+    s id r f h0 h1
 
 /-- Supply grows only through an issue grant (the issuer is controlled and the asset has a cap) or
 through the configured migration stream, whose holder the sender controls. -/
@@ -1050,6 +1128,10 @@ theorem mint_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req �
       | release id' => exfalso; rw [show (applyOp cfg c (.release id')).minted t = c.minted t from by rw [show applyOp cfg c (.release id') = settle cfg c id' true Phase.released from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
       | cancel id' => exfalso; rw [show (applyOp cfg c (.cancel id')).minted t = c.minted t from by rw [show applyOp cfg c (.cancel id') = settle cfg c id' false Phase.cancelled from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
       | expire id' => exfalso; rw [show (applyOp cfg c (.expire id')).minted t = c.minted t from by rw [show applyOp cfg c (.expire id') = settle cfg c id' false Phase.expired from rfl, settle_minted]] at h; exact Nat.lt_irrefl _ h
+      | resolve id' toBen => exfalso; exact Nat.lt_irrefl _ (by
+          have e : (applyOp cfg c (.resolve id' toBen)).minted t = c.minted t :=
+            settle_minted cfg (clearFile c id') id' toBen _ ▸ rfl
+          rw [e] at h; exact h)
       | _ => exfalso; exact Nat.lt_irrefl _ h)
     s id r t h
 
@@ -1120,6 +1202,24 @@ example : Inv cfg3 d2 :=
   inv_applyOp (by decide)
     (inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfg3) _ pre_issue) _ pre_open)
     _ pre_dispute
+-- the arbiter exit: resolving the disputed escrow pays the beneficiary and consumes the filing
+def d3 : Core := applyOp cfg3 d2 (.resolve 0 true)
+
+theorem pre_resolve : pre cfg3 d2 (.resolve 0 true) := by
+  refine ⟨by decide, ⟨⟨1, 0⟩, by decide⟩, ⟨0, 1, 0, 40, Phase.pending⟩, ?_, rfl⟩
+  decide
+
+example : d3.bal 0 0 = 60 ∧ d3.bal 0 1 = 40 ∧ d3.bal 0 2 = 0 := by decide
+example : d3.files 0 = none := by decide
+example : Inv cfg3 d3 :=
+  inv_applyOp (by decide)
+    (inv_applyOp (by decide) (inv_applyOp (by decide) (inv_applyOp (by decide) (inv_empty cfg3) _ pre_issue) _ pre_open) _ pre_dispute)
+    _ pre_resolve
+-- without a filing there is nothing to resolve
+example : ¬ pre cfg3 c2 (.resolve 0 true) := by
+  intro h
+  obtain ⟨_, ⟨f, hf⟩, _⟩ := h
+  simp [c2, c1, applyOp, issueEff, Core.empty] at hf
 -- time only moves forward
 example : ¬ pre cfg3 d2 (.advance 0) := fun h => Nat.not_lt_zero _ h
 example : (applyOp cfg3 d2 (.advance 11)).now = 11 := by decide

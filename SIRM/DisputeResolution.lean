@@ -35,38 +35,12 @@ namespace DisputeResolution
 
 open IntegratedPipeline IntegratedLedger BoundedAmounts
 
-/-- Remove the filing of one escrow. -/
-def clearFile (c : Core) (id : Nat) : Core :=
-  { c with files := setFile c.files id none }
-
-/-- Pay the escrow to the beneficiary (`toBen`) or the depositor and consume its filing. -/
-def resolve (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) : Core :=
-  settle cfg (clearFile c id) id toBen (if toBen then Phase.released else Phase.cancelled)
-
 /-- The guarded step: acts only with the arbiter permission, on a pending escrow with a filing. -/
 def resolveStep (cfg : Cfg) (arb : Nat → Nat → Bool) (c : Core) (p id : Nat) (toBen : Bool) : Core :=
   match c.recs id, c.files id with
   | some r, some _ =>
-      if arb p id = true ∧ id < cfg.ids ∧ r.phase = Phase.pending then resolve cfg c id toBen else c
+      if arb p id = true ∧ id < cfg.ids ∧ r.phase = Phase.pending then resolveEff cfg c id toBen else c
   | _, _ => c
-
-theorem inv_clearFile {cfg : Cfg} {c : Core} (inv : Inv cfg c) (id : Nat) :
-    Inv cfg (clearFile c id) := by
-  refine ⟨inv.conserve, inv.backing, inv.recsOk, inv.migration, ?_⟩
-  intro i f h
-  by_cases hi : i = id
-  · simp [clearFile, setFile, hi] at h
-  · have h' : c.files i = some f := by simpa [clearFile, setFile, hi] using h
-    exact inv.filesOk i f h'
-
-theorem inv_resolve {cfg : Cfg} {c : Core} (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c)
-    {id : Nat} {r : Rec} (hid : id < cfg.ids) (hr : c.recs id = some r)
-    (hp : r.phase = Phase.pending) (toBen : Bool) : Inv cfg (resolve cfg c id toBen) := by
-  have hfree : (clearFile c id).files id = none := by simp [clearFile, setFile]
-  have hr' : (clearFile c id).recs id = some r := hr
-  have hph : (if toBen then Phase.released else Phase.cancelled) ≠ Phase.pending := by
-    cases toBen <;> decide
-  exact inv_settle hv (inv_clearFile inv id) hph hid hr' hp hfree
 
 theorem resolveStep_inv {cfg : Cfg} {c : Core} (hv : cfg.vault < cfg.accounts) (inv : Inv cfg c)
     (arb : Nat → Nat → Bool) (p id : Nat) (toBen : Bool) :
@@ -76,7 +50,7 @@ theorem resolveStep_inv {cfg : Cfg} {c : Core} (hv : cfg.vault < cfg.accounts) (
   · rename_i r f hr hf
     split
     · rename_i h
-      exact inv_resolve hv inv h.2.1 hr h.2.2 toBen
+      exact inv_resolveEff hv inv h.2.1 hr h.2.2 toBen
     · exact inv
   · exact inv
 
@@ -115,43 +89,43 @@ theorem resolveStep_not_pending (cfg : Cfg) (arb : Nat → Nat → Bool) (c : Co
 
 theorem resolve_balance {cfg : Cfg} {c : Core} {id : Nat} {r : Rec} (hr : c.recs id = some r)
     (toBen : Bool) :
-    (resolve cfg c id toBen).bal =
+    (resolveEff cfg c id toBen).bal =
       move c.bal r.asset cfg.vault (if toBen then r.ben else r.dep) r.amount :=
   settle_bal (c := clearFile c id) (id := id) (r := r) hr
 
 theorem resolve_recs {cfg : Cfg} {c : Core} {id : Nat} {r : Rec} (hr : c.recs id = some r)
     (toBen : Bool) :
-    (resolve cfg c id toBen).recs id =
+    (resolveEff cfg c id toBen).recs id =
       some { r with phase := if toBen then Phase.released else Phase.cancelled } := by
   have hr' : (clearFile c id).recs id = some r := hr
-  simp [resolve, settle, hr', setRec]
+  simp [resolveEff, settle, hr', setRec]
 
 theorem resolve_files (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) :
-    (resolve cfg c id toBen).files id = none := by
-  unfold resolve settle
+    (resolveEff cfg c id toBen).files id = none := by
+  unfold resolveEff settle
   split <;> simp [clearFile, setFile]
 
 theorem resolve_supply (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) :
-    (resolve cfg c id toBen).minted = c.minted ∧ (resolve cfg c id toBen).burned = c.burned ∧
-    (resolve cfg c id toBen).tsrc = c.tsrc ∧ (resolve cfg c id toBen).ttgt = c.ttgt ∧
-    (resolve cfg c id toBen).dust = c.dust := by
-  unfold resolve settle
+    (resolveEff cfg c id toBen).minted = c.minted ∧ (resolveEff cfg c id toBen).burned = c.burned ∧
+    (resolveEff cfg c id toBen).tsrc = c.tsrc ∧ (resolveEff cfg c id toBen).ttgt = c.ttgt ∧
+    (resolveEff cfg c id toBen).dust = c.dust := by
+  unfold resolveEff settle
   split <;> exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 theorem resolve_now (cfg : Cfg) (c : Core) (id : Nat) (toBen : Bool) :
-    (resolve cfg c id toBen).now = c.now := by
-  unfold resolve settle
+    (resolveEff cfg c id toBen).now = c.now := by
+  unfold resolveEff settle
   split <;> rfl
 
 theorem resolve_bounded {cfg : Cfg} {lim : Nat} {c : Core} (b : Bounded lim c) (id : Nat)
-    (toBen : Bool) : Bounded lim (resolve cfg c id toBen) := by
+    (toBen : Bool) : Bounded lim (resolveEff cfg c id toBen) := by
   have hb : Bounded lim (clearFile c id) := ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
   exact bounded_settle cfg lim hb id toBen _
 
 /-- A resolved escrow cannot be resolved again, and the arbiter's grant does not help. -/
 theorem resolve_once {cfg : Cfg} {c : Core} {id : Nat} {r : Rec} (hr : c.recs id = some r)
     (arb : Nat → Nat → Bool) (p : Nat) (toBen toBen' : Bool) :
-    resolveStep cfg arb (resolve cfg c id toBen) p id toBen' = resolve cfg c id toBen := by
+    resolveStep cfg arb (resolveEff cfg c id toBen) p id toBen' = resolveEff cfg c id toBen := by
   apply resolveStep_not_pending cfg arb _ p id toBen' (r := { r with phase := if toBen then Phase.released else Phase.cancelled })
   · exact resolve_recs hr toBen
   · cases toBen <;> simp
