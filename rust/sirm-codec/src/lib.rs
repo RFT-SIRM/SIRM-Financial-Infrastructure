@@ -31,6 +31,7 @@ pub mod request_v1;
 pub mod request_v2;
 pub mod signed;
 pub mod signed_v2;
+pub mod signed_v3;
 pub mod timelock;
 
 use sha2::{Digest, Sha256};
