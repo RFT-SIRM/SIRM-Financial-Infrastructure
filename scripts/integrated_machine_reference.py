@@ -68,7 +68,7 @@ class IM:
             i, dep, ben, asset, amt = a
             k = (p, "open", dep, ben, asset)
             return (p, dep) in c and k in L and amt <= L[k]
-        if op in ("release", "cancel", "expire"):
+        if op in ("release", "cancel", "expire", "resolve"):
             return (p, op, a[0]) in self.idg
         if op == "dispute":
             return (p, "dispute", a[0]) in self.idg and (p, a[1]) in c
@@ -122,6 +122,11 @@ class IM:
             if op == "expire" and self.now < self.dl[i]: return op + ":e"
             if op != "expire" and self.now >= self.dl[i]: return op + ":d"
             return None
+        if op == "resolve":
+            i = a[0]
+            if i >= len(self.dl) or i not in self.recs: return "resolve:w"
+            if self.recs[i][4] != "pending": return "resolve:n"
+            return None if i in self.files else "resolve:o"
         if op == "dispute":
             i, claimant = a
             if i >= len(self.dl) or i not in self.recs: return "dispute:w"
@@ -170,6 +175,13 @@ class IM:
             to = ben if op == "release" else dep
             self.bal[(v, s)] -= amt; self.bal[(to, s)] += amt
             r[4] = {"release": "released", "cancel": "cancelled", "expire": "expired"}[op]
+        elif op == "resolve":
+            i, to_ben = a
+            r = self.recs[i]
+            dep, ben, s, amt, _ = r
+            self.bal[(v, s)] -= amt; self.bal[(ben if to_ben else dep, s)] += amt
+            r[4] = "released" if to_ben else "cancelled"
+            del self.files[i]
         elif op == "dispute":
             self.files[a[0]] = [p, a[1], self.now]
         elif op == "advance":
@@ -287,8 +299,12 @@ def L_ok(m, x):
     return m.bal[(x[0][2], x[0][4])] > 0
 
 
-def episode(rnd, n):
+def episode(rnd, n, arbiter=False):
+    """One random episode. With `arbiter` the resolve operation is also drawn and granted (its own
+    trace, `scripts/integrated_resolve_reference_trace.py`); the default draws are unchanged."""
     vault, lim, controls, idg, clock, mig, deadlines = genesis(rnd)
+    if arbiter:
+        idg = idg | {(p, "resolve", i) for p in range(PRINCIPALS) for i in range(IDS) if rnd.random() < 0.5}
     m = IM(ACCOUNTS, ASSETS, controls, lim, idg, clock, vault, deadlines, rnd.randrange(0, 3), mig)
     start_now = m.now
     keyed = {}
@@ -299,13 +315,15 @@ def episode(rnd, n):
     reqs, tokens, issued, next_id = [], [], [], 1
     codes = ["transfer", "transfer", "issue", "burn", "open", "open", "open", "open", "release", "cancel", "expire", "expire", "expire", "expire",
              "dispute", "advance", "advance", "migrate", "migrate"]
+    if arbiter:
+        codes = codes + ["dispute", "dispute", "resolve", "resolve", "resolve", "resolve"]
     for step in range(n):
         roll = rnd.random()
         if issued and roll < 0.12:
             rid, p, nonce, op, args = rnd.choice(issued)
         elif issued and roll < 0.18:
             rid, p, nonce, op, args = rnd.choice(issued)
-            args = args[:-1] + (args[-1] + 1,)
+            args = (args[0], 1 - args[1]) if op == "resolve" else args[:-1] + (args[-1] + 1,)
         else:
             op = "issue" if step < 6 else rnd.choice(codes)
             p = rnd.randrange(PRINCIPALS)
@@ -340,6 +358,12 @@ def episode(rnd, n):
                 holders = [q for q in range(PRINCIPALS) if (q, "dispute", i) in idg and r and (q, r[0]) in controls or r and (q, "dispute", i) in idg and (q, r[1]) in controls]
                 if holders and rnd.random() < 0.85: p = rnd.choice(holders)
                 args = (i, rnd.choice([r[0], r[1]]) if r and rnd.random() < 0.85 else rnd.randrange(ACCOUNTS))
+            elif op == "resolve":
+                filed = [i for i in m.files if m.recs[i][4] == "pending"]
+                i = rnd.choice(filed) if filed and rnd.random() < 0.85 else rnd.randrange(IDS + (1 if rnd.random() < 0.05 else 0))
+                holders = [q for q in range(PRINCIPALS) if (q, "resolve", i) in idg]
+                if holders and rnd.random() < 0.85: p = rnd.choice(holders)
+                args = (i, rnd.randrange(2))
             elif op == "advance":
                 if rnd.random() < 0.85: p = next(iter(clock))
                 due = [m.dl[i] for i, r in m.recs.items() if r[4] == "pending" and m.dl[i] > m.now]
