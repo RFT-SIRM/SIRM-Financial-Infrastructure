@@ -24,6 +24,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 ## Checked by tests (differential evidence, not proof)
 
 - Rust against independent Python traces for each ported module, and a seeded fuzz of the processor.
+- Request encoding v2 (v1 plus `resolve`): 19 vectors and both reference traces (27816 and 25137 requests) are reproduced byte for byte by Rust and Python, and every single-byte mutation is rejected or canonical (`rust/sirm-codec/tests/request_v2_conformance.rs`).
 - The `u128` ceiling: 400 seeded runs near `u128::MAX` compare the Rust machine with the Lean predicate
   (`rust/sirm-codec/tests/integrated_ceiling.rs`). Writing it found a test-only bug in
   `Machine::invariant()`, fixed in the same change.
