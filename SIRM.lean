@@ -37,3 +37,4 @@ import SIRM.IntegratedPipeline
 import SIRM.IntegratedLedger
 import SIRM.BoundedAmounts
 import SIRM.DisputeResolution
+import SIRM.RequestEncodingV2
