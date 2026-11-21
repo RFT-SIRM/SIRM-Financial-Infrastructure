@@ -43,6 +43,14 @@ depositor (settled as `cancelled`). Any other byte is rejected.
   the vector bytes and both aggregate digests, accepts only canonical inputs under every single-bit
   mutation, and `bytes -> decode -> Machine::process` reproduces every outcome token of both traces.
 
+## Lean
+
+`SIRM/RequestEncodingV2.lean` (no Mathlib) models this layout without the domain prefix and proves the round
+trip, injectivity, that every byte string the decoder accepts is the encoding of the request it returns
+(with the `resolve` side byte restricted to 0 or 1), and that an unknown tag is rejected. The field-width
+table in Lean is written by hand; its agreement with the Rust and Python tables is covered by the
+conformance test, not by a proof.
+
 ## Not covered
 
 - Signed requests (`SPEC_signed_request_v2.md`) still carry request v1, so a signed `resolve` does not

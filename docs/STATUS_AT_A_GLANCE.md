@@ -24,6 +24,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 ## Checked by tests (differential evidence, not proof)
 
 - Rust against independent Python traces for each ported module, and a seeded fuzz of the processor.
+- Request encoding v2 has a Lean counterpart (`SIRM/RequestEncodingV2.lean`): round trip, injectivity, and "every accepted byte string is canonical" for all eleven operations; that the Lean table equals the Rust and Python tables is differential evidence only.
 - State commitment v6 (v5 plus `resolve`): 402 base and 300 resolve-trace state roots are byte-identical between the independent Python reference and the Rust machine (`rust/sirm-codec/tests/commit_v6_conformance.rs`).
 - Signed request v3 (carries request encoding v2): 26 valid vectors and 32 negative cases in Python and Rust, Ed25519 signatures reproduced byte for byte, a signed `resolve` settles a dispute end to end through the Rust machine (`rust/sirm-codec/tests/signed_v3_conformance.rs`); ML-DSA and hybrid wires are still refused in Rust (no verifier chosen).
 - Request encoding v2 (v1 plus `resolve`): 19 vectors and both reference traces (27816 and 25137 requests) are reproduced byte for byte by Rust and Python, and every single-byte mutation is rejected or canonical (`rust/sirm-codec/tests/request_v2_conformance.rs`).
