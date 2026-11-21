@@ -6,3 +6,5 @@ build/
 *.olean.private
 *.trace
 .DS_Store
+__pycache__/
+*.pyc
