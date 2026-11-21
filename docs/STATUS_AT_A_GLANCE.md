@@ -16,8 +16,8 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 | Claim | Where |
 |---|---|
-| One shared ledger of ten operations keeps conservation, vault backing, the migration equation, frozen disputed escrows and a non-decreasing clock | `IntegratedLedger` |
-| Deny by default; no debit without control; time, filings and issuance only by explicit grant | `IntegratedLedger` (authorization) |
+| One shared ledger of eleven operations (including the arbiter's `resolve`) keeps conservation, vault backing, the migration equation, frozen disputed escrows and a non-decreasing clock | `IntegratedLedger` |
+| Deny by default; no debit without control; time, filings (creation and removal) and issuance only by explicit grant | `IntegratedLedger` (authorization) |
 | With a `u128` ceiling added as one more validation, every counter, burned total and balance stays at most 2^128 - 1; a request that does not fit changes nothing | `BoundedAmounts` |
 | An arbiter with an explicit grant can resolve a frozen dispute exactly once; value is neither created nor destroyed | `DisputeResolution` |
 

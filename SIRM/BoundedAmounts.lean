@@ -109,6 +109,9 @@ theorem bounded_applyOp (cfg : Cfg) (lim : Nat) {c : Core} (b : Bounded lim c) (
   | expire id => exact bounded_settle cfg lim b id false Phase.expired
   | dispute id cl => exact ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
   | advance t => exact ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
+  | resolve id toBen =>
+      have hb : Bounded lim (clearFile c id) := ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
+      exact bounded_settle cfg lim hb id toBen _
   | migrate amt =>
       unfold applyOp
       cases hm : cfg.mig with

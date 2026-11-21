@@ -34,7 +34,7 @@ Out of scope for now: deployment, custody, reserves, settlement, legal status, t
   is anything relevant missing from the root?
 - The `u128` ceiling (`SIRM/BoundedAmounts.lean`) and the Rust checks: does the Lean predicate match what
   the code enforces on every path? The evidence is a differential test, not a refinement proof.
-- The arbiter layer (`SIRM/DisputeResolution.lean`) is separate from the pipeline and the wire formats.
+- The arbiter operation `resolve` is part of the Lean pipeline (`SIRM/IntegratedLedger.lean`) and the Rust and Python machines; `SIRM/DisputeResolution.lean` states its extra properties. It has no wire encoding yet.
   Is the model of a resolution the right one to extend?
 
 ## What counts as evidence here
