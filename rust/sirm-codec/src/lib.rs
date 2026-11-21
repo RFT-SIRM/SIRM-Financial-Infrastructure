@@ -28,6 +28,7 @@ pub mod migration;
 pub mod receipt;
 pub mod registry;
 pub mod request_v1;
+pub mod request_v2;
 pub mod signed;
 pub mod signed_v2;
 pub mod timelock;
