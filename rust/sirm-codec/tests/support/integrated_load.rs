@@ -20,6 +20,7 @@ fn kind(s: &str) -> Kind {
         "dispute" => Kind::Dispute,
         "advance" => Kind::Advance,
         "migrate" => Kind::Migrate,
+        "resolve" => Kind::Resolve,
         other => panic!("kind {other}"),
     }
 }
@@ -67,6 +68,10 @@ fn request(row: &[Value]) -> ([u8; 32], Request) {
         },
         "advance" => Op::Advance(num(&row[4]) as u64),
         "migrate" => Op::Migrate(num(&row[4])),
+        "resolve" => Op::Resolve {
+            id: num(&row[4]) as usize,
+            to_beneficiary: num(&row[5]) != 0,
+        },
         other => panic!("op {other}"),
     };
     (

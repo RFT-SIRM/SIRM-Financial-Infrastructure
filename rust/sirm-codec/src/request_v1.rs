@@ -27,6 +27,8 @@ pub struct WireRequest {
 pub enum EncodeError {
     /// An escrow id does not fit in `u32`.
     IdOutOfRange,
+    /// The operation has no wire encoding in this version (`Op::Resolve`: a later version).
+    UnsupportedOperation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +51,8 @@ pub fn tag(op: &Op) -> u8 {
         Op::Dispute { .. } => 7,
         Op::Advance(_) => 8,
         Op::Migrate(_) => 9,
+        // Reserved, not decodable: request encoding v1 has no resolve operation.
+        Op::Resolve { .. } => 10,
     }
 }
 
@@ -65,6 +69,9 @@ pub fn encode(w: &WireRequest) -> Result<Vec<u8>, EncodeError> {
     out.extend_from_slice(&w.request_id);
     out.extend_from_slice(&r.principal.to_be_bytes());
     out.extend_from_slice(&r.nonce.to_be_bytes());
+    if matches!(r.op, Op::Resolve { .. }) {
+        return Err(EncodeError::UnsupportedOperation);
+    }
     out.push(tag(&r.op));
     let u = |out: &mut Vec<u8>, xs: &[u32]| {
         for x in xs {
@@ -116,6 +123,7 @@ pub fn encode(w: &WireRequest) -> Result<Vec<u8>, EncodeError> {
         }
         Op::Advance(t) => out.extend_from_slice(&t.to_be_bytes()),
         Op::Migrate(amount) => out.extend_from_slice(&amount.to_be_bytes()),
+        Op::Resolve { .. } => return Err(EncodeError::UnsupportedOperation),
     }
     Ok(out)
 }

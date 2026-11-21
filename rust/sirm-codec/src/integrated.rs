@@ -27,6 +27,7 @@ pub enum Kind {
     Dispute,
     Advance,
     Migrate,
+    Resolve,
 }
 
 impl Kind {
@@ -42,6 +43,7 @@ impl Kind {
             Kind::Dispute => "dispute",
             Kind::Advance => "advance",
             Kind::Migrate => "migrate",
+            Kind::Resolve => "resolve",
         }
     }
 }
@@ -81,6 +83,12 @@ pub enum Op {
     },
     Advance(u64),
     Migrate(u128),
+    /// An arbiter settles a disputed escrow: to the beneficiary (`released`) or to the depositor
+    /// (`cancelled`), and the filing is consumed.
+    Resolve {
+        id: usize,
+        to_beneficiary: bool,
+    },
 }
 
 impl Op {
@@ -96,6 +104,7 @@ impl Op {
             Op::Dispute { .. } => Kind::Dispute,
             Op::Advance(_) => Kind::Advance,
             Op::Migrate(_) => Kind::Migrate,
+            Op::Resolve { .. } => Kind::Resolve,
         }
     }
 }
@@ -127,6 +136,8 @@ pub enum Cause {
     TimeNotForward,
     AlreadyFiled,
     ClaimantNotParty,
+    /// Resolve: the escrow has no dispute filing.
+    NotDisputed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,6 +172,7 @@ impl Denial {
                     Cause::TimeNotForward => "t",
                     Cause::AlreadyFiled => "a",
                     Cause::ClaimantNotParty => "c",
+                    Cause::NotDisputed => "o",
                 };
                 format!("{}:{}", k.name(), s)
             }
@@ -407,6 +419,7 @@ impl Machine {
             Op::Release(id) => self.cfg.policy.ids.contains(&(p, Kind::Release, id)),
             Op::Cancel(id) => self.cfg.policy.ids.contains(&(p, Kind::Cancel, id)),
             Op::Expire(id) => self.cfg.policy.ids.contains(&(p, Kind::Expire, id)),
+            Op::Resolve { id, .. } => self.cfg.policy.ids.contains(&(p, Kind::Resolve, id)),
             Op::Dispute { id, claimant } => {
                 self.cfg.policy.ids.contains(&(p, Kind::Dispute, id)) && self.controls(p, claimant)
             }
@@ -543,6 +556,15 @@ impl Machine {
                 }
                 (claimant != r.depositor && claimant != r.beneficiary).then_some(ClaimantNotParty)
             }
+            Op::Resolve { id, .. } => {
+                let Some(r) = self.records.get(&id) else {
+                    return Some(UnknownId);
+                };
+                if r.phase != Phase::Pending {
+                    return Some(NotPending);
+                }
+                (!self.filings.contains_key(&id)).then_some(NotDisputed)
+            }
             Op::Advance(t) => (t <= self.now).then_some(TimeNotForward),
             Op::Migrate(amount) => {
                 let m = self.cfg.migration.expect("authorized implies a stream");
@@ -626,6 +648,20 @@ impl Machine {
                     .transfer(vault, to, r.asset, r.amount)
                     .expect("validated");
                 self.records.insert(id, Record { phase, ..r });
+            }
+            Op::Resolve { id, to_beneficiary } => {
+                let vault = vault.expect("a record implies a vault");
+                let r = self.records[&id];
+                let (to, phase) = if to_beneficiary {
+                    (r.beneficiary, Phase::Released)
+                } else {
+                    (r.depositor, Phase::Cancelled)
+                };
+                self.ledger
+                    .transfer(vault, to, r.asset, r.amount)
+                    .expect("validated");
+                self.records.insert(id, Record { phase, ..r });
+                self.filings.remove(&id);
             }
             Op::Dispute { id, claimant } => {
                 self.filings.insert(

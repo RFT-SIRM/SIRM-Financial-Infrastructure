@@ -26,6 +26,9 @@
 //! account of the shared ledger. The migration totals are zero when no stream is configured.
 //!
 //! A cached request whose escrow id does not fit in `u32` cannot be encoded; the root is then `None`.
+//! The same holds for a cached `resolve` request: request encoding v1 has no resolve operation yet,
+//! so a machine that has seen one has no state root until a later encoding version exists (the kind
+//! tag 10 and the cause code 15 are reserved for it).
 //! Inclusion proofs exist only for the three trees; the other parts are list hashes. Not a
 //! commitment to the complete protocol state (no keys, suites, registry, governance).
 
@@ -53,6 +56,7 @@ fn kind_tag(k: Kind) -> u8 {
         Kind::Dispute => 7,
         Kind::Advance => 8,
         Kind::Migrate => 9,
+        Kind::Resolve => 10,
     }
 }
 
@@ -73,6 +77,7 @@ fn cause_code(c: Cause) -> u8 {
         Cause::TimeNotForward => 12,
         Cause::AlreadyFiled => 13,
         Cause::ClaimantNotParty => 14,
+        Cause::NotDisputed => 15,
     }
 }
 
