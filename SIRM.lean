@@ -36,3 +36,4 @@ import SIRM.AuthenticatedStep
 import SIRM.IntegratedPipeline
 import SIRM.IntegratedLedger
 import SIRM.BoundedAmounts
+import SIRM.DisputeResolution
