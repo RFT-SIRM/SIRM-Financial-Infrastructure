@@ -716,15 +716,53 @@ impl Machine {
             return false;
         }
         if let Some(m) = self.cfg.migration {
-            let lhs = self.total_source.checked_mul(m.num);
-            let rhs = self
-                .total_target
-                .checked_mul(m.den)
-                .and_then(|x| x.checked_add(self.dust));
-            if !(self.dust < m.den && lhs.is_some() && lhs == rhs) {
+            // The migration equation `source * num = target * den + dust` is checked in 256-bit
+            // arithmetic: both sides may exceed `u128` while the state is valid (the Lean model
+            // states the equation over the natural numbers).
+            let lhs = mul_wide(self.total_source, m.num);
+            let rhs = add_wide(mul_wide(self.total_target, m.den), self.dust);
+            if !(self.dust < m.den && lhs == rhs) {
                 return false;
             }
         }
         true
+    }
+}
+
+/// Exact product of two `u128` values as `(high, low)` 128-bit halves.
+fn mul_wide(a: u128, b: u128) -> (u128, u128) {
+    const MASK: u128 = u64::MAX as u128;
+    let (a1, a0) = (a >> 64, a & MASK);
+    let (b1, b0) = (b >> 64, b & MASK);
+    let p00 = a0 * b0;
+    let p01 = a0 * b1;
+    let p10 = a1 * b0;
+    let p11 = a1 * b1;
+    let mid = (p00 >> 64) + (p01 & MASK) + (p10 & MASK);
+    let lo = (p00 & MASK) | ((mid & MASK) << 64);
+    let hi = p11 + (p01 >> 64) + (p10 >> 64) + (mid >> 64);
+    (hi, lo)
+}
+
+/// `(high, low) + c`, exact (the high half cannot overflow for a product plus one `u128`).
+fn add_wide(x: (u128, u128), c: u128) -> (u128, u128) {
+    let (lo, carry) = x.1.overflowing_add(c);
+    (x.0 + u128::from(carry), lo)
+}
+
+#[cfg(test)]
+mod wide_tests {
+    use super::{add_wide, mul_wide};
+
+    #[test]
+    fn wide_arithmetic_matches_known_values() {
+        let m = u128::MAX;
+        assert_eq!(mul_wide(m, m), (m - 1, 1));
+        assert_eq!(mul_wide(m, 0), (0, 0));
+        assert_eq!(mul_wide(1 << 64, 1 << 64), (1, 0));
+        assert_eq!(mul_wide(3, 5), (0, 15));
+        assert_eq!(mul_wide(m, 2), (1, m - 1));
+        assert_eq!(add_wide((0, m), 1), (1, 0));
+        assert_eq!(add_wide(mul_wide(m, m), m), (m, 0));
     }
 }
