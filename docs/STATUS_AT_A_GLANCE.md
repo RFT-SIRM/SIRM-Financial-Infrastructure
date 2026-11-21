@@ -46,5 +46,7 @@ cd rust/sirm-codec && cargo test --locked   # Rust tests
 python3 scripts/ci_audit.py all             # static audits
 ```
 
+Reviewers: start with [REVIEWER_GUIDE](REVIEWER_GUIDE.md).
+
 Related: [ROADMAP](ROADMAP.md), [FORMALIZATION_STATUS](FORMALIZATION_STATUS.md),
 [TESTING](TESTING.md), [INTEGRATED_STATE_MACHINE_PROPOSAL](INTEGRATED_STATE_MACHINE_PROPOSAL.md).
