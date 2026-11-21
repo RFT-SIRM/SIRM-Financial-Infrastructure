@@ -24,6 +24,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 ## Checked by tests (differential evidence, not proof)
 
 - Rust against independent Python traces for each ported module, and a seeded fuzz of the processor.
+- Signed request v3 (carries request encoding v2): 26 valid vectors and 32 negative cases in Python and Rust, Ed25519 signatures reproduced byte for byte, a signed `resolve` settles a dispute end to end through the Rust machine (`rust/sirm-codec/tests/signed_v3_conformance.rs`); ML-DSA and hybrid wires are still refused in Rust (no verifier chosen).
 - Request encoding v2 (v1 plus `resolve`): 19 vectors and both reference traces (27816 and 25137 requests) are reproduced byte for byte by Rust and Python, and every single-byte mutation is rejected or canonical (`rust/sirm-codec/tests/request_v2_conformance.rs`).
 - The `u128` ceiling: 400 seeded runs near `u128::MAX` compare the Rust machine with the Lean predicate
   (`rust/sirm-codec/tests/integrated_ceiling.rs`). Writing it found a test-only bug in
