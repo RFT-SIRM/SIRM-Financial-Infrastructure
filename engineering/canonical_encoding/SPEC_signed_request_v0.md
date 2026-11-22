@@ -1,4 +1,4 @@
-# Signed request layer v0 (proposal, not adopted)
+# Signed request layer v0 (checked by SIRM)
 
 Status: proposal. Executable reference: `scripts/signed_request_reference.py`. Vectors:
 `engineering/canonical_encoding/results/signed_request_vectors_v0.json`. Rust:

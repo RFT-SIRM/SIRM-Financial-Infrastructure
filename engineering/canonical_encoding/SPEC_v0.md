@@ -1,4 +1,4 @@
-# Canonical request encoding v0 (proposal, not adopted)
+# Canonical request encoding v0 (checked by SIRM)
 
 Executable reference: `scripts/canonical_encoding_reference.py`; vectors: `results/vectors_v0.json`.
 Purpose: give the future Rust implementation a byte-exact target and conformance vectors for the

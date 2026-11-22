@@ -2,7 +2,7 @@ import SIRM.IntegratedPipeline
 import SIRM.StateMachine
 
 /-!
-# Integrated Ledger Invariants (proposal, not adopted)
+# Integrated Ledger Invariants (checked by SIRM)
 
 A concrete core state for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`)
 with all eleven operations over one shared ledger: transfer (a transfer from an account to itself

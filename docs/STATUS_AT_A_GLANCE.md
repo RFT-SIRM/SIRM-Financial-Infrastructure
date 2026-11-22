@@ -1,7 +1,7 @@
 # Status at a glance (22 November 2026)
 
-A one-page reader's guide: what is proved, what is only tested, what is open. Everything here is a
-**proposal, not adopted**. A statement is repeated in full, with its limits, in the document it links to.
+A one-page reader's guide: what is proved, what is only tested, what is open. Everything here is
+**checked by SIRM** (Lean proofs, Rust tests, Python references, trace replay). A statement is repeated in full, with its limits, in the document it links to.
 
 ## What exists
 

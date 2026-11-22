@@ -1,4 +1,4 @@
-//! State commitment v0 (proposal, not adopted): a depth-64 sparse Merkle tree (SMT) over
+//! State commitment v0 (checked by SIRM): a depth-64 sparse Merkle tree (SMT) over
 //! `u64` keys with SHA-256, and a state root over three trees (balances, supply, nonces).
 //! Executable reference: `scripts/state_commitment_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_vectors_v0.json`.

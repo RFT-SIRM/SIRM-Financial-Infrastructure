@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v3 (PROPOSAL, not adopted).
+"""Independent reference for state commitment v3 (checked by SIRM).
 
 Extends v2 with the escrow / time-lock / dispute component. See
 engineering/canonical_encoding/SPEC_state_commitment_v3.md.

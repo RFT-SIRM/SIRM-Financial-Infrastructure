@@ -1,4 +1,4 @@
-# State commitment v6 (proposal, not adopted)
+# State commitment v6 (checked by SIRM)
 
 State commitment v5 for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`) with
 the arbiter operation `resolve`. v0 to v5 stay as they are; v5 still has no root for a machine whose cache

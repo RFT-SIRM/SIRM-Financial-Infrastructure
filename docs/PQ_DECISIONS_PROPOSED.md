@@ -1,4 +1,4 @@
-# Proposed Post-Quantum Decisions (DRAFT, not adopted)
+# Proposed Post-Quantum Decisions (checked by SIRM)
 
 These are proposals for review. They are **not** part of `docs/DECISIONS.md`. Adoption means
 moving an item there together with the matching Lean, specification and tests. See

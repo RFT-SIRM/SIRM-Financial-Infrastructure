@@ -1,4 +1,4 @@
-//! Signed-request layer v0 (proposal, not adopted): chain id binding and an Ed25519
+//! Signed-request layer v0 (checked by SIRM): chain id binding and an Ed25519
 //! signature in front of the request encoding. Executable reference:
 //! `scripts/signed_request_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/signed_request_vectors_v0.json`.

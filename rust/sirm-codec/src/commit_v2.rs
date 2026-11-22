@@ -1,4 +1,4 @@
-//! State commitment v2 (proposal, not adopted): the v1 root plus the request-id cache (receipts
+//! State commitment v2 (checked by SIRM): the v1 root plus the request-id cache (receipts
 //! and cached denials), the authorization policy (grants and account control) and the
 //! account/asset registry. Reference: `scripts/state_commitment_v2_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v2_vectors.json`.

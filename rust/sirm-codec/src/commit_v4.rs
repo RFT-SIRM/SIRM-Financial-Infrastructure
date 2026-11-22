@@ -1,4 +1,4 @@
-//! State commitment v4 (proposal, not adopted): the v3 root plus the asset-migration component.
+//! State commitment v4 (checked by SIRM): the v3 root plus the asset-migration component.
 //! Reference: `scripts/state_commitment_v4_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v4_vectors.json`.
 //!

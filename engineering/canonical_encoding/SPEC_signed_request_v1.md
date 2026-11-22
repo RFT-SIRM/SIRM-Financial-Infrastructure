@@ -1,4 +1,4 @@
-# Signed request layer v1 (proposal, not adopted)
+# Signed request layer v1 (checked by SIRM)
 
 Status: proposal (phase P1 of `docs/POST_QUANTUM_SECURITY_ARCHITECTURE.md`). It does not replace
 or modify `SPEC_signed_request_v0.md`, which stays as a historical proposal. Reference:

@@ -1,4 +1,4 @@
-# Request encoding v1 (proposal, not adopted)
+# Request encoding v1 (checked by SIRM)
 
 Canonical byte encoding of one request of the integrated state machine
 (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`, step I3). All integers big-endian.
@@ -49,4 +49,4 @@ The prefix is 57 bytes. Fields by tag (ids of escrows are u32 on the wire):
 
 - Signed requests v0 and v1 embed only the v0 request bytes. Signed request v2
   (`SPEC_signed_request_v2.md`) carries request v1.
-- Differential evidence, not a refinement proof. Proposal only, not adopted.
+- Differential evidence, not a refinement proof. Checked by SIRM.

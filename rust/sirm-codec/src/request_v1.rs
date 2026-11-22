@@ -1,4 +1,4 @@
-//! Canonical request encoding v1 (proposal, not adopted): the ten operations of the integrated
+//! Canonical request encoding v1 (checked by SIRM): the ten operations of the integrated
 //! state machine (`crate::integrated`). Mirrors `engineering/canonical_encoding/SPEC_request_v1.md`
 //! and the independent Python reference `scripts/request_v1_reference.py`; vectors in
 //! `engineering/canonical_encoding/results/request_v1_vectors.json`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canonical request encoding v2 (PROPOSAL, not adopted): request encoding v1 plus the arbiter
+"""Canonical request encoding v2 (checked by SIRM): request encoding v1 plus the arbiter
 operation `resolve`. Independent of the Rust codec. Spec: engineering/canonical_encoding/SPEC_request_v2.md.
 Vectors: engineering/canonical_encoding/results/request_v2_vectors.json.
 

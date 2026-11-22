@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canonical request encoding v1 (PROPOSAL, not adopted): the ten operations of the integrated
+"""Canonical request encoding v1 (checked by SIRM): the ten operations of the integrated
 state machine. Independent of the Rust codec. Spec: engineering/canonical_encoding/SPEC_request_v1.md.
 Vectors: engineering/canonical_encoding/results/request_v1_vectors.json.
 

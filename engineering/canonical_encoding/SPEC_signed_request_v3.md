@@ -1,4 +1,4 @@
-# Signed request layer v3 (proposal, not adopted)
+# Signed request layer v3 (checked by SIRM)
 
 Status: proposal. It does not replace or modify v0, v1 or v2. Reference:
 `scripts/signed_request_v3_reference.py`. Vectors:
