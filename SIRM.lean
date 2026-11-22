@@ -40,3 +40,4 @@ import SIRM.DisputeResolution
 import SIRM.RequestEncodingV2
 import SIRM.SignedEnvelopeV3
 import SIRM.StateCommitmentV6
+import SIRM.CacheDigestV6

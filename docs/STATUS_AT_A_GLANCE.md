@@ -5,7 +5,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 ## What exists
 
-- **Lean 4 specification:** 41 files in `SIRM/`, about 11,800 lines, 368 top-level `theorem` and `lemma`
+- **Lean 4 specification:** 42 files in `SIRM/`, about 11,800 lines, 375 top-level `theorem` and `lemma`
   declarations, no `sorry` (counted on 22 November 2026 by line-start declarations, so the true number
   of lemmas is higher). `lake build` checks them.
 - **Rust reference code:** `rust/sirm-codec`, with 29 integration test files.
@@ -23,6 +23,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 | Request encoding v2 (eleven operations): round trip, injectivity, every accepted byte string is canonical, unknown tag rejected (table agreement with Rust and Python is tested, not proved) | `RequestEncodingV2` |
 | Signed request envelope v3: decoder inverts encoder, distinct wires for distinct envelopes, accepted wires canonical, other domains (v2 wire, signing message) rejected, signing message fixes chain, suite, key id and the whole request (signature itself and key registry not modelled) | `SignedEnvelopeV3` |
 | State commitment v6, hash left abstract: under a collision-free hash equal roots have equal components, v5 and v6 roots never coincide, a cache entry fixes the cached request (including a `resolve` id and side) and its outcome (the trees and digests are opaque 32-byte values) | `StateCommitmentV6` |
+| Cache digest v6: entries carry their own length, so the concatenation is unambiguous; under a collision-free hash the digest determines the list of cached requests and outcomes (sorting by request id and building the list from a machine state are not modelled) | `CacheDigestV6` |
 
 ## Checked by tests (differential evidence, not proof)
 
