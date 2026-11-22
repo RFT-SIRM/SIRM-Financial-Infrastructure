@@ -16,11 +16,14 @@ def need(condition, message):
         raise AssertionError(message)
 
 def no_proof_holes():
-    files = list((ROOT / "SIRM").rglob("*.lean")) + [ROOT / "SIRMTests.lean"]
+    files = (list((ROOT / "SIRM").rglob("*.lean")) + list((ROOT / "replay").rglob("*.lean"))
+             + [ROOT / "SIRMTests.lean"])
     hits = []
     for path in files:
-        for number, line in enumerate(path.read_text().splitlines(), 1):
-            if re.match(r"^\s*(sorry|admit)\b", line):
+        text = re.sub(r"/-.*?-/", lambda m: "\n" * m.group(0).count("\n"), path.read_text(), flags=re.S)
+        for number, line in enumerate(text.splitlines(), 1):
+            code = line.split("--", 1)[0]
+            if re.search(r"\b(sorry|admit)\b", code):
                 hits.append(f"{path.relative_to(ROOT)}:{number}: {line.strip()}")
     need(not hits, "proof placeholders found:\n" + "\n".join(hits))
 

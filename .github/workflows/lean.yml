@@ -50,6 +50,19 @@ jobs:
         run: cargo clippy --all-targets --locked -- -D warnings
       - name: Tests (differential traces against committed Python references)
         run: cargo test --locked
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python references regenerate the committed results unchanged
+        working-directory: .
+        run: |
+          python3 -m pip install --quiet cryptography
+          export PYTHONDONTWRITEBYTECODE=1
+          for f in scripts/*.py; do
+            case "$f" in scripts/ci_audit.py) continue;; esac
+            python3 "$f" > /dev/null
+          done
+          git diff --exit-code -- engineering
 
   static-audit:
     name: Static / ${{ matrix.check.label }}

@@ -5,10 +5,10 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 ## What exists
 
-- **Lean 4 specification:** 46 files in `SIRM/`, about 11,800 lines, 426 top-level `theorem` and `lemma`
+- **Lean 4 specification:** 46 files in `SIRM/`, about 11,800 lines, 430 top-level `theorem` and `lemma`
   declarations, no `sorry` (counted on 22 November 2026 by line-start declarations, so the true number
   of lemmas is higher). `lake build` checks them.
-- **Rust reference code:** `rust/sirm-codec`, with 29 integration test files.
+- **Rust reference code:** `rust/sirm-codec`, with 30 integration test files.
 - **Python references:** 30 scripts under `scripts/`, each regenerating its committed trace byte for byte.
 - **CI:** every pull request runs 19 jobs (Lean build, Rust fmt/clippy/tests, 17 static audits).
 

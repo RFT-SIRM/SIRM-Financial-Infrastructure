@@ -282,9 +282,21 @@ pub struct Machine {
 }
 
 impl Machine {
-    /// `None` if the migration stream is degenerate or uses the vault.
+    /// `None` if the migration stream is degenerate or uses the vault, or if the vault or the
+    /// migration names an account or an asset outside the ledger (the operations are validated
+    /// against the ledger size, the configuration has to be as well).
     pub fn new(cfg: Config) -> Option<Machine> {
+        if cfg.vault.is_some_and(|v| v >= cfg.accounts) {
+            return None;
+        }
         if let Some(m) = cfg.migration {
+            if m.holder >= cfg.accounts
+                || m.recipient >= cfg.accounts
+                || m.src >= cfg.assets
+                || m.dst >= cfg.assets
+            {
+                return None;
+            }
             if m.num == 0 || m.den == 0 || m.src == m.dst {
                 return None;
             }
@@ -706,6 +718,12 @@ impl Machine {
         if req.nonce > expected {
             return Outcome::Future;
         }
+        // A counter that has reached `u64::MAX` cannot advance: its successor does not fit. The
+        // request carrying that nonce is answered like a nonce that can no longer be used and is not
+        // cached (Lean: `IntegratedPipeline.processCapped` with `N = 2^64 - 1`).
+        if expected == u64::MAX {
+            return Outcome::Stale;
+        }
         let cause = if !self.authorized(req.principal, &req.op) {
             Some(Cause::Auth)
         } else {
@@ -721,6 +739,7 @@ impl Machine {
             },
             None => {
                 self.apply(req.principal, &req.op);
+                // `expected < u64::MAX` here, so the successor fits.
                 self.nonces.insert(req.principal, expected + 1);
                 Stored::Accepted { nonce: expected }
             }
@@ -788,7 +807,7 @@ fn add_wide(x: (u128, u128), c: u128) -> (u128, u128) {
 
 #[cfg(test)]
 mod wide_tests {
-    use super::{add_wide, mul_wide};
+    use super::*;
 
     #[test]
     fn wide_arithmetic_matches_known_values() {
@@ -800,5 +819,39 @@ mod wide_tests {
         assert_eq!(mul_wide(m, 2), (1, m - 1));
         assert_eq!(add_wide((0, m), 1), (1, 0));
         assert_eq!(add_wide(mul_wide(m, m), m), (m, 0));
+    }
+
+    #[test]
+    fn nonce_counter_stops_at_the_ceiling() {
+        let mut p = Policy::default();
+        p.clock.insert(0);
+        let cfg = Config {
+            accounts: 2,
+            assets: 1,
+            vault: None,
+            deadlines: vec![],
+            now: 0,
+            migration: None,
+            policy: p,
+        };
+        let mut m = Machine::new(cfg).unwrap();
+        m.nonces.insert(0, u64::MAX - 1);
+        let adv = |nonce, t| Request {
+            principal: 0,
+            nonce,
+            op: Op::Advance(t),
+        };
+        // the last usable nonce is accepted and moves the counter to the ceiling
+        assert!(matches!(
+            m.process([1; 32], adv(u64::MAX - 1, 5)),
+            Outcome::Done(Stored::Accepted { .. })
+        ));
+        assert_eq!(m.nonce(0), u64::MAX);
+        // the counter cannot advance: the request is answered stale, not cached, nothing changes
+        let cached = m.cached();
+        assert_eq!(m.process([2; 32], adv(u64::MAX, 6)), Outcome::Stale);
+        assert_eq!(m.nonce(0), u64::MAX);
+        assert_eq!(m.now(), 5);
+        assert_eq!(m.cached(), cached);
     }
 }

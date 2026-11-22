@@ -51,13 +51,14 @@ theorem zero_threshold_rejected (M : SignatureModel PublicKey Message Signature)
     thresholdAccepts M P tp msg sigs = false := by
   simp [thresholdAccepts, h]
 
-/-- Acceptance implies `k` distinct indices, each with a verified signature of a permitted
-suite for the key registered at that index. -/
+/-- Acceptance implies `k` distinct indices, each with a signature in the list that the verifier
+accepts for the key registered at that index, under a suite that the policy permits. -/
 theorem accepts_implies_k_distinct (M : SignatureModel PublicKey Message Signature)
     (P : SuitePolicy) (tp : ThresholdPolicy PublicKey) (msg : Message)
     (sigs : List (Nat × Signature)) (h : thresholdAccepts M P tp msg sigs = true) :
     0 < tp.k ∧ ∃ l : List Nat, l.Nodup ∧ tp.k ≤ l.length ∧
-      ∀ i ∈ l, ∃ r, tp.keys[i]? = some r ∧ P.permits r.suite = true := by
+      ∀ i ∈ l, ∃ r sg, tp.keys[i]? = some r ∧ P.permits r.suite = true ∧ (i, sg) ∈ sigs ∧
+        M.verify r.suite r.key msg sg = true := by
   simp only [thresholdAccepts, Bool.and_eq_true, decide_eq_true_eq] at h
   obtain ⟨hk, hl⟩ := h
   refine ⟨hk, validIndices M P tp msg sigs, ?_, hl, ?_⟩
@@ -70,8 +71,32 @@ theorem accepts_implies_k_distinct (M : SignatureModel PublicKey Message Signatu
     | none => simp [hr] at hv
     | some r =>
       rw [hr] at hv
-      simp only [Bool.and_eq_true] at hv
-      exact ⟨r, rfl, hv.1⟩
+      simp only [Bool.and_eq_true, List.any_eq_true, beq_iff_eq] at hv
+      obtain ⟨hp, ⟨i', sg⟩, hm, hi', hver⟩ := hv
+      simp only at hi'
+      subst hi'
+      exact ⟨r, sg, rfl, hp, hm, hver⟩
+
+/-- The policy lists pairwise different public keys: two indices never share a key. The counting above
+is by index, so this is a requirement on the registered policy, not something the acceptance function
+checks; without it one key registered twice counts twice (see `duplicate_key_counts_twice`). -/
+def KeysDistinct (tp : ThresholdPolicy PublicKey) : Prop :=
+  ∀ (i j : Nat) (r r' : KeyRecord PublicKey), tp.keys[i]? = some r → tp.keys[j]? = some r' →
+    r.key = r'.key → i = j
+
+/-- On a policy with pairwise different keys, acceptance implies `k` verified signatures from `k`
+different registered public keys: the counted indices are distinct and no two of them share a key. -/
+theorem accepts_implies_k_distinct_signers (M : SignatureModel PublicKey Message Signature)
+    (P : SuitePolicy) (tp : ThresholdPolicy PublicKey) (msg : Message)
+    (sigs : List (Nat × Signature)) (hd : KeysDistinct tp)
+    (h : thresholdAccepts M P tp msg sigs = true) :
+    0 < tp.k ∧ ∃ l : List Nat, l.Nodup ∧ tp.k ≤ l.length ∧
+      (∀ i ∈ l, ∃ r sg, tp.keys[i]? = some r ∧ P.permits r.suite = true ∧ (i, sg) ∈ sigs ∧
+        M.verify r.suite r.key msg sg = true) ∧
+      ∀ i ∈ l, ∀ j ∈ l, ∀ (r r' : KeyRecord PublicKey), tp.keys[i]? = some r → tp.keys[j]? = some r' →
+        r.key = r'.key → i = j := by
+  obtain ⟨hk, l, hn, hl, hv⟩ := accepts_implies_k_distinct M P tp msg sigs h
+  exact ⟨hk, l, hn, hl, hv, fun i _ j _ r r' hr hr' he => hd i j r r' hr hr' he⟩
 
 /-- With no verifying signature at all, nothing is accepted. -/
 theorem no_verifying_signature_rejected (M : SignatureModel PublicKey Message Signature)
@@ -135,6 +160,11 @@ example : thresholdAccepts demoModelT demoPolicyT demoThreshold 0 [(1, 7), (1, 7
 -- a bad signature does not count
 example : thresholdAccepts demoModelT demoPolicyT demoThreshold 0 [(0, 7), (2, 8)] = false := by
   decide
+/-- Without `KeysDistinct` one key registered at two indices counts twice. -/
+theorem duplicate_key_counts_twice :
+    thresholdAccepts demoModelT demoPolicyT ⟨[⟨2, 10⟩, ⟨2, 10⟩, ⟨2, 12⟩], 2⟩ 0 [(0, 7), (1, 7)] = true := by
+  decide
+
 -- an index outside the policy does not count
 example : thresholdAccepts demoModelT demoPolicyT demoThreshold 0 [(0, 7), (5, 7)] = false := by
   decide

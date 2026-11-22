@@ -1,6 +1,6 @@
-# Integrated state machine — proposal, nothing implemented
+# Integrated state machine — design and staged plan (checked by SIRM)
 
-Status: **proposal**. Steps I1 (an independent Python reference with seeded traces,
+Status: **checked by SIRM** (own Lean proofs, Rust tests, Python references, trace replay; no independent review). Steps I1 (an independent Python reference with seeded traces,
 `scripts/integrated_machine_reference.py`) and I2 (a Rust port with a differential test,
 `rust/sirm-codec/src/integrated.rs`) exist, and later steps added a Lean model (`SIRM/IntegratedLedger.lean`),
 the arbiter operation `resolve`, request encoding v2, signed request v3 and state commitment v6 (see the
