@@ -3,7 +3,7 @@
 Status: proposal. Reference: `scripts/state_commitment_reference.py`. Vectors:
 `engineering/canonical_encoding/results/state_commitment_vectors_v0.json`. Rust:
 `rust/sirm-codec/src/commit.rs`, tests `rust/sirm-codec/tests/commit_conformance.rs`.
-No Lean statements exist for this layer.
+Lean: `SIRM/SparseTreeV0.lean` (the tree binds its entries, hash abstract).
 
 ## Decision: tree, not a flat hash
 
