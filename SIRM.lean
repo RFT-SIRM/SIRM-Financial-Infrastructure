@@ -44,3 +44,4 @@ import SIRM.CacheDigestV6
 import SIRM.EscrowConfigDigestV6
 import SIRM.SparseTreeV0
 import SIRM.LedgerRootsV0
+import SIRM.StateRootV6

@@ -5,7 +5,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 ## What exists
 
-- **Lean 4 specification:** 45 files in `SIRM/`, about 11,800 lines, 423 top-level `theorem` and `lemma`
+- **Lean 4 specification:** 46 files in `SIRM/`, about 11,800 lines, 426 top-level `theorem` and `lemma`
   declarations, no `sorry` (counted on 22 November 2026 by line-start declarations, so the true number
   of lemmas is higher). `lake build` checks them.
 - **Rust reference code:** `rust/sirm-codec`, with 29 integration test files.
@@ -27,6 +27,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 | Escrow and config digests v6: fixed-width entries with a count and flag bytes are unambiguous; under a collision-free hash the digests determine the escrow table (deadlines, records, filings) and the config (shape, vault, deadlines, migration rate, controls, limits, ids including arbiter grants, clock) | `EscrowConfigDigestV6` |
 | Sparse Merkle tree (balance, supply, nonce roots): under a collision-free hash with 32-byte outputs, equal depth-64 roots mean the same set of key-value entries (so also the same absent keys); the empty list gives the empty-subtree hash | `SparseTreeV0` |
 | Balance, supply and nonce roots: the same root means the same balance for every account and asset in range, the same minted and burned per asset, the same nonce per principal (zero values are absent; same hypotheses; the code enumerating exactly these keys is tested, not proved) | `LedgerRootsV0` |
+| **State root v6 as a whole** (`state_root_binds`): under the abstract hash hypotheses (collision free, 32-byte byte outputs), equal roots mean the same shape, clock, migration totals, balances, supplies, nonces, config (arbiter grants included), cache (cached `resolve` requests and outcomes included) and escrow table; the hash is assumed, not proved, and the code building the lists is tested, not proved | `StateRootV6` |
 
 ## Checked by tests (differential evidence, not proof)
 
