@@ -37,6 +37,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 U128 = 2**128 - 1
+U64 = 2**64 - 1
 ACCOUNTS, ASSETS, IDS, PRINCIPALS = 4, 2, 3, 3
 OLD = ("transfer", "issue", "burn")
 
@@ -52,6 +53,13 @@ class IM:
         self.vault, self.dl, self.now = vault, list(deadlines), now
         self.recs, self.files = {}, {}
         self.mig = mig                                              # dict or None
+        # the configuration has to fit the ledger, as the operations do (the Rust constructor refuses
+        # the same configurations)
+        if vault is not None and not 0 <= vault < accounts:
+            raise ValueError("vault outside the ledger")
+        if mig and not (0 <= mig["holder"] < accounts and 0 <= mig["recipient"] < accounts
+                        and 0 <= mig["src"] < assets and 0 <= mig["dst"] < assets):
+            raise ValueError("migration outside the ledger")
         if mig:
             self.tsrc = self.ttgt = self.dust = 0
             assert mig["holder"] != vault and mig["recipient"] != vault and mig["src"] != mig["dst"]
@@ -205,6 +213,8 @@ class IM:
         n = self.nxt.get(p, 0)
         if nonce < n: return "S"
         if nonce > n: return "F"
+        if n == U64:                       # the counter cannot advance: the nonce is no longer usable
+            return "S"                     # (not cached; Rust Machine::process, Lean processCapped)
         code = None
         if not self.authorized(p, op, args):
             code = {"transfer": "ta", "issue": "ia", "burn": "ba"}.get(op, op + ":auth")
@@ -426,7 +436,34 @@ def boundary():
     return eps
 
 
+def selftest():
+    """Configuration outside the ledger is refused; the nonce counter stops at 2^64 - 1."""
+    def build(**kw):
+        base = dict(accounts=ACCOUNTS, assets=ASSETS, controls=set(), lim={}, idg=set(), clock={0},
+                    vault=3, deadlines=(100,), now=0, mig=None)
+        base.update(kw)
+        return IM(**base)
+    mig = dict(holder=0, recipient=1, src=0, dst=1, num=1, den=1)
+    for bad in (dict(vault=ACCOUNTS), dict(vault=2**32 - 1),
+                dict(mig={**mig, "recipient": ACCOUNTS}), dict(mig={**mig, "dst": ASSETS}),
+                dict(mig={**mig, "holder": ACCOUNTS}), dict(mig={**mig, "src": ASSETS})):
+        try:
+            build(**bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"accepted {bad}")
+    build(mig=mig); build(vault=None); build(vault=ACCOUNTS - 1)
+    m = build(vault=None)
+    m.nxt[0] = U64 - 1
+    assert m.process(1, 0, U64 - 1, "advance", [5]) == f"A{U64 - 1}>{U64}"
+    assert m.nxt[0] == U64
+    cached = dict(m.cache)
+    assert m.process(2, 0, U64, "advance", [6]) == "S"
+    assert m.nxt[0] == U64 and m.now == 5 and m.cache == cached
+
+
 def main():
+    selftest()
     root = Path(__file__).resolve().parent.parent
     n_legacy = legacy_regression(root)
     rnd = random.Random(20261116)
