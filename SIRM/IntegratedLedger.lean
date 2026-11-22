@@ -5,8 +5,9 @@ import SIRM.StateMachine
 # Integrated Ledger Invariants (proposal, not adopted)
 
 A concrete core state for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`)
-with all ten operations over one shared ledger: transfer, issue, burn, the escrow operations open,
-release, cancel and expire, dispute, advance (time) and the asset migration, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
+with all eleven operations over one shared ledger: transfer (a transfer from an account to itself
+is a no-op, as in the Rust and Python code), issue, burn, the escrow operations open,
+release, cancel and expire, dispute, advance (time), the asset migration and the arbiter's resolve, instantiated into the generic pipeline of `SIRM.IntegratedPipeline`.
 
 Proved, for any authorization function and any validation that implies the ledger preconditions
 (`pre`), by induction over the pipeline:
@@ -223,7 +224,7 @@ def migrateEff (c : Core) (m : MigCfg) (amt : Nat) : Core :=
 
 /-- The effect of a request on the core state (meaningful when `pre` holds). -/
 def applyOp (cfg : Cfg) (c : Core) : Op → Core
-  | .transfer src dst s amt => { c with bal := move c.bal s src dst amt }
+  | .transfer src dst s amt => if src = dst then c else { c with bal := move c.bal s src dst amt }
   | .issue _ r s amt => issueEff c r s amt
   | .burn h s amt => burnEff c h s amt
   | .open id dep ben s amt =>
@@ -239,11 +240,38 @@ def applyOp (cfg : Cfg) (c : Core) : Op → Core
   | .advance t => { c with now := t }
   | .resolve id toBen => resolveEff cfg c id toBen
 
+/-- A transfer changes only balances: the clock, the filings and the supply counters stay. (A transfer
+from an account to itself is a no-op, as in the Rust and Python machines.) -/
+theorem transfer_now (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).now = c.now := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
+theorem transfer_files (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).files = c.files := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
+theorem transfer_minted (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).minted = c.minted := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
+theorem transfer_tsrc (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).tsrc = c.tsrc := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
+theorem transfer_ttgt (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).ttgt = c.ttgt := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
+theorem transfer_dust (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    (applyOp cfg c (.transfer src dst s amt)).dust = c.dust := by
+  by_cases h : src = dst <;> simp [applyOp, h]
+
 /-- Ledger preconditions of each operation. The real validation is stricter (time, filings, zero
 amounts, overflow, unknown accounts); the proofs only need these. -/
 def pre (cfg : Cfg) (c : Core) : Op → Prop
   | .transfer src dst s amt =>
-      src < cfg.accounts ∧ dst < cfg.accounts ∧ src ≠ cfg.vault ∧ dst ≠ cfg.vault ∧ amt ≤ c.bal s src
+      src < cfg.accounts ∧ dst < cfg.accounts ∧ src ≠ cfg.vault ∧ dst ≠ cfg.vault ∧
+        (src = dst ∨ amt ≤ c.bal s src)
   | .issue _ r _ _ => r < cfg.accounts ∧ r ≠ cfg.vault
   | .burn h s amt => h < cfg.accounts ∧ h ≠ cfg.vault ∧ amt ≤ c.bal s h
   | .open id dep ben s amt =>
@@ -360,7 +388,14 @@ variable {cfg : Cfg} {c : Core}
 
 theorem inv_transfer (_hv : cfg.vault < cfg.accounts) (inv : Inv cfg c) {src dst s amt : Nat}
     (h : pre cfg c (.transfer src dst s amt)) : Inv cfg (applyOp cfg c (.transfer src dst s amt)) := by
-  obtain ⟨hs, hd, hsv, hdv, ha⟩ := h
+  obtain ⟨hs, hd, hsv, hdv, hsa⟩ := h
+  by_cases hsd : src = dst
+  · have e : applyOp cfg c (.transfer src dst s amt) = c := by simp [applyOp, hsd]
+    rw [e]; exact inv
+  have ha : amt ≤ c.bal s src := hsa.resolve_left hsd
+  have e : applyOp cfg c (.transfer src dst s amt) = { c with bal := move c.bal s src dst amt } := by
+    simp [applyOp, hsd]
+  rw [e]
   refine ⟨?_, ?_, inv.recsOk, inv.migration, inv.filesOk⟩
   · intro t
     show c.minted t = c.burned t + total (move c.bal s src dst amt t) cfg.accounts
@@ -657,6 +692,7 @@ theorem now_le_applyOp (op : Op) (h : pre cfg c op) : c.now ≤ (applyOp cfg c o
   | expire id => exact Nat.le_of_eq (settle_now cfg c id false Phase.expired).symm
   | resolve id toBen =>
       exact Nat.le_of_eq (settle_now cfg (clearFile c id) id toBen _).symm
+  | transfer src dst s amt => exact Nat.le_of_eq (transfer_now cfg c src dst s amt).symm
   | _ => exact Nat.le_refl _
 
 /-- A filing is never changed, and removed only by `resolve` on that escrow: the only operation that
@@ -680,6 +716,9 @@ theorem files_stable_applyOp (op : Op) (h : pre cfg c op) {i : Nat} {f : Filing}
   | release id => show (settle cfg c id true Phase.released).files i = some f; rw [settle_files]; exact hf
   | cancel id => show (settle cfg c id false Phase.cancelled).files i = some f; rw [settle_files]; exact hf
   | expire id => show (settle cfg c id false Phase.expired).files i = some f; rw [settle_files]; exact hf
+  | transfer src dst s amt =>
+      show (applyOp cfg c (.transfer src dst s amt)).files i = some f
+      rw [transfer_files]; exact hf
   | _ => exact hf
 
 /-! ### The pipeline over this core -/
@@ -916,7 +955,13 @@ theorem bal_ge_step (cfg : Cfg) (pol : Policy) (c : Core) (p : Nat) (op : Op)
   cases op with
   | transfer src dst s amt =>
       obtain ⟨hc, _⟩ := auth_transfer hauth
-      exact move_ge c.bal s src dst amt t a (key src hc)
+      by_cases hsd : src = dst
+      · have e : applyOp cfg c (.transfer src dst s amt) = c := by simp [applyOp, hsd]
+        rw [e]; exact Nat.le_refl _
+      · have e : applyOp cfg c (.transfer src dst s amt) = { c with bal := move c.bal s src dst amt } := by
+          simp [applyOp, hsd]
+        rw [e]
+        exact move_ge c.bal s src dst amt t a (key src hc)
   | issue iss r s amt => exact upd_ge c.bal s r amt t a
   | burn h s amt =>
       simp only [authorizedOp, Bool.and_eq_true] at hauth
@@ -1000,6 +1045,7 @@ theorem time_only_by_clock (cfg : Cfg) (pol : Policy) (validate : Core → Req �
       | cancel id => intro h; exact absurd (settle_now cfg c id false Phase.cancelled) h
       | expire id => intro h; exact absurd (settle_now cfg c id false Phase.expired) h
       | resolve id toBen => intro h; exact absurd (settle_now cfg (clearFile c id) id toBen _) h
+      | transfer src dst s amt => intro h; exact absurd (transfer_now cfg c src dst s amt) h
       | _ => intro h; exact absurd rfl h)
     s id r h
 
@@ -1057,6 +1103,11 @@ theorem filing_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req
           · subst hi; simp [clearFile, setFile] at h2
           · have h3 : c.files i = some f := by simpa [clearFile, setFile, hi] using h2
             rw [h0] at h3; cases h3
+      | transfer src dst s amt =>
+          exfalso
+          have h2 : (applyOp cfg c (.transfer src dst s amt)).files i = some f := h1
+          rw [transfer_files] at h2
+          rw [h0] at h2; cases h2
       | _ => exfalso; have h2 : c.files i = some f := h1
              rw [h0] at h2; cases h2)
     s id r i f h0 h1
@@ -1132,6 +1183,11 @@ theorem mint_only_by_grant (cfg : Cfg) (pol : Policy) (validate : Core → Req �
           have e : (applyOp cfg c (.resolve id' toBen)).minted t = c.minted t :=
             settle_minted cfg (clearFile c id') id' toBen _ ▸ rfl
           rw [e] at h; exact h)
+      | transfer src dst s amt =>
+          exfalso
+          rw [show (applyOp cfg c (.transfer src dst s amt)).minted t = c.minted t from
+            congrFun (transfer_minted cfg c src dst s amt) t] at h
+          exact Nat.lt_irrefl _ h
       | _ => exfalso; exact Nat.lt_irrefl _ h)
     s id r t h
 

@@ -99,7 +99,15 @@ theorem bounded_issue (lim : Nat) {c : Core} (b : Bounded lim c) (r s amt : Nat)
 theorem bounded_applyOp (cfg : Cfg) (lim : Nat) {c : Core} (b : Bounded lim c) (op : Op)
     (h : fitsB cfg lim c op = true) : Bounded lim (applyOp cfg c op) := by
   cases op with
-  | transfer src dst s amt => exact ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
+  | transfer src dst s amt =>
+      refine ⟨?_, ?_, ?_, ?_⟩
+      · intro t
+        rw [show (applyOp cfg c (.transfer src dst s amt)).minted t = c.minted t from
+          congrFun (transfer_minted cfg c src dst s amt) t]
+        exact b.minted t
+      · rw [transfer_tsrc]; exact b.tsrc
+      · rw [transfer_ttgt]; exact b.ttgt
+      · rw [transfer_dust]; exact b.dust
   | issue iss r s amt =>
       exact bounded_issue lim b r s amt (by simpa [fitsB] using h)
   | burn x s amt => exact ⟨b.minted, b.tsrc, b.ttgt, b.dust⟩
