@@ -26,6 +26,11 @@ jobs:
           build: true
           test: true
           lint: false
+      - name: Replay Python traces through the Lean model
+        run: >
+          lake env lean --run replay/ReplayTraces.lean
+          engineering/ledger_core/results/integrated_trace_v0.json
+          engineering/ledger_core/results/integrated_resolve_trace_v0.json
 
   rust:
     name: Rust / codec, ledger, auth and machine conformance
