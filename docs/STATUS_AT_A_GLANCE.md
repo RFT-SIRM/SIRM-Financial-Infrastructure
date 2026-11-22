@@ -5,7 +5,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 ## What exists
 
-- **Lean 4 specification:** 40 files in `SIRM/`, about 11,800 lines, 358 top-level `theorem` and `lemma`
+- **Lean 4 specification:** 41 files in `SIRM/`, about 11,800 lines, 368 top-level `theorem` and `lemma`
   declarations, no `sorry` (counted on 22 November 2026 by line-start declarations, so the true number
   of lemmas is higher). `lake build` checks them.
 - **Rust reference code:** `rust/sirm-codec`, with 29 integration test files.
@@ -22,6 +22,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 | An arbiter with an explicit grant can resolve a frozen dispute exactly once; value is neither created nor destroyed; a filing disappears only through such a resolve | `DisputeResolution`, `IntegratedLedger` |
 | Request encoding v2 (eleven operations): round trip, injectivity, every accepted byte string is canonical, unknown tag rejected (table agreement with Rust and Python is tested, not proved) | `RequestEncodingV2` |
 | Signed request envelope v3: decoder inverts encoder, distinct wires for distinct envelopes, accepted wires canonical, other domains (v2 wire, signing message) rejected, signing message fixes chain, suite, key id and the whole request (signature itself and key registry not modelled) | `SignedEnvelopeV3` |
+| State commitment v6, hash left abstract: under a collision-free hash equal roots have equal components, v5 and v6 roots never coincide, a cache entry fixes the cached request (including a `resolve` id and side) and its outcome (the trees and digests are opaque 32-byte values) | `StateCommitmentV6` |
 
 ## Checked by tests (differential evidence, not proof)
 
@@ -40,7 +41,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 - Nothing proves that the Rust or Python code refines the Lean model.
 - Arbiter resolution is accounted for (Lean pipeline, Rust and Python machines, request v2, signed v3,
   commitment v6), but who the arbiter is, evidence, deadlines, appeals and reversal are open, and nothing
-  claims a resolution is fair. The byte layout of the signed envelope has a Lean counterpart (`SignedEnvelopeV3`); the signature check and the commitment do not.
+  claims a resolution is fair. The byte layout of the signed envelope has a Lean counterpart (`SignedEnvelopeV3`); the signature check does not; the commitment has a Lean statement of what the root binds (`StateCommitmentV6`), not of how the digests are computed.
 - The clock and ids are unbounded naturals in Lean; wall-clock binding and scheduler liveness are open.
 - No deployment, custody, reserves, settlement or regulatory operation of any kind.
 

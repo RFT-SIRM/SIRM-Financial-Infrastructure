@@ -4,7 +4,7 @@ State commitment v5 for the integrated state machine (`docs/INTEGRATED_STATE_MAC
 the arbiter operation `resolve`. v0 to v5 stay as they are; v5 still has no root for a machine whose cache
 holds a `resolve` request. Reference: `scripts/state_commitment_v6_reference.py`. Vectors:
 `results/state_commitment_v6_vectors.json`. Rust: `rust/sirm-codec/src/commit_v6.rs`, test
-`rust/sirm-codec/tests/commit_v6_conformance.rs`. No Lean statements exist for this layer.
+`rust/sirm-codec/tests/commit_v6_conformance.rs`. Lean: `SIRM/StateCommitmentV6.lean` (what the root binds, with the hash left abstract).
 
 ## What changes against v5
 
