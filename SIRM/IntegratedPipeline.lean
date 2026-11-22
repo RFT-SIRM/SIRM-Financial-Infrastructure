@@ -237,6 +237,49 @@ theorem other_nonce_unchanged {q : Principal} (hq : q ≠ R.principal r) :
   · rw [hc]
   · rw [hc]; simp [bump, hq]
 
+/-- A nonce ceiling `N`. The wire format fixes nonces to 8 bytes, so `N = 2^64 - 1`. A counter that has
+reached `N` cannot advance (its successor would not fit); a request carrying exactly that nonce is
+answered as `stale`, like a nonce that can no longer be used, and is not cached. Every other request
+goes through `process` unchanged. -/
+def processCapped (N : Nat) : State Id Principal Req Core Denial × Outcome Denial :=
+  if s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N then (s, .stale)
+  else process R s id r
+
+/-- Away from the ceiling the capped pipeline is the pipeline. -/
+theorem processCapped_eq (N : Nat)
+    (h : ¬ (s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N)) :
+    processCapped R s id r N = process R s id r := by
+  unfold processCapped
+  rw [if_neg h]
+
+/-- Under the ceiling no nonce ever exceeds `N`: the counter of the sender is bumped only from a value
+below `N`. With `N = 2^64 - 1` every stored nonce fits the eight bytes of the wire format, so the
+bounds of `RequestEncodingV2` and `LedgerRootsV0` hold along every run. -/
+theorem processCapped_nonces_le (N : Nat) (hN : ∀ q, s.nonces q ≤ N) :
+    ∀ q, (processCapped R s id r N).1.nonces q ≤ N := by
+  intro q
+  unfold processCapped
+  by_cases hc : s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N
+  · rw [if_pos hc]; exact hN q
+  · rw [if_neg hc]
+    rcases process_cases R s id r with h | ⟨_, d, h⟩ | ⟨hcache, _, _, h, h2⟩
+    · rw [h]; exact hN q
+    · rw [h]; exact hN q
+    · have hn : R.nonce r = s.nonces (R.principal r) := by
+        rcases Nat.lt_trichotomy (R.nonce r) (s.nonces (R.principal r)) with hl | he | hl
+        · rw [stale_unchanged R s id r hcache hl] at h2; cases h2
+        · exact he
+        · rw [future_unchanged R s id r hcache hl] at h2; cases h2
+      have hlt : s.nonces (R.principal r) < N := by
+        have hle := hN (R.principal r)
+        rcases Nat.lt_or_ge (s.nonces (R.principal r)) N with h3 | h3
+        · exact h3
+        · exact absurd ⟨hcache, Nat.le_antisymm hle h3, by rw [hn]; exact Nat.le_antisymm hle h3⟩ hc
+      rw [h]
+      by_cases hq : q = R.principal r
+      · subst hq; simp only [bump, if_true]; omega
+      · simp only [bump, hq, if_false]; exact hN q
+
 /-- An invariant of the core state that every accepted `apply` preserves is an invariant of the
 whole pipeline: denials, replays, conflicts and rejected nonces do not touch the core. -/
 theorem process_preserves (Inv : Core → Prop)

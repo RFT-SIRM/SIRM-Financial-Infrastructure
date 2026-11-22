@@ -231,6 +231,15 @@ impl KeyRegistry {
     }
 }
 
+/// `true` if no two registered records share a public key (Lean: `ThresholdAuth.KeysDistinct`).
+/// `threshold_accepts` counts indices, so a policy has to satisfy this for the `k` approvals to come
+/// from `k` different keys.
+pub fn keys_distinct(keys: &[KeyRecord]) -> bool {
+    keys.iter()
+        .enumerate()
+        .all(|(i, a)| keys.iter().skip(i + 1).all(|b| a.key != b.key))
+}
+
 /// k-of-n acceptance over a plain list of `(index, signature)` pairs. Each registered index counts
 /// at most once; `permits` says whether a suite may authorize; `verify` is the abstract verifier.
 pub fn threshold_accepts(
@@ -249,4 +258,25 @@ pub fn threshold_accepts(
         .filter(|(i, r)| permits(r.suite) && sigs.iter().any(|(j, s)| j == i && verify(r, *s)))
         .count();
     k <= count
+}
+
+#[cfg(test)]
+mod threshold_tests {
+    use super::*;
+
+    #[test]
+    fn one_key_registered_twice_counts_twice_unless_the_policy_is_checked() {
+        let keys = [
+            KeyRecord { suite: 2, key: 10 },
+            KeyRecord { suite: 2, key: 10 },
+            KeyRecord { suite: 2, key: 12 },
+        ];
+        // the same signature of key 10 labelled with both indices reaches 2-of-3
+        let sigs = [(0usize, 7u64), (1, 7)];
+        assert!(threshold_accepts(&keys, 2, |_| true, |_, s| s == 7, &sigs));
+        // which is why a policy must pass `keys_distinct`
+        assert!(!keys_distinct(&keys));
+        assert!(keys_distinct(&[keys[0], keys[2]]));
+        assert!(keys_distinct(&[]));
+    }
 }

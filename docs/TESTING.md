@@ -227,7 +227,7 @@ Three independent checks use the same byte layout (`engineering/canonical_encodi
 
 `SIRM.AuthenticatedStep` has three `decide` examples with a toy counter (authorized request processed, unknown principal and deprecated suite rejected without a state change).
 
-`SIRM.ThresholdAuth` has four `decide` examples (2-of-3 accepted, repeated signature of one key rejected, a bad signature not counted, an index outside the policy not counted) and `SIRM.RecoveryDelay` has five (too early, at the deadline, cancel by the current key, cancel by the recovery credential refused, classical successor refused).
+`SIRM.ThresholdAuth` has four `decide` examples (2-of-3 accepted, repeated signature of one key rejected, a bad signature not counted, an index outside the policy not counted) and one theorem that shows one key registered twice counting twice (`duplicate_key_counts_twice`, the reason a policy must pass `KeysDistinct`), and `SIRM.RecoveryDelay` has five (too early, at the deadline, cancel by the current key, cancel by the recovery credential refused, classical successor refused).
 
 `SIRM.KeyRegistry` has four `rfl`/`decide` examples (downgrade by rotation and by recovery rejected, a post-quantum rotation accepted, an unknown principal rejected) beside its general theorems.
 
