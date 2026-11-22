@@ -1,7 +1,7 @@
 import SIRM.BoundedAmounts
 
 /-!
-# Dispute Resolution by an Arbiter (proposal, not adopted)
+# Dispute Resolution by an Arbiter (checked by SIRM)
 
 A disputed escrow (see `SIRM.IntegratedLedger`) is frozen: release, cancel and expire need an empty
 filing slot, so a filing is never removed and its funds stay in the vault. This file adds the

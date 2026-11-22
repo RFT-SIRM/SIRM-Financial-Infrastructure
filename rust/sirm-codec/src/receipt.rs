@@ -1,4 +1,4 @@
-//! Canonical receipt encoding v0 (proposal, not adopted). Executable reference:
+//! Canonical receipt encoding v0 (checked by SIRM). Executable reference:
 //! `scripts/canonical_receipt_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/receipt_vectors_v0.json`.
 //!

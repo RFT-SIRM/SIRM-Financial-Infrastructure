@@ -1,4 +1,4 @@
-//! State commitment v5 (proposal, not adopted): one commitment for the integrated state machine
+//! State commitment v5 (checked by SIRM): one commitment for the integrated state machine
 //! (`crate::integrated`), which has a single shared ledger. Reference:
 //! `scripts/state_commitment_v5_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v5_vectors.json`.

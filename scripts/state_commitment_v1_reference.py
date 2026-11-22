@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v1 (PROPOSAL, not adopted).
+"""Independent reference for state commitment v1 (checked by SIRM).
 
 Extends the v0 root (balances, supply, nonces) with the key registry, the suite registry and a
 protocol header. See engineering/canonical_encoding/SPEC_state_commitment_v1.md.

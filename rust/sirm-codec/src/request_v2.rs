@@ -1,4 +1,4 @@
-//! Canonical request encoding v2 (proposal, not adopted): request encoding v1 plus the arbiter
+//! Canonical request encoding v2 (checked by SIRM): request encoding v1 plus the arbiter
 //! operation `resolve`. Mirrors `engineering/canonical_encoding/SPEC_request_v2.md` and the
 //! independent Python reference `scripts/request_v2_reference.py`; vectors in
 //! `engineering/canonical_encoding/results/request_v2_vectors.json`.

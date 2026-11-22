@@ -1,5 +1,5 @@
 /-!
-# Integrated Request Pipeline (proposal, not adopted)
+# Integrated Request Pipeline (checked by SIRM)
 
 A generic model of the request pipeline of the integrated state machine
 (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`, rust `integrated::Machine`, Python `IM.process`):

@@ -1,4 +1,4 @@
-//! State commitment v1 (proposal, not adopted): the v0 root (balances, supply, nonces) plus the
+//! State commitment v1 (checked by SIRM): the v0 root (balances, supply, nonces) plus the
 //! key registry, the suite registry and a protocol header. Reference:
 //! `scripts/state_commitment_v1_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v1_vectors.json`.

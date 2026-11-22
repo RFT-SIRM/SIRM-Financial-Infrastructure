@@ -1,4 +1,4 @@
-//! State commitment v3 (proposal, not adopted): the v2 root plus the escrow / time-lock /
+//! State commitment v3 (checked by SIRM): the v2 root plus the escrow / time-lock /
 //! dispute component. Reference: `scripts/state_commitment_v3_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v3_vectors.json`.
 //!

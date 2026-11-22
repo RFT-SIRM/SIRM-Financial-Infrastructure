@@ -1,5 +1,5 @@
 /-!
-# Request Encoding v2: round trip and canonical inputs (proposal, not adopted)
+# Request Encoding v2: round trip and canonical inputs (checked by SIRM)
 
 Lean model of the byte layout of `engineering/canonical_encoding/SPEC_request_v2.md` (request encoding v1
 plus the arbiter operation `resolve`), without the constant 12-byte domain prefix:

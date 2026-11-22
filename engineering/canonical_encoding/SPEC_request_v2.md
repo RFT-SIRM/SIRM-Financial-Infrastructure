@@ -1,4 +1,4 @@
-# Request encoding v2 (proposal, not adopted)
+# Request encoding v2 (checked by SIRM)
 
 Request encoding v1 plus the arbiter operation `resolve`
 (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`). All integers big-endian. Request encoding v1
@@ -56,4 +56,4 @@ conformance test, not by a proof.
 - Signed requests (`SPEC_signed_request_v2.md`) still carry request v1, so a signed `resolve` does not
   exist yet; the state commitment (`SPEC_state_commitment_v5.md`) does not cover a machine whose cache
   holds a `resolve` request (`state_root_v5` is `None`).
-- Differential evidence, not a refinement proof. Proposal only, not adopted.
+- Differential evidence, not a refinement proof. Checked by SIRM.

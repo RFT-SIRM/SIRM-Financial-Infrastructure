@@ -1,4 +1,4 @@
-# Canonical receipt encoding v0 (proposal, not adopted)
+# Canonical receipt encoding v0 (checked by SIRM)
 
 Executable reference: `scripts/canonical_receipt_reference.py`; vectors: `results/receipt_vectors_v0.json`;
 Rust: `rust/sirm-codec/src/receipt.rs`. It builds on the request encoding of `SPEC_v0.md` and serializes the

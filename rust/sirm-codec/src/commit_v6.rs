@@ -1,4 +1,4 @@
-//! State commitment v6 (proposal, not adopted): state commitment v5 for the integrated state machine
+//! State commitment v6 (checked by SIRM): state commitment v5 for the integrated state machine
 //! (`crate::integrated`) with the arbiter operation `resolve`. Reference:
 //! `scripts/state_commitment_v6_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/state_commitment_v6_vectors.json`; spec:

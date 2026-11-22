@@ -1,4 +1,4 @@
-# State commitment v2 (proposal, not adopted)
+# State commitment v2 (checked by SIRM)
 
 Status: proposal (phase P4 of `docs/POST_QUANTUM_SECURITY_ARCHITECTURE.md`). It does not replace
 v0 or v1. Reference: `scripts/state_commitment_v2_reference.py`. Vectors:

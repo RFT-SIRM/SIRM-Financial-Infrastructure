@@ -1,4 +1,4 @@
-# State commitment v5 (proposal, not adopted)
+# State commitment v5 (checked by SIRM)
 
 One commitment for the integrated state machine (`docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md`, step I4):
 a single shared ledger, one nonce table, one request cache, one escrow table. It replaces the separate

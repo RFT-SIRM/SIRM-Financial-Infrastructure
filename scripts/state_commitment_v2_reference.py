@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v2 (PROPOSAL, not adopted).
+"""Independent reference for state commitment v2 (checked by SIRM).
 
 Extends v1 with the request-id cache (receipts and denials), the authorization policy (grants and
 account control) and the account/asset registry. See

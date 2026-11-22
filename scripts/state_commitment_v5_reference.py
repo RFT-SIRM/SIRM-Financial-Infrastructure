@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v5 (PROPOSAL, not adopted): one commitment for the
+"""Independent reference for state commitment v5 (checked by SIRM): one commitment for the
 integrated state machine (one shared ledger). Spec: engineering/canonical_encoding/SPEC_state_commitment_v5.md.
 Vectors: engineering/canonical_encoding/results/state_commitment_v5_vectors.json
 

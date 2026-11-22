@@ -1,4 +1,4 @@
-//! Signed-request layer v2 (proposal, not adopted): the v1 suite registry carrying request
+//! Signed-request layer v2 (checked by SIRM): the v1 suite registry carrying request
 //! encoding v1 (`crate::request_v1`). Reference: `scripts/signed_request_v2_reference.py`; vectors:
 //! `engineering/canonical_encoding/results/signed_request_v2_vectors.json`; spec:
 //! `engineering/canonical_encoding/SPEC_signed_request_v2.md`.

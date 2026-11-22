@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v4 (PROPOSAL, not adopted).
+"""Independent reference for state commitment v4 (checked by SIRM).
 
 Extends v3 with the asset-migration component. See
 engineering/canonical_encoding/SPEC_state_commitment_v4.md.

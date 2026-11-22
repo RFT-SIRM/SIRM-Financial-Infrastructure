@@ -1,7 +1,7 @@
 import SIRM.IntegratedLedger
 
 /-!
-# Bounded Amounts for the Integrated Ledger (proposal, not adopted)
+# Bounded Amounts for the Integrated Ledger (checked by SIRM)
 
 `SIRM.IntegratedLedger` models amounts as natural numbers. The Rust and Python machines use a fixed
 width (`u128`) and deny a request whose arithmetic would exceed it. This file adds that ceiling to the

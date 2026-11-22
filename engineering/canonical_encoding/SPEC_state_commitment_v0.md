@@ -1,4 +1,4 @@
-# State commitment v0 (proposal, not adopted)
+# State commitment v0 (checked by SIRM)
 
 Status: proposal. Reference: `scripts/state_commitment_reference.py`. Vectors:
 `engineering/canonical_encoding/results/state_commitment_vectors_v0.json`. Rust:

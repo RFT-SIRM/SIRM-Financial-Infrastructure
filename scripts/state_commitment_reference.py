@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v0 (PROPOSAL, not adopted).
+"""Independent reference for state commitment v0 (checked by SIRM).
 
 Sparse Merkle tree (SMT), depth 64, SHA-256, over u64 keys with byte-string values; absent
 and empty are the same.  A state commitment hashes three SMTs (balances, supply, nonces) with

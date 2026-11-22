@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent reference for state commitment v6 (PROPOSAL, not adopted): state commitment v5 for the
+"""Independent reference for state commitment v6 (checked by SIRM): state commitment v5 for the
 integrated state machine with the arbiter operation `resolve`. Spec: engineering/canonical_encoding/SPEC_state_commitment_v6.md.
 Vectors: engineering/canonical_encoding/results/state_commitment_v6_vectors.json
 
