@@ -5,7 +5,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 
 ## What exists
 
-- **Lean 4 specification:** 43 files in `SIRM/`, about 11,800 lines, 401 top-level `theorem` and `lemma`
+- **Lean 4 specification:** 44 files in `SIRM/`, about 11,800 lines, 411 top-level `theorem` and `lemma`
   declarations, no `sorry` (counted on 22 November 2026 by line-start declarations, so the true number
   of lemmas is higher). `lake build` checks them.
 - **Rust reference code:** `rust/sirm-codec`, with 29 integration test files.
@@ -25,6 +25,7 @@ A one-page reader's guide: what is proved, what is only tested, what is open. Ev
 | State commitment v6, hash left abstract: under a collision-free hash equal roots have equal components, v5 and v6 roots never coincide, a cache entry fixes the cached request (including a `resolve` id and side) and its outcome (the trees and digests are opaque 32-byte values) | `StateCommitmentV6` |
 | Cache digest v6: entries carry their own length, so the concatenation is unambiguous; under a collision-free hash the digest determines the list of cached requests and outcomes (sorting by request id and building the list from a machine state are not modelled) | `CacheDigestV6` |
 | Escrow and config digests v6: fixed-width entries with a count and flag bytes are unambiguous; under a collision-free hash the digests determine the escrow table (deadlines, records, filings) and the config (shape, vault, deadlines, migration rate, controls, limits, ids including arbiter grants, clock) | `EscrowConfigDigestV6` |
+| Sparse Merkle tree (balance, supply, nonce roots): under a collision-free hash with 32-byte outputs, equal depth-64 roots mean the same set of key-value entries (so also the same absent keys); the empty list gives the empty-subtree hash | `SparseTreeV0` |
 
 ## Checked by tests (differential evidence, not proof)
 

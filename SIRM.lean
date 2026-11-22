@@ -42,3 +42,4 @@ import SIRM.SignedEnvelopeV3
 import SIRM.StateCommitmentV6
 import SIRM.CacheDigestV6
 import SIRM.EscrowConfigDigestV6
+import SIRM.SparseTreeV0
