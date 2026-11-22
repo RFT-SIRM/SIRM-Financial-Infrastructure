@@ -3,8 +3,8 @@
 Status: proposal. It does not replace or modify v0, v1 or v2. Reference:
 `scripts/signed_request_v3_reference.py`. Vectors:
 `engineering/canonical_encoding/results/signed_request_v3_vectors.json`. Rust:
-`rust/sirm-codec/src/signed_v3.rs`, test `rust/sirm-codec/tests/signed_v3_conformance.rs`. No Lean
-counterpart.
+`rust/sirm-codec/src/signed_v3.rs`, test `rust/sirm-codec/tests/signed_v3_conformance.rs`. Lean model of the
+byte layout: `SIRM/SignedEnvelopeV3.lean` (not the signature check).
 
 ## What changes against v2
 

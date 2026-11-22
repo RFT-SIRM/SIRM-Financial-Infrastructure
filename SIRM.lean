@@ -38,3 +38,4 @@ import SIRM.IntegratedLedger
 import SIRM.BoundedAmounts
 import SIRM.DisputeResolution
 import SIRM.RequestEncodingV2
+import SIRM.SignedEnvelopeV3
