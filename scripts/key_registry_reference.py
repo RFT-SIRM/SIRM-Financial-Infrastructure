@@ -158,6 +158,11 @@ def permits(status, allow_deprecated):
     return allow_deprecated if p is None else p
 
 
+def keys_distinct(keys):
+    # a policy is only meaningful when no key value is registered twice (the Lean `KeysDistinct`)
+    return all(keys[i][1] != keys[j][1] for i in range(len(keys)) for j in range(i + 1, len(keys)))
+
+
 def threshold_accepts(keys, k, statuses, allow_dep, msg, sigs):
     if not (0 < k): return False
     count = 0
@@ -192,7 +197,12 @@ def threshold_cases(seed, n):
         # a lower positive threshold is never harder
         if exp and k > 1:
             assert threshold_accepts(keys, k - 1, statuses, allow, msg, sigs)
-        cases.append(dict(keys=keys, k=k, msg=msg, allow_deprecated=allow, sigs=sigs, accepts=exp))
+        dist = keys_distinct(keys)
+        # with distinct keys, acceptance needs k distinct registered signers (never more signatures than keys)
+        if exp and dist:
+            assert k <= len(keys)
+        cases.append(dict(keys=keys, k=k, msg=msg, allow_deprecated=allow, sigs=sigs, accepts=exp,
+                          keys_distinct=dist))
     return {"statuses": {str(s): v for s, v in statuses.items()}, "cases": cases}
 
 
@@ -207,6 +217,7 @@ def main():
     assert not missing, missing
     th = threshold_cases(77, 1500)
     assert any(c["accepts"] for c in th["cases"]) and any(not c["accepts"] for c in th["cases"])
+    assert any(c["keys_distinct"] for c in th["cases"]) and any(not c["keys_distinct"] for c in th["cases"])
     out = {"format": "SIRM key registry reference traces v0", "delay": DELAY, "pq_suites": sorted(PQ),
            "traces": traces, "threshold": th}
     path = os.path.join(base, "engineering/ledger_core/results/key_registry_trace_v0.json")

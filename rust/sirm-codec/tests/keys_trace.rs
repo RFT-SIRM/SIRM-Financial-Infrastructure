@@ -133,6 +133,11 @@ fn threshold_cases_match_python_reference() {
         };
         let verify = |r: &KeyRecord, sig: u64| sig == (r.key * 7 + msg + r.suite as u64) % 101;
         let k = c["k"].as_u64().unwrap() as usize;
+        assert_eq!(
+            keys_distinct(&keys),
+            c["keys_distinct"].as_bool().unwrap(),
+            "keys_distinct case {n}"
+        );
         let got = threshold_accepts(&keys, k, permits, verify, &sigs);
         assert_eq!(got, c["accepts"].as_bool().unwrap(), "case {n}");
         let mut doubled = sigs.clone();
