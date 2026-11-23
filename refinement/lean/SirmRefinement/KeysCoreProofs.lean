@@ -292,4 +292,96 @@ theorem next_nonce_spec (expected : Std.U64) (h : expected.val < 184467440737095
   simpa using hr
 
 
+/-! ### The migration arithmetic (`integrated::Machine`, validation and apply) -/
+
+theorem u128_max_val : (core.num.U128.MAX).val = 340282366920938463463374607431768211455 := by
+  first | rfl | decide
+
+/-- `migrate_acc` computes `amount * num + dust` and answers `none` exactly when that sum does not fit `u128`
+(the pair `checked_mul`, `checked_add` of the validation). -/
+theorem migrate_acc_spec (amount num dust : Std.U128) :
+    migrate_acc amount num dust ⦃ r =>
+      (r = none ↔ 340282366920938463463374607431768211455 < amount.val * num.val + dust.val) ∧
+      (∀ a, r = some a → a.val = amount.val * num.val + dust.val) ⦄ := by
+  have hM := u128_max_val
+  have hd : dust.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
+  have ha : amount.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
+  unfold migrate_acc
+  by_cases hb : (num != 0#u128) = true
+  · have hne : num ≠ 0#u128 := bne_iff_ne.mp hb
+    have hnz : num.val ≠ 0 := fun h => hne (UScalar.eq_of_val_eq (by simpa using h))
+    have hpos : 0 < num.val := Nat.pos_of_ne_zero hnz
+    rw [if_pos hb]
+    apply WP.spec_bind (U128.div_spec core.num.U128.MAX hnz)
+    intro i hi
+    rw [hM] at hi
+    by_cases hlt : amount > i
+    · rw [if_pos hlt]
+      simp only [WP.spec_ok]
+      have h1 : i.val < amount.val := (UScalar.lt_equiv _ _).mp hlt
+      have h2 := Nat.lt_mul_div_succ 340282366920938463463374607431768211455 hpos
+      have h3 : num.val * (340282366920938463463374607431768211455 / num.val + 1) ≤ num.val * amount.val :=
+        Nat.mul_le_mul_left _ (by omega)
+      have h4 : amount.val * num.val = num.val * amount.val := Nat.mul_comm _ _
+      refine ⟨⟨fun _ => ?_, fun _ => rfl⟩, fun a h => by simp at h⟩
+      omega
+    · have h1 : ¬ i.val < amount.val := fun h => hlt ((UScalar.lt_equiv _ _).mpr h)
+      have hle : amount.val * num.val ≤ 340282366920938463463374607431768211455 :=
+        (Nat.le_div_iff_mul_le hpos).mp (by omega)
+      rw [if_neg hlt]
+      apply WP.spec_bind (U128.mul_spec (x := amount) (y := num) (by scalar_tac))
+      intro prod hprod
+      apply WP.spec_bind (U128.sub_spec (x := core.num.U128.MAX) (y := prod) (by omega))
+      intro i1 hi1
+      by_cases hgt : dust > i1
+      · rw [if_pos hgt]
+        simp only [WP.spec_ok]
+        have h5 : i1.val < dust.val := (UScalar.lt_equiv _ _).mp hgt
+        refine ⟨⟨fun _ => ?_, fun _ => rfl⟩, fun a h => by simp at h⟩
+        omega
+      · rw [if_neg hgt]
+        have h5 : ¬ i1.val < dust.val := fun h => hgt ((UScalar.lt_equiv _ _).mpr h)
+        apply WP.spec_bind (U128.add_spec (x := prod) (y := dust) (by omega))
+        intro i2 hi2
+        simp only [WP.spec_ok]
+        refine ⟨⟨fun h => by simp at h, fun h => by omega⟩, fun a h => ?_⟩
+        have := Option.some.inj h
+        subst this
+        omega
+  · have hz : num = 0#u128 := by simpa using hb
+    have hz' : num.val = 0 := by rw [hz]; rfl
+    rw [if_neg hb]
+    apply WP.spec_bind (U128.mul_spec (x := amount) (y := num) (by rw [hz', Nat.mul_zero]; exact Nat.zero_le _))
+    intro prod hprod
+    have hp0 : prod.val = 0 := by rw [hprod, hz', Nat.mul_zero]
+    apply WP.spec_bind (U128.sub_spec (x := core.num.U128.MAX) (y := prod) (by omega))
+    intro i1 hi1
+    by_cases hgt : dust > i1
+    · have h5 : i1.val < dust.val := (UScalar.lt_equiv _ _).mp hgt
+      omega
+    · rw [if_neg hgt]
+      apply WP.spec_bind (U128.add_spec (x := prod) (y := dust) (by omega))
+      intro i2 hi2
+      simp only [WP.spec_ok]
+      refine ⟨⟨fun h => by simp at h, fun h => ?_⟩, fun a h => ?_⟩
+      · rw [hz', Nat.mul_zero] at h
+        omega
+      · have := Option.some.inj h
+        subst this
+        rw [hz', Nat.mul_zero]
+        omega
+
+/-- `migrate_split` is the division with remainder: `acc = released * den + rest` and `rest < den`. -/
+theorem migrate_split_spec (acc den : Std.U128) (hden : den.val ≠ 0) :
+    migrate_split acc den ⦃ r => acc.val = r.1.val * den.val + r.2.val ∧ r.2.val < den.val ⦄ := by
+  unfold migrate_split
+  apply WP.spec_bind (U128.div_spec acc hden)
+  intro i hi
+  apply WP.spec_bind (U128.rem_spec acc hden)
+  intro i1 hi1
+  simp only [WP.spec_ok]
+  rw [hi, hi1]
+  exact ⟨(Nat.div_add_mod' _ _).symm, Nat.mod_lt _ (Nat.pos_of_ne_zero hden)⟩
+
+
 end sirm_keys_core
