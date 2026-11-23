@@ -36,9 +36,9 @@ theorem count_valid_loop_spec (valid : Slice Bool) (n i : Usize) (hi : i.val ≤
     (hn : n.val + ((valid.val.drop i.val).filter id).length = total valid.val) :
     count_valid_loop valid n i ⦃ r => r.val = total valid.val ⦄ := by
   unfold count_valid_loop
-  refine loop.spec_decr_nat (fun p => valid.length - p.2.val)
-    (fun p => p.2.val ≤ valid.length ∧ p.1.val + ((valid.val.drop p.2.val).filter id).length = total valid.val)
-    (fun r => r.val = total valid.val) _ (n, i) ?_ ⟨hi, hn⟩
+  refine loop.spec_decr_nat (fun p : Usize × Usize => valid.length - p.2.val)
+    (fun p : Usize × Usize => p.2.val ≤ valid.length ∧ p.1.val + ((valid.val.drop p.2.val).filter id).length = total valid.val)
+    (fun r : Usize => r.val = total valid.val) _ (n, i) ?_ ⟨hi, hn⟩
   rintro ⟨n, i⟩ ⟨hi, hn⟩
   dsimp only at hi hn ⊢
   unfold count_valid_loop.body
@@ -115,10 +115,10 @@ theorem keys_distinct_inner_spec (keys : Slice Key) (i : Usize) (d0 : Bool)
     keys_distinct_loop0_loop0 keys d i j ⦃ r => (r = true ↔ d0 = true ∧
       ∀ j', i.val < j' → j' < keys.length → kk keys i.val ≠ kk keys j') ⦄ := by
   unfold keys_distinct_loop0_loop0
-  refine loop.spec_decr_nat (fun p => keys.length - p.2.val)
-    (fun p => (i.val < p.2.val ∧ p.2.val ≤ keys.length) ∧
+  refine loop.spec_decr_nat (fun p : Bool × Usize => keys.length - p.2.val)
+    (fun p : Bool × Usize => (i.val < p.2.val ∧ p.2.val ≤ keys.length) ∧
       (p.1 = true ↔ d0 = true ∧ ∀ j', i.val < j' → j' < p.2.val → kk keys i.val ≠ kk keys j'))
-    (fun r => (r = true ↔ d0 = true ∧
+    (fun r : Bool => (r = true ↔ d0 = true ∧
       ∀ j', i.val < j' → j' < keys.length → kk keys i.val ≠ kk keys j')) _ (d, j) ?_ ⟨hj, hd⟩
   rintro ⟨d, j⟩ ⟨hj, hd⟩
   dsimp only at hj hd ⊢
@@ -173,10 +173,10 @@ theorem keys_distinct_outer_spec (keys : Slice Key) (d : Bool) (i : Usize) (hi :
     (hd : d = true ↔ ∀ a b, a < b → b < keys.length → a < i.val → kk keys a ≠ kk keys b) :
     keys_distinct_loop0 keys d i ⦃ r => (r = true ↔ Distinct keys) ⦄ := by
   unfold keys_distinct_loop0
-  refine loop.spec_decr_nat (fun p => keys.length - p.2.val)
-    (fun p => p.2.val ≤ keys.length ∧
+  refine loop.spec_decr_nat (fun p : Bool × Usize => keys.length - p.2.val)
+    (fun p : Bool × Usize => p.2.val ≤ keys.length ∧
       (p.1 = true ↔ ∀ a b, a < b → b < keys.length → a < p.2.val → kk keys a ≠ kk keys b))
-    (fun r => (r = true ↔ Distinct keys)) _ (d, i) ?_ ⟨hi, hd⟩
+    (fun r : Bool => (r = true ↔ Distinct keys)) _ (d, i) ?_ ⟨hi, hd⟩
   rintro ⟨d, i⟩ ⟨hi, hd⟩
   dsimp only at hi hd ⊢
   unfold keys_distinct_loop0.body
