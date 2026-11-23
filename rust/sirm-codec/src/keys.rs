@@ -234,14 +234,26 @@ impl KeyRegistry {
 /// `true` if no two registered records share a public key (Lean: `ThresholdAuth.KeysDistinct`).
 /// `threshold_accepts` counts indices, so a policy has to satisfy this for the `k` approvals to come
 /// from `k` different keys.
+///
+/// The decision is made by `sirm_keys_core::keys_distinct`, the loop-only core whose Aeneas translation is
+/// proved correct in `refinement/lean` (`keys_distinct_spec`).
 pub fn keys_distinct(keys: &[KeyRecord]) -> bool {
-    keys.iter()
-        .enumerate()
-        .all(|(i, a)| keys.iter().skip(i + 1).all(|b| a.key != b.key))
+    let core: Vec<sirm_keys_core::Key> = keys
+        .iter()
+        .map(|r| sirm_keys_core::Key {
+            suite: r.suite,
+            key: r.key,
+        })
+        .collect();
+    sirm_keys_core::keys_distinct(&core)
 }
 
 /// k-of-n acceptance over a plain list of `(index, signature)` pairs. Each registered index counts
 /// at most once; `permits` says whether a suite may authorize; `verify` is the abstract verifier.
+///
+/// Which indices carry a verified signature under a permitted suite is computed here; the decision
+/// `0 < k && k <= count` is made by `sirm_keys_core::accepts` (`accepts_spec` and `count_valid_spec` in
+/// `refinement/lean`).
 pub fn threshold_accepts(
     keys: &[KeyRecord],
     k: usize,
@@ -249,15 +261,12 @@ pub fn threshold_accepts(
     verify: impl Fn(&KeyRecord, u64) -> bool,
     sigs: &[(usize, u64)],
 ) -> bool {
-    if k == 0 {
-        return false;
-    }
-    let count = keys
+    let valid: Vec<bool> = keys
         .iter()
         .enumerate()
-        .filter(|(i, r)| permits(r.suite) && sigs.iter().any(|(j, s)| j == i && verify(r, *s)))
-        .count();
-    k <= count
+        .map(|(i, r)| permits(r.suite) && sigs.iter().any(|(j, s)| *j == i && verify(r, *s)))
+        .collect();
+    sirm_keys_core::accepts(&valid, k)
 }
 
 #[cfg(test)]

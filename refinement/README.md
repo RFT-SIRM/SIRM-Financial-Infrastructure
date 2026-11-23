@@ -9,13 +9,13 @@ tests (see `docs/TESTING.md`).
 Limits: (1) the Aeneas translation is trusted (Charon and Aeneas are not verified here); (2) the specifications are
 stated in this package (`total`, `Distinct`, `kk`) in the shape of `SIRM/ThresholdAuth.lean` (`validIndices` length,
 `KeysDistinct`), but the two packages are on different Lean versions, so the link between them is by reading, not by a
-theorem; (3) `sirm_codec::keys` does not call the proved core yet, so the proved code is not the code that runs.
+theorem; (3) `sirm_codec::keys::{keys_distinct, threshold_accepts}` now call the proved core, which decides the result; the code around it (building the list of valid indices from the verifier, the permits function) is still covered by the 1,500 differential threshold cases only.
 
 What is here:
 
 - `rust/sirm-keys-core`: the decision core of `keys_distinct` and `threshold_accepts` written with plain loops
-  (no closures, iterators or collections), which Charon can extract. It has unit tests and is not wired into
-  `sirm-codec` yet.
+  (no closures, iterators or collections), which Charon can extract. It has unit tests and is called by
+  `sirm_codec::keys`.
 - `refinement/run_extraction.sh`: runs Charon and Aeneas on that crate and writes the Lean translation to
   `refinement/generated/` (not committed).
 
