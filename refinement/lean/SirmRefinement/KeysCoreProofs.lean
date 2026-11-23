@@ -304,6 +304,7 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
       (r = none ↔ 340282366920938463463374607431768211455 < amount.val * num.val + dust.val) ∧
       (∀ a, r = some a → a.val = amount.val * num.val + dust.val) ⦄ := by
   have hM := u128_max_val
+  have hUm : U128.max = 340282366920938463463374607431768211455 := by first | rfl | decide
   have hd : dust.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
   have ha : amount.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
   unfold migrate_acc
@@ -323,7 +324,7 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
       have h3 : num.val * (340282366920938463463374607431768211455 / num.val + 1) ≤ num.val * amount.val :=
         Nat.mul_le_mul_left _ (by omega)
       have h4 : amount.val * num.val = num.val * amount.val := Nat.mul_comm _ _
-      refine ⟨⟨fun _ => ?_, fun _ => rfl⟩, fun a h => by simp at h⟩
+      refine ⟨⟨fun _ => ?_, fun _ => by simp⟩, fun a h => by simp at h⟩
       omega
     · have h1 : ¬ i.val < amount.val := fun h => hlt ((UScalar.lt_equiv _ _).mpr h)
       have hle : amount.val * num.val ≤ 340282366920938463463374607431768211455 :=
@@ -337,7 +338,7 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
       · rw [if_pos hgt]
         simp only [WP.spec_ok]
         have h5 : i1.val < dust.val := (UScalar.lt_equiv _ _).mp hgt
-        refine ⟨⟨fun _ => ?_, fun _ => rfl⟩, fun a h => by simp at h⟩
+        refine ⟨⟨fun _ => ?_, fun _ => by simp⟩, fun a h => by simp at h⟩
         omega
       · rw [if_neg hgt]
         have h5 : ¬ i1.val < dust.val := fun h => hgt ((UScalar.lt_equiv _ _).mpr h)
@@ -348,8 +349,7 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
         have := Option.some.inj h
         subst this
         omega
-  · have hz : num = 0#u128 := by simpa using hb
-    have hz' : num.val = 0 := by rw [hz]; rfl
+  · have hz' : num.val = 0 := by simpa using hb
     rw [if_neg hb]
     apply WP.spec_bind (U128.mul_spec (x := amount) (y := num) (by rw [hz', Nat.mul_zero]; exact Nat.zero_le _))
     intro prod hprod
