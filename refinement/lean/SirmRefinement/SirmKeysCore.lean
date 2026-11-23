@@ -259,4 +259,40 @@ def nonce_class
 def next_nonce (expected : Std.U64) : Result Std.U64 := do
   expected + 1#u64
 
+/-- [sirm_keys_core::migrate_acc]:
+    Source: 'src/lib.rs', lines 83:0-94:1
+    Visibility: public -/
+def migrate_acc
+  (amount : Std.U128) (num : Std.U128) (dust : Std.U128) :
+  Result (Option Std.U128)
+  := do
+  if num != 0#u128
+  then
+    let i ← core.num.U128.MAX / num
+    if amount > i
+    then ok none
+    else
+      let prod ← amount * num
+      let i1 ← core.num.U128.MAX - prod
+      if dust > i1
+      then ok none
+      else let i2 ← prod + dust
+           ok (some i2)
+  else
+    let prod ← amount * num
+    let i ← core.num.U128.MAX - prod
+    if dust > i
+    then ok none
+    else let i1 ← prod + dust
+         ok (some i1)
+
+/-- [sirm_keys_core::migrate_split]:
+    Source: 'src/lib.rs', lines 97:0-99:1
+    Visibility: public -/
+def migrate_split
+  (acc : Std.U128) (den : Std.U128) : Result (Std.U128 × Std.U128) := do
+  let i ← acc / den
+  let i1 ← acc % den
+  ok (i, i1)
+
 end sirm_keys_core
