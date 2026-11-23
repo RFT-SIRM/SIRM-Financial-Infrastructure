@@ -238,4 +238,58 @@ theorem keys_distinct_spec (keys : Slice Key) :
   · simp
   · simp
 
+/-! ### The nonce decision (`IntegratedPipeline.processCapped` with `N = 2^64 - 1`) -/
+
+theorem u64_max_val : (core.num.U64.MAX).val = 18446744073709551615 := by
+  first | rfl | decide
+
+/-- `nonce_class` is the order of the checks of `processCapped` after the request-id lookup: a nonce behind the
+counter is stale, one ahead is future, and a request carrying exactly the counter is stale when the counter is at
+`2^64 - 1` (it cannot advance) and proceeds otherwise. -/
+theorem nonce_class_spec (request expected : Std.U64) :
+    nonce_class request expected ⦃ c =>
+      (c = NonceClass.Stale ↔ (request.val < expected.val ∨
+        (request.val = expected.val ∧ expected.val = 18446744073709551615))) ∧
+      (c = NonceClass.Future ↔ expected.val < request.val) ∧
+      (c = NonceClass.Proceed ↔ (request.val = expected.val ∧ expected.val < 18446744073709551615)) ⦄ := by
+  have hM := u64_max_val
+  have hb : expected.val ≤ 18446744073709551615 := by scalar_tac
+  unfold nonce_class
+  by_cases h1 : request < expected
+  · have h1' : request.val < expected.val := (UScalar.lt_equiv _ _).mp h1
+    rw [if_pos h1]
+    simp only [WP.spec_ok]
+    refine ⟨?_, ?_, ?_⟩ <;> (try simp) <;> (try omega)
+  · have h1' : ¬ request.val < expected.val := fun h => h1 ((UScalar.lt_equiv _ _).mpr h)
+    by_cases h2 : request > expected
+    · have h2' : expected.val < request.val := (UScalar.lt_equiv _ _).mp h2
+      rw [if_neg h1, if_pos h2]
+      simp only [WP.spec_ok]
+      refine ⟨?_, ?_, ?_⟩ <;> (try simp) <;> (try omega)
+    · have h2' : ¬ expected.val < request.val := fun h => h2 ((UScalar.lt_equiv _ _).mpr h)
+      have heq : request.val = expected.val := by omega
+      by_cases h3 : expected = core.num.U64.MAX
+      · have h3' : expected.val = 18446744073709551615 := by
+          have := (UScalar.eq_equiv expected core.num.U64.MAX).mp h3
+          omega
+        rw [if_neg h1, if_neg h2, if_pos h3]
+        simp only [WP.spec_ok]
+        refine ⟨?_, ?_, ?_⟩ <;> (try simp) <;> (try omega)
+      · have h3' : expected.val ≠ 18446744073709551615 := by
+          intro h
+          apply h3
+          exact (UScalar.eq_equiv expected core.num.U64.MAX).mpr (by omega)
+        rw [if_neg h1, if_neg h2, if_neg h3]
+        simp only [WP.spec_ok]
+        refine ⟨?_, ?_, ?_⟩ <;> (try simp) <;> (try omega)
+
+/-- Below the ceiling the successor fits and is the counter plus one: this is why `Proceed` can bump the counter. -/
+theorem next_nonce_spec (expected : Std.U64) (h : expected.val < 18446744073709551615) :
+    next_nonce expected ⦃ r => r.val = expected.val + 1 ⦄ := by
+  unfold next_nonce
+  refine WP.spec_mono (U64.add_spec (x := expected) (y := 1#u64) (by scalar_tac)) ?_
+  intro r hr
+  simpa using hr
+
+
 end sirm_keys_core
