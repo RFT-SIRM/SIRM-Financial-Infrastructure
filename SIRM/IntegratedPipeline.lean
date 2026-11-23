@@ -280,6 +280,80 @@ theorem processCapped_nonces_le (N : Nat) (hN : ∀ q, s.nonces q ≤ N) :
       · subst hq; simp only [bump, if_true]; omega
       · simp only [bump, hq, if_false]; exact hN q
 
+/-- The nonce gate of `processCapped`, stated with the same three conditions that the Lean proof
+`nonce_class_spec` of the Rust core (`refinement/lean`, `sirm_keys_core::nonce_class`) establishes for
+`N = 2^64 - 1`. For a request id with no cached entry: the answer is `stale` exactly when the nonce is
+behind the counter or equals a counter that sits at `N`; `future` exactly when the nonce is ahead; otherwise
+(nonce equal to the counter, counter below `N`) the request proceeds to the same steps as `process`. -/
+theorem processCapped_stale_iff (N : Nat) (h : s.cache id = none) :
+    (processCapped R s id r N).2 = .stale ↔
+      (R.nonce r < s.nonces (R.principal r) ∨
+        (R.nonce r = s.nonces (R.principal r) ∧ s.nonces (R.principal r) = N)) := by
+  unfold processCapped
+  by_cases hc : s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N
+  · rw [if_pos hc]
+    constructor
+    · intro _; right; exact ⟨by omega, hc.2.1⟩
+    · intro _; rfl
+  · rw [if_neg hc]
+    by_cases h1 : R.nonce r < s.nonces (R.principal r)
+    · rw [stale_unchanged R s id r h h1]
+      exact ⟨fun _ => Or.inl h1, fun _ => rfl⟩
+    · by_cases h2 : s.nonces (R.principal r) < R.nonce r
+      · rw [future_unchanged R s id r h h2]
+        constructor
+        · intro h3; cases h3
+        · intro h3; omega
+      · have hn : R.nonce r = s.nonces (R.principal r) := by omega
+        have hlt : ¬ s.nonces (R.principal r) = N := fun hN => hc ⟨h, hN, by omega⟩
+        constructor
+        · intro h3
+          rcases process_cases R s id r with h4 | ⟨_, d, h4⟩ | ⟨_, _, _, _, h4⟩
+          · rcases hca : R.authorized s.core r with _ | _
+            · rw [unauthorized_denied R s id r h hn hca] at h3; cases h3
+            · rcases hv : R.validate s.core r with _ | d
+              · rw [accepted_applied R s id r h hn hca hv] at h3; cases h3
+              · rw [invalid_denied R s id r h hn hca hv] at h3; cases h3
+          · rcases hca : R.authorized s.core r with _ | _
+            · rw [unauthorized_denied R s id r h hn hca] at h3; cases h3
+            · rcases hv : R.validate s.core r with _ | d
+              · rw [accepted_applied R s id r h hn hca hv] at h3; cases h3
+              · rw [invalid_denied R s id r h hn hca hv] at h3; cases h3
+          · rw [h4] at h3; cases h3
+        · intro h3
+          rcases h3 with h3 | ⟨_, h3⟩
+          · omega
+          · exact absurd h3 hlt
+
+/-- `future` exactly when the nonce is ahead of the counter (cache miss); a request with the expected nonce
+below the ceiling is handled by `process` itself (`processCapped_eq`). -/
+theorem processCapped_future_iff (N : Nat) (h : s.cache id = none) :
+    (processCapped R s id r N).2 = .future ↔ s.nonces (R.principal r) < R.nonce r := by
+  unfold processCapped
+  by_cases hc : s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N
+  · rw [if_pos hc]
+    constructor
+    · intro h3; cases h3
+    · intro h3; omega
+  · rw [if_neg hc]
+    by_cases h1 : R.nonce r < s.nonces (R.principal r)
+    · rw [stale_unchanged R s id r h h1]
+      constructor
+      · intro h3; cases h3
+      · intro h3; omega
+    · by_cases h2 : s.nonces (R.principal r) < R.nonce r
+      · rw [future_unchanged R s id r h h2]
+        exact ⟨fun _ => h2, fun _ => rfl⟩
+      · have hn : R.nonce r = s.nonces (R.principal r) := by omega
+        constructor
+        · intro h3
+          rcases hca : R.authorized s.core r with _ | _
+          · rw [unauthorized_denied R s id r h hn hca] at h3; cases h3
+          · rcases hv : R.validate s.core r with _ | d
+            · rw [accepted_applied R s id r h hn hca hv] at h3; cases h3
+            · rw [invalid_denied R s id r h hn hca hv] at h3; cases h3
+        · intro h3; omega
+
 /-- An invariant of the core state that every accepted `apply` preserves is an invariant of the
 whole pipeline: denials, replays, conflicts and rejected nonces do not touch the core. -/
 theorem process_preserves (Inv : Core → Prop)
