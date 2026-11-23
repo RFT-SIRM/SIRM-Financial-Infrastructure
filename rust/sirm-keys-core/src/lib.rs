@@ -14,18 +14,20 @@ pub struct Key {
 
 /// No key value is registered at two indices (`KeysDistinct` in `ThresholdAuth.lean`).
 pub fn keys_distinct(keys: &[Key]) -> bool {
+    // no `return` inside the nested loops: Aeneas does not support that yet, so a flag is used
+    let mut distinct = true;
     let mut i = 0;
     while i < keys.len() {
         let mut j = i + 1;
         while j < keys.len() {
             if keys[i].key == keys[j].key {
-                return false;
+                distinct = false;
             }
             j += 1;
         }
         i += 1;
     }
-    true
+    distinct
 }
 
 /// Number of indices with a valid signature (`validIndices` length in `ThresholdAuth.lean`).
