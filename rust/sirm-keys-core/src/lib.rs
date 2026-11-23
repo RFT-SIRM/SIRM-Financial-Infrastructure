@@ -78,6 +78,26 @@ pub fn next_nonce(expected: u64) -> u64 {
     expected + 1
 }
 
+/// The migration accumulator `amount * num + dust`, or `None` when either step overflows `u128`
+/// (the `checked_mul` / `checked_add` pair of the validation, written without them so that Aeneas can extract it).
+pub fn migrate_acc(amount: u128, num: u128, dust: u128) -> Option<u128> {
+    if num != 0 && amount > u128::MAX / num {
+        None
+    } else {
+        let prod = amount * num;
+        if dust > u128::MAX - prod {
+            None
+        } else {
+            Some(prod + dust)
+        }
+    }
+}
+
+/// Released amount and carried remainder: `(acc / den, acc % den)`; `den` must not be zero.
+pub fn migrate_split(acc: u128, den: u128) -> (u128, u128) {
+    (acc / den, acc % den)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,5 +131,36 @@ mod tests {
         assert_eq!(nonce_class(u64::MAX, u64::MAX - 1), NonceClass::Future);
         assert_eq!(nonce_class(u64::MAX - 1, u64::MAX - 1), NonceClass::Proceed);
         assert_eq!(next_nonce(u64::MAX - 1), u64::MAX);
+    }
+
+    #[test]
+    fn migrate_arithmetic_agrees_with_checked_ops() {
+        let vals = [
+            0u128,
+            1,
+            2,
+            3,
+            7,
+            1 << 64,
+            u128::MAX / 2,
+            u128::MAX - 1,
+            u128::MAX,
+        ];
+        for &a in &vals {
+            for &n in &vals {
+                for &d in &vals {
+                    assert_eq!(
+                        migrate_acc(a, n, d),
+                        a.checked_mul(n).and_then(|p| p.checked_add(d)),
+                        "{a} {n} {d}"
+                    );
+                }
+            }
+        }
+        for &acc in &vals {
+            for &den in &vals[1..] {
+                assert_eq!(migrate_split(acc, den), (acc / den, acc % den));
+            }
+        }
     }
 }

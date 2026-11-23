@@ -587,8 +587,8 @@ impl Machine {
                     return Some(Insufficient);
                 }
                 let step = (|| {
-                    let acc = amount.checked_mul(m.num)?.checked_add(self.dust)?;
-                    let rel = acc / m.den;
+                    let acc = sirm_keys_core::migrate_acc(amount, m.num, self.dust)?;
+                    let (rel, _) = sirm_keys_core::migrate_split(acc, m.den);
                     self.total_source.checked_add(amount)?;
                     self.total_target.checked_add(rel)?;
                     self.ledger.balance(m.recipient, m.dst).checked_add(rel)?;
@@ -688,8 +688,8 @@ impl Machine {
             Op::Advance(t) => self.now = t,
             Op::Migrate(amount) => {
                 let m = self.cfg.migration.expect("validated");
-                let acc = amount * m.num + self.dust;
-                let rel = acc / m.den;
+                let acc = sirm_keys_core::migrate_acc(amount, m.num, self.dust).expect("validated");
+                let (rel, rest) = sirm_keys_core::migrate_split(acc, m.den);
                 self.ledger
                     .burn(m.holder, m.src, amount)
                     .expect("validated");
@@ -698,7 +698,7 @@ impl Machine {
                     .expect("validated");
                 self.total_source += amount;
                 self.total_target += rel;
-                self.dust = acc % m.den;
+                self.dust = rest;
             }
         }
     }
