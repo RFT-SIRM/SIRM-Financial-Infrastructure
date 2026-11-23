@@ -453,3 +453,4 @@ PR #24 was merged into `main` at `5bb3fd4f4d58436debce6abfab4c87df132632c8` with
 - Refinement package: the Aeneas dependency is pinned to a commit (the repository has no `master` branch, so the unpinned require failed).
 - Refinement proofs, first `lake build` on the Mac: the translation and most of the draft compile; fixed the first loop spec (refine instead of apply), one surplus tactic and three no-progress simplifications. Still not a finished proof until the build is clean.
 - Refinement proofs, second build: one error left in the first loop spec (type of the result variable not inferred); annotated the loop-state and result types in the three loop specs.
+- Refinement proofs, third build: rewrote the case split of the count loop body (explicit facts for the overflow bound and the invariant); remaining proofs (accepts, keys_distinct) not yet reached by the checker.

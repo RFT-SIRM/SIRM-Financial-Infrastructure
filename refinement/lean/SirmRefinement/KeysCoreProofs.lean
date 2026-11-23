@@ -48,24 +48,36 @@ theorem count_valid_loop_spec (valid : Slice Bool) (n i : Usize) (hi : i.val ≤
     apply WP.spec_bind (Slice.index_usize_spec valid i hl)
     intro b hb
     have hd := total_drop valid.val i.val hl
-    cases hbb : b
-    · simp only [hbb, Bool.false_eq_true, if_false, WP.spec_ok] at *
-      apply WP.spec_bind (Usize.add_spec (x := i) (y := 1#usize) (by scalar_tac))
-      intro i2 hi2
-      simp only [WP.spec_ok]
-      subst hbb
-      refine ⟨⟨by scalar_tac, ?_⟩, by scalar_tac⟩
-      simp_all
-      scalar_tac
-    · simp only [hbb, if_true] at *
+    by_cases hbb : b = true
+    · rw [if_pos hbb]
+      have hv : valid.val[i.val]'hl = true := by rw [← hb]; exact hbb
+      rw [if_pos hv] at hd
+      have htot : total valid.val ≤ valid.length := by
+        unfold total; exact List.length_filter_le _ _
+      have hmax : valid.length ≤ Usize.max := Slice.length_ineq valid
       apply WP.spec_bind (Usize.add_spec (x := n) (y := 1#usize) (by scalar_tac))
       intro n1 hn1
       apply WP.spec_bind (Usize.add_spec (x := i) (y := 1#usize) (by scalar_tac))
       intro i2 hi2
       simp only [WP.spec_ok]
-      refine ⟨⟨by scalar_tac, ?_⟩, by scalar_tac⟩
-      simp_all
-      scalar_tac
+      have h1 : n1.val = n.val + 1 := by scalar_tac
+      have h2 : i2.val = i.val + 1 := by scalar_tac
+      refine ⟨⟨by omega, ?_⟩, by omega⟩
+      rw [h1, h2]; omega
+    · rw [if_neg hbb]
+      apply WP.spec_bind (Pₘ := fun x => x = n) (by simp [WP.spec_ok])
+      intro n1 hn1
+      apply WP.spec_bind (Usize.add_spec (x := i) (y := 1#usize) (by scalar_tac))
+      intro i2 hi2
+      simp only [WP.spec_ok]
+      subst hn1
+      have hbf : b = false := by simpa using hbb
+      have hv : valid.val[i.val]'hl = false := by rw [← hb]; exact hbf
+      rw [hv] at hd
+      simp at hd
+      have h2 : i2.val = i.val + 1 := by scalar_tac
+      refine ⟨⟨by omega, ?_⟩, by omega⟩
+      rw [h2]; omega
   · have : i.val = valid.length := by scalar_tac
     simp only [hlt, if_false, WP.spec_ok]
     have hd : (valid.val.drop i.val) = [] := by simp [this, Slice.length]
