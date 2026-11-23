@@ -3,7 +3,7 @@ name = "sirm-keys-core"
 version = "0.0.1"
 edition = "2021"
 description = "Loop-only core of the key checks of sirm-codec, written so that Charon and Aeneas can extract it"
-license = "Apache-2.0"
+license = "BUSL-1.1"
 publish = false
 
 [dependencies]

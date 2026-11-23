@@ -304,7 +304,7 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
       (r = none ↔ 340282366920938463463374607431768211455 < amount.val * num.val + dust.val) ∧
       (∀ a, r = some a → a.val = amount.val * num.val + dust.val) ⦄ := by
   have hM := u128_max_val
-  have hUm : U128.max = 340282366920938463463374607431768211455 := by first | rfl | decide
+  have hUm : U128.max = 340282366920938463463374607431768211455 := U128.max_eq
   have hd : dust.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
   have ha : amount.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
   unfold migrate_acc

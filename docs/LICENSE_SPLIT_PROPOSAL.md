@@ -1,4 +1,6 @@
-# License split proposal — proposal only, nothing in force
+# License split proposal — background; superseded by the owner's decision of 2026-11-23
+
+> **Update:** the owner decided to put this whole repository under BUSL-1.1 instead of splitting it (see `docs/DECISIONS.md`, `LICENSE`). The text below is the earlier reasoning and is kept unchanged.
 
 **Status:** proposal. `LICENSE` is unchanged. This repository remains Apache-2.0. No separate
 repository exists yet. This document is not legal advice; read it with

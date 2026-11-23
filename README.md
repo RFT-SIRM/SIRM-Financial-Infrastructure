@@ -1,7 +1,7 @@
 # SIRM Financial Infrastructure
 
 [![RFT-SIRM Research Hub](https://img.shields.io/badge/RFT--SIRM-Research%20Hub-5b4bc4?style=flat-square)](https://github.com/RFT-SIRM/UltraCore-RFT)
-[![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-4777bd?style=flat-square)](LICENSE)
+[![BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-4777bd?style=flat-square)](LICENSE)
 [![Lean CI](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml/badge.svg?branch=main&style=flat-square)](https://github.com/RFT-SIRM/SIRM-Financial-Infrastructure/actions/workflows/lean.yml)
 [![Lean 4 specification](https://img.shields.io/badge/Formal%20specification-Lean%204-168f83?style=flat-square)](docs/FORMALIZATION_STATUS.md)
 [![Rust reference implementation](https://img.shields.io/badge/Rust%20reference-In%20progress-d97706?style=flat-square)](docs/ARCHITECTURE.md)
@@ -291,13 +291,13 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 - [Migration from Rift](docs/MIGRATION_FROM_RIFT.md) — treatment of legacy prototype material.
 - [Open Source and Transparency](docs/OPEN_SOURCE_AND_TRANSPARENCY.md) — public development and evidence practices.
 - [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) — repository license and intellectual-property boundaries.
-- [License split proposal](docs/LICENSE_SPLIT_PROPOSAL.md) and [naming policy](docs/TRADEMARK_AND_NAMING_POLICY.md) — proposals, not in force; this repository stays Apache-2.0.
+- [License split proposal](docs/LICENSE_SPLIT_PROPOSAL.md) and [naming policy](docs/TRADEMARK_AND_NAMING_POLICY.md) — background for the license decision; the repository is under BUSL-1.1 from the commit that changed `LICENSE`.
 - [Contributing](CONTRIBUTING.md) — contribution and review requirements.
 - [Security Policy](SECURITY.md) — responsible vulnerability reporting.
 
 ## 12. License, identity, and responsible use
 
-The repository's formal specification, Lean source, theorem-level tests, and covered documentation are distributed under the **Apache License 2.0**, subject to any file-specific or third-party notices. The root [LICENSE](LICENSE) is authoritative. See [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md) for contribution rights, project identifiers, and the treatment of possible future commercial components.
+From the commit that introduced the current root [LICENSE](LICENSE) onward, this repository is distributed under the **Business Source License 1.1** (`BUSL-1.1`), with the Additional Use Grant, Change Date (2030-11-23) and Change License (Apache License 2.0) stated in that file. In plain words: the source stays public so that anyone can read, verify, reproduce and test it; production use is allowed except a *Competing Use* (offering this work, a derivative, or a network or service built on it to third parties, other than one operated or authorized by the licensor); each version becomes Apache-2.0 on its change date or four years after its first publication, whichever is earlier. The BSL is source-available, not an OSI open-source license. Versions published before the change remain under the Apache License 2.0 for everyone who received them ([LICENSES/Apache-2.0.txt](LICENSES/Apache-2.0.txt)). See [Licensing and IP Policy](docs/LICENSING_AND_IP_POLICY.md), [License decision](docs/DECISIONS.md) and [License split proposal](docs/LICENSE_SPLIT_PROPOSAL.md) (kept as background).
 
 This repository is not a bank, payment service, custodian, exchange, deposit-taking institution, live settlement network, reserve attestation, or regulatory authorization. Nothing here promises redemption, solvency, deposit insurance, or legal enforceability. A production deployment would require independent implementation, security, operational, custody, reserve, privacy, legal, and jurisdiction-specific regulatory evidence.
 

@@ -25,19 +25,14 @@ responsible maintainer before release.
 
 ## License and contribution terms
 
-The repository's default license is Apache License 2.0. The full license
-text is in the root `LICENSE` file. See
-[Licensing and Intellectual Property Policy](docs/LICENSING_AND_IP_POLICY.md)
-for the distinction between the formal specification, future commercial
-components, project identifiers, and contributor rights.
+The repository is under the Business Source License 1.1 (root `LICENSE`; versions published before the
+change remain under Apache-2.0, see `LICENSES/Apache-2.0.txt`). See
+[Licensing and Intellectual Property Policy](docs/LICENSING_AND_IP_POLICY.md).
 
-Under Section 5 of Apache-2.0, contributions intentionally submitted for
-inclusion are licensed under Apache-2.0 unless the contributor explicitly
-states otherwise or a separate written agreement applies.
-
-Submitting a contribution does not by itself assign copyright ownership
-to the repository maintainer. Contributors must have the right to submit
-their work and must preserve applicable third-party notices and obligations.
+**Outside contributions are not accepted yet.** Relicensing later (for example at the change date, or for a
+commercial license) needs the consent of every contributor, so contributor terms (a CLA or an equivalent) must
+be decided and documented before any outside code or text is merged. You are welcome to open issues and to
+report review findings; please do not send pull requests until this section changes.
 
 Do not submit code, text, data, or other material unless you have the right
 to contribute it. Identify third-party material and its license when

@@ -3,7 +3,7 @@ name = "sirm-codec"
 version = "0.0.1"
 edition = "2021"
 description = "Reference Rust codec for the SIRM canonical request encoding v0 (proposal)"
-license = "Apache-2.0"
+license = "BUSL-1.1"
 publish = false
 
 [dependencies]
