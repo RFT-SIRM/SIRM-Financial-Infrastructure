@@ -1,7 +1,7 @@
 # Refinement of the Rust key checks against the Lean model
 
 Status: **the first refinement proofs are built and checked by SIRM** (`lake build` completes on the Mac, no `sorry`):
-`count_valid_spec`, `accepts_spec` and `keys_distinct_spec` hold for the Aeneas translation of
+`count_valid_spec`, `accepts_spec`, `keys_distinct_spec`, `nonce_class_spec` and `next_nonce_spec` hold for the Aeneas translation of
 `rust/sirm-keys-core`, with axioms `propext`, `Classical.choice`, `Quot.sound` (the package uses Mathlib).
 Scope is this small core only. Everything else in the Rust code is still tied to the Lean model by differential
 tests (see `docs/TESTING.md`).
@@ -13,7 +13,7 @@ theorem; (3) `sirm_codec::keys::{keys_distinct, threshold_accepts}` now call the
 
 What is here:
 
-- `rust/sirm-keys-core`: the decision core of `keys_distinct`, `threshold_accepts` and (not yet proved) `nonce_class` written with plain loops
+- `rust/sirm-keys-core`: the decision core of `keys_distinct`, `threshold_accepts` and the nonce decision (`nonce_class`, `next_nonce`) written with plain loops
   (no closures, iterators or collections), which Charon can extract. It has unit tests and is called by
   `sirm_codec::keys`.
 - `refinement/run_extraction.sh`: runs Charon and Aeneas on that crate and writes the Lean translation to
