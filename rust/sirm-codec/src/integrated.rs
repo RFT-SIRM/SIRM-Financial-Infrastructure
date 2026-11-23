@@ -486,8 +486,8 @@ impl Machine {
                 if hit(recipient) {
                     return Some(Reserved);
                 }
-                let bal = self.ledger.balance(recipient, asset).checked_add(amount);
-                let minted = self.ledger.supply(asset).minted.checked_add(amount);
+                let bal = sirm_keys_core::add_ok(self.ledger.balance(recipient, asset), amount);
+                let minted = sirm_keys_core::add_ok(self.ledger.supply(asset).minted, amount);
                 (bal.is_none() || minted.is_none()).then_some(VaultOrOverflow)
             }
             Op::Burn {
@@ -589,10 +589,10 @@ impl Machine {
                 let step = (|| {
                     let acc = sirm_keys_core::migrate_acc(amount, m.num, self.dust)?;
                     let (rel, _) = sirm_keys_core::migrate_split(acc, m.den);
-                    self.total_source.checked_add(amount)?;
-                    self.total_target.checked_add(rel)?;
-                    self.ledger.balance(m.recipient, m.dst).checked_add(rel)?;
-                    self.ledger.supply(m.dst).minted.checked_add(rel)?;
+                    sirm_keys_core::add_ok(self.total_source, amount)?;
+                    sirm_keys_core::add_ok(self.total_target, rel)?;
+                    sirm_keys_core::add_ok(self.ledger.balance(m.recipient, m.dst), rel)?;
+                    sirm_keys_core::add_ok(self.ledger.supply(m.dst).minted, rel)?;
                     Some(())
                 })();
                 step.is_none().then_some(VaultOrOverflow)
