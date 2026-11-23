@@ -158,4 +158,105 @@ def accepts (valid : Slice Bool) (k : Std.Usize) : Result Bool := do
        ok (k <= i)
   else ok false
 
+/-- [sirm_keys_core::NonceClass]
+    Source: 'src/lib.rs', lines 53:0-60:1
+    Visibility: public -/
+@[discriminant isize]
+inductive NonceClass where
+| Stale : NonceClass
+| Future : NonceClass
+| Proceed : NonceClass
+
+/-- [sirm_keys_core::{impl core::clone::Clone for sirm_keys_core::NonceClass}::clone]:
+    Source: 'src/lib.rs', lines 52:9-52:14
+    Visibility: public -/
+def NonceClass.Insts.CoreCloneClone.clone
+  (self : NonceClass) : Result NonceClass := do
+  ok self
+
+/-- Trait implementation: [sirm_keys_core::{impl core::clone::Clone for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:9-52:14 -/
+@[reducible]
+def NonceClass.Insts.CoreCloneClone : core.clone.Clone NonceClass := {
+  clone := NonceClass.Insts.CoreCloneClone.clone
+}
+
+/-- Trait implementation: [sirm_keys_core::{impl core::marker::Copy for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:16-52:20 -/
+@[reducible]
+def NonceClass.Insts.CoreMarkerCopy : core.marker.Copy NonceClass := {
+  cloneInst := NonceClass.Insts.CoreCloneClone
+}
+
+/-- Trait implementation: [sirm_keys_core::{impl core::marker::StructuralPartialEq for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:22-52:31 -/
+@[reducible]
+def NonceClass.Insts.CoreMarkerStructuralPartialEq :
+  core.marker.StructuralPartialEq NonceClass := {
+}
+
+/-- [sirm_keys_core::{impl core::cmp::PartialEq<sirm_keys_core::NonceClass> for sirm_keys_core::NonceClass}::eq]:
+    Source: 'src/lib.rs', lines 52:22-52:31
+    Visibility: public -/
+def NonceClass.Insts.CoreCmpPartialEqNonceClass.eq
+  (self : NonceClass) (other : NonceClass) : Result Bool := do
+  let self1 := read_discriminant self
+  let other1 := read_discriminant other
+  ok (self1 = other1)
+
+/-- Trait implementation: [sirm_keys_core::{impl core::cmp::PartialEq<sirm_keys_core::NonceClass> for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:22-52:31 -/
+@[reducible]
+def NonceClass.Insts.CoreCmpPartialEqNonceClass : core.cmp.PartialEq NonceClass
+  NonceClass := {
+  eq := NonceClass.Insts.CoreCmpPartialEqNonceClass.eq
+}
+
+/-- Trait implementation: [sirm_keys_core::{impl core::cmp::Eq for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:33-52:35 -/
+@[reducible]
+def NonceClass.Insts.CoreCmpEq : core.cmp.Eq NonceClass := {
+  partialEqInst := NonceClass.Insts.CoreCmpPartialEqNonceClass
+}
+
+/-- [sirm_keys_core::{impl core::fmt::Debug for sirm_keys_core::NonceClass}::fmt]:
+    Source: 'src/lib.rs', lines 52:37-52:42
+    Visibility: public -/
+def NonceClass.Insts.CoreFmtDebug.fmt
+  (self : NonceClass) (f : core.fmt.Formatter) :
+  Result ((core.result.Result Unit core.fmt.Error) × core.fmt.Formatter)
+  := do
+  match self with
+  | NonceClass.Stale => core.fmt.Formatter.write_str f (toStr "Stale")
+  | NonceClass.Future => core.fmt.Formatter.write_str f (toStr "Future")
+  | NonceClass.Proceed => core.fmt.Formatter.write_str f (toStr "Proceed")
+
+/-- Trait implementation: [sirm_keys_core::{impl core::fmt::Debug for sirm_keys_core::NonceClass}]
+    Source: 'src/lib.rs', lines 52:37-52:42 -/
+@[reducible]
+def NonceClass.Insts.CoreFmtDebug : core.fmt.Debug NonceClass := {
+  fmt := NonceClass.Insts.CoreFmtDebug.fmt
+}
+
+/-- [sirm_keys_core::nonce_class]:
+    Source: 'src/lib.rs', lines 64:0-74:1
+    Visibility: public -/
+def nonce_class
+  (request : Std.U64) (expected : Std.U64) : Result NonceClass := do
+  if request < expected
+  then ok NonceClass.Stale
+  else
+    if request > expected
+    then ok NonceClass.Future
+    else
+      if expected = core.num.U64.MAX
+      then ok NonceClass.Stale
+      else ok NonceClass.Proceed
+
+/-- [sirm_keys_core::next_nonce]:
+    Source: 'src/lib.rs', lines 77:0-79:1
+    Visibility: public -/
+def next_nonce (expected : Std.U64) : Result Std.U64 := do
+  expected + 1#u64
+
 end sirm_keys_core
