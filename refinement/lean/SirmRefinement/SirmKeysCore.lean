@@ -286,8 +286,18 @@ def migrate_acc
     else let i1 ← prod + dust
          ok (some i1)
 
+/-- [sirm_keys_core::add_ok]:
+    Source: 'src/lib.rs', lines 97:0-103:1
+    Visibility: public -/
+def add_ok (a : Std.U128) (b : Std.U128) : Result (Option Std.U128) := do
+  let i ← core.num.U128.MAX - b
+  if a > i
+  then ok none
+  else let i1 ← a + b
+       ok (some i1)
+
 /-- [sirm_keys_core::migrate_split]:
-    Source: 'src/lib.rs', lines 97:0-99:1
+    Source: 'src/lib.rs', lines 106:0-108:1
     Visibility: public -/
 def migrate_split
   (acc : Std.U128) (den : Std.U128) : Result (Std.U128 × Std.U128) := do
