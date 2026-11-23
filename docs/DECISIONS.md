@@ -31,6 +31,16 @@
 - privacy model and selective-disclosure mechanism;
 - exact Rust implementation strategy and proof/refinement approach.
 
+## License change (2026-11-23)
+
+**Decision (owner):** from the commit that introduced the current root `LICENSE` onward, this repository is licensed under the Business Source License 1.1. Parameters: Licensor RFT-SIRM; Additional Use Grant: production use is allowed except a Competing Use (offering the work, a derivative, or a network or service built on it to third parties, other than one operated or authorized by the Licensor); Change Date 2030-11-23, and for each version the earlier of that date and the fourth anniversary of its first publication; Change License Apache-2.0.
+
+**Reasons given by the owner:** the project has no funds to launch a network itself, and published code must not be taken over and run as a competing network; the code stays public so that the proofs can still be inspected.
+
+**What this does not do:** it does not withdraw anything published before the change (those versions stay Apache-2.0 for everyone who received them); it is not a trademark registration; after the change dates the code becomes Apache-2.0 version by version; enforcement needs resources the project does not have today.
+
+**Open gates, not yet done:** a lawyer has not reviewed the parameter text (the Additional Use Grant, in particular, is custom wording); the legal name of the Licensor is currently the project name `RFT-SIRM`; contributor terms are undecided, so outside pull requests are not accepted; parts written with AI assistance have legally uncertain authorship; per-file SPDX identifiers are not added.
+
 ## Change control
 
 Any change to an adopted decision must update this record, the relevant Lean definitions, the specification, and tests together. No code-level constant may silently override the normative record.

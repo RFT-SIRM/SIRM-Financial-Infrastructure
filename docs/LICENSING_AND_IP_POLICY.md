@@ -1,7 +1,7 @@
 # Licensing and Intellectual Property Policy
 
 **Status:** Project policy for the SIRM Financial Infrastructure repository
-**Repository license:** Apache License 2.0 (`Apache-2.0`)
+**Repository license:** Business Source License 1.1 (`BUSL-1.1`) from the commit that changed `LICENSE`; earlier versions remain Apache License 2.0 (`Apache-2.0`). The sections below were written when the repository was Apache-2.0 and are kept for their reasoning; where they conflict with the root `LICENSE`, the root `LICENSE` controls.
 **Scope:** Formal specification, Lean source, theorem-level tests, and
 repository documentation, except where a file or third-party component
 carries a separate license notice.
