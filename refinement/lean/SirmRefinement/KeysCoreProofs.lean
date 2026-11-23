@@ -371,6 +371,36 @@ theorem migrate_acc_spec (amount num dust : Std.U128) :
         rw [hz', Nat.mul_zero]
         omega
 
+/-- `add_ok` is the `checked_add` decision of the validation: `none` exactly when `a + b` does not fit `u128`,
+otherwise the sum. -/
+theorem add_ok_spec (a b : Std.U128) :
+    add_ok a b ⦃ r =>
+      (r = none ↔ 340282366920938463463374607431768211455 < a.val + b.val) ∧
+      (∀ s, r = some s → s.val = a.val + b.val) ⦄ := by
+  have hM := u128_max_val
+  have hUm : U128.max = 340282366920938463463374607431768211455 := U128.max_eq
+  have hb : b.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
+  have ha : a.val ≤ 340282366920938463463374607431768211455 := by scalar_tac
+  unfold add_ok
+  apply WP.spec_bind (U128.sub_spec (x := core.num.U128.MAX) (y := b) (by omega))
+  intro i hi
+  rw [hM] at hi
+  by_cases hgt : a > i
+  · rw [if_pos hgt]
+    simp only [WP.spec_ok]
+    have h1 : i.val < a.val := (UScalar.lt_equiv _ _).mp hgt
+    refine ⟨⟨fun _ => ?_, fun _ => by simp⟩, fun s h => by simp at h⟩
+    omega
+  · rw [if_neg hgt]
+    have h1 : ¬ i.val < a.val := fun h => hgt ((UScalar.lt_equiv _ _).mpr h)
+    apply WP.spec_bind (U128.add_spec (x := a) (y := b) (by omega))
+    intro i1 hi1
+    simp only [WP.spec_ok]
+    refine ⟨⟨fun h => by simp at h, fun h => by omega⟩, fun s h => ?_⟩
+    have := Option.some.inj h
+    subst this
+    omega
+
 /-- `migrate_split` is the division with remainder: `acc = released * den + rest` and `rest < den`. -/
 theorem migrate_split_spec (acc den : Std.U128) (hden : den.val ≠ 0) :
     migrate_split acc den ⦃ r => acc.val = r.1.val * den.val + r.2.val ∧ r.2.val < den.val ⦄ := by
