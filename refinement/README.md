@@ -13,7 +13,7 @@ theorem; (3) `sirm_codec::keys::{keys_distinct, threshold_accepts}` now call the
 
 What is here:
 
-- `rust/sirm-keys-core`: the decision core of `keys_distinct` and `threshold_accepts` written with plain loops
+- `rust/sirm-keys-core`: the decision core of `keys_distinct`, `threshold_accepts` and (not yet proved) `nonce_class` written with plain loops
   (no closures, iterators or collections), which Charon can extract. It has unit tests and is called by
   `sirm_codec::keys`.
 - `refinement/run_extraction.sh`: runs Charon and Aeneas on that crate and writes the Lean translation to

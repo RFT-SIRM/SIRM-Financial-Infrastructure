@@ -712,17 +712,13 @@ impl Machine {
             };
         }
         let expected = self.nonce(req.principal);
-        if req.nonce < expected {
-            return Outcome::Stale;
-        }
-        if req.nonce > expected {
-            return Outcome::Future;
-        }
-        // A counter that has reached `u64::MAX` cannot advance: its successor does not fit. The
-        // request carrying that nonce is answered like a nonce that can no longer be used and is not
-        // cached (Lean: `IntegratedPipeline.processCapped` with `N = 2^64 - 1`).
-        if expected == u64::MAX {
-            return Outcome::Stale;
+        // Stale, future, or a counter at `u64::MAX` that cannot advance (not cached): decided by the
+        // loop-free core `sirm_keys_core::nonce_class`, mirrored from `IntegratedPipeline.processCapped`
+        // with `N = 2^64 - 1`.
+        match sirm_keys_core::nonce_class(req.nonce, expected) {
+            sirm_keys_core::NonceClass::Stale => return Outcome::Stale,
+            sirm_keys_core::NonceClass::Future => return Outcome::Future,
+            sirm_keys_core::NonceClass::Proceed => {}
         }
         let cause = if !self.authorized(req.principal, &req.op) {
             Some(Cause::Auth)
@@ -739,8 +735,9 @@ impl Machine {
             },
             None => {
                 self.apply(req.principal, &req.op);
-                // `expected < u64::MAX` here, so the successor fits.
-                self.nonces.insert(req.principal, expected + 1);
+                // `Proceed` means `expected < u64::MAX`, so the successor fits.
+                self.nonces
+                    .insert(req.principal, sirm_keys_core::next_nonce(expected));
                 Stored::Accepted { nonce: expected }
             }
         };
