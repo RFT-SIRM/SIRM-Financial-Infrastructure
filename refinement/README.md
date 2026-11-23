@@ -36,3 +36,11 @@ Then `sirm_codec::keys` is changed to call this core, so that the proved code is
 
 Not claimed: the verifier, hashing, and anything outside this module. Moving the machine (`Machine::process`)
 into the same pipeline is a later, larger step.
+
+## The Lean package (`refinement/lean`)
+
+`lake build` in `refinement/lean` (Lean 4.36 and Mathlib come with the Aeneas dependency; the first build
+downloads Mathlib, so use `lake exe cache get` if it is offered). `SirmRefinement/SirmKeysCore.lean` is the
+generated translation (regenerate it with `run_extraction.sh`, do not edit it); `SirmRefinement/KeysCoreProofs.lean`
+holds `count_valid_spec`, `accepts_spec` and `keys_distinct_spec`. First draft, not yet compiled: the
+theorems are claims until `lake build` succeeds.
