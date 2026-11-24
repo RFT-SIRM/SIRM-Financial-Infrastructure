@@ -231,5 +231,53 @@ theorem reachable_u128 (cfg : Cfg) (hv : cfg.vault < cfg.accounts)
   exact ⟨hs.2.minted, safe_burned_le cfg u128Max hs, fun t a ha => safe_balance_le cfg u128Max hs t a ha,
     hs.2.tsrc, hs.2.ttgt, hs.2.dust⟩
 
+/-! ### The overflow decision of the Rust core in the terms of `fitsB` -/
+
+theorem u128Max_eq : u128Max = 340282366920938463463374607431768211455 := by
+  unfold u128Max
+  first | decide | rfl
+
+/-- The addition decision of the Rust core (`refinement/lean`, `sirm_keys_core::add_ok`) for a ceiling `lim`:
+the sum when it fits, `none` otherwise. For `lim = u128Max` this is `add_ok_spec`. -/
+def addOk (lim a b : Nat) : Option Nat := if a + b ≤ lim then some (a + b) else none
+
+theorem addOk_none_iff (lim a b : Nat) : addOk lim a b = none ↔ lim < a + b := by
+  unfold addOk
+  by_cases h : a + b ≤ lim <;> simp [h] <;> omega
+
+theorem addOk_some (lim a b t : Nat) (h : addOk lim a b = some t) : t = a + b ∧ a + b ≤ lim := by
+  unfold addOk at h
+  by_cases hle : a + b ≤ lim
+  · rw [if_pos hle] at h
+    exact ⟨(Option.some.inj h).symm, hle⟩
+  · rw [if_neg hle] at h
+    cases h
+
+/-- The statement of `add_ok_spec` (`none` exactly when the sum exceeds `2^128 - 1`). -/
+theorem addOk_none_iff_u128 (a b : Nat) :
+    addOk u128Max a b = none ↔ 340282366920938463463374607431768211455 < a + b := by
+  rw [addOk_none_iff, u128Max_eq]
+
+/-- For an issuance the ceiling check `fitsB` is the Rust `add_ok` decision on the supply counter and the amount:
+the request fits exactly when `addOk` has an answer. -/
+theorem fitsB_issue_iff_addOk (cfg : Cfg) (lim : Nat) (c : Core) {iss} (r s amt : Nat) :
+    fitsB cfg lim c (.issue iss r s amt) = true ↔ (addOk lim (c.minted s) amt).isSome = true := by
+  by_cases hle : c.minted s + amt ≤ lim <;> simp [fitsB, addOk, hle]
+
+/-- An issuance whose supply sum the Rust core `add_ok` rejects is denied with `overflowDenial` by the
+validation with the ceiling. -/
+theorem boundVal_issue_overflow (cfg : Cfg) (lim : Nat) (validate : Core → Req → Option Nat)
+    (c : Core) (r : Req) {iss} {rc s amt : Nat} (hop : r.op = .issue iss rc s amt)
+    (h : addOk lim (c.minted s) amt = none) :
+    boundVal cfg lim validate c r = some overflowDenial := by
+  unfold boundVal
+  have hn : ¬ (c.minted s + amt ≤ lim) := by
+    intro hle
+    simp [addOk, hle] at h
+  have hf : fitsB cfg lim c r.op = false := by
+    rw [hop]
+    simp [fitsB, hn]
+  simp [hf]
+
 end BoundedAmounts
 end SIRM

@@ -354,6 +354,61 @@ theorem processCapped_future_iff (N : Nat) (h : s.cache id = none) :
             · rw [invalid_denied R s id r h hn hca hv] at h3; cases h3
         · intro h3; omega
 
+/-- The successor decision of the Rust core (`refinement/lean`, `sirm_keys_core::succ_ok`) for a ceiling `N`:
+`none` exactly at the ceiling, otherwise the counter plus one. For `N = 2^64 - 1` this is `succ_ok_spec`. -/
+def succOk (N x : Nat) : Option Nat := if x = N then none else some (x + 1)
+
+theorem succOk_none_iff (N x : Nat) : succOk N x = none ↔ x = N := by
+  unfold succOk
+  by_cases h : x = N <;> simp [h]
+
+theorem succOk_some (N x t : Nat) (h : succOk N x = some t) : t = x + 1 ∧ x ≠ N := by
+  unfold succOk at h
+  by_cases hx : x = N
+  · rw [if_pos hx] at h; cases h
+  · rw [if_neg hx] at h
+    exact ⟨(Option.some.inj h).symm, hx⟩
+
+/-- The statement of `succ_ok_spec` (`none` exactly at `18446744073709551615`) for `N = 2^64 - 1`. -/
+theorem succOk_none_iff_u64 (x : Nat) :
+    succOk (2 ^ 64 - 1) x = none ↔ x = 18446744073709551615 := by
+  have hN : (2 : Nat) ^ 64 - 1 = 18446744073709551615 := by first | decide | rfl
+  rw [succOk_none_iff, hN]
+
+/-- When the capped pipeline accepts a request on a cache miss, the request carried the expected nonce and the
+sender's new counter is exactly the successor that `succOk N` computes: it exists because the counter was below
+the ceiling `N` (a counter at `N` is the case in which `succOk` answers `none`, and the pipeline answers `stale`,
+see `processCapped_stale_iff`). With `N = 2^64 - 1` this is the decision that `succ_ok_spec` proves for the Rust
+core. -/
+theorem processCapped_accept_succ (N : Nat) (h : s.cache id = none) {m : Nat}
+    (hf : (processCapped R s id r N).2 = Outcome.fresh (Stored.accepted m)) :
+    R.nonce r = s.nonces (R.principal r) ∧
+    succOk N (s.nonces (R.principal r)) =
+      some ((processCapped R s id r N).1.nonces (R.principal r)) := by
+  unfold processCapped at hf ⊢
+  by_cases hc : s.cache id = none ∧ s.nonces (R.principal r) = N ∧ R.nonce r = N
+  · rw [if_pos hc] at hf
+    first | cases hf | simp at hf
+  · rw [if_neg hc] at hf ⊢
+    by_cases h1 : R.nonce r < s.nonces (R.principal r)
+    · rw [stale_unchanged R s id r h h1] at hf
+      first | cases hf | simp at hf
+    · by_cases h2 : s.nonces (R.principal r) < R.nonce r
+      · rw [future_unchanged R s id r h h2] at hf
+        first | cases hf | simp at hf
+      · have hn : R.nonce r = s.nonces (R.principal r) := by omega
+        have hne : s.nonces (R.principal r) ≠ N := fun hN => hc ⟨h, hN, by omega⟩
+        by_cases ha : R.authorized s.core r = true
+        · rcases hv : R.validate s.core r with _ | d
+          · rw [accepted_applied R s id r h hn ha hv]
+            refine ⟨hn, ?_⟩
+            simp [succOk, hne, bump]
+          · rw [invalid_denied R s id r h hn ha hv] at hf
+            first | cases hf | simp at hf
+        · have ha' : R.authorized s.core r = false := by simpa using ha
+          rw [unauthorized_denied R s id r h hn ha'] at hf
+          first | cases hf | simp at hf
+
 /-- An invariant of the core state that every accepted `apply` preserves is an invariant of the
 whole pipeline: denials, replays, conflicts and rejected nonces do not touch the core. -/
 theorem process_preserves (Inv : Core → Prop)
