@@ -411,7 +411,7 @@ theorem sub_ok_spec (a b : Std.U128) :
   · rw [if_pos hgt]
     simp only [WP.spec_ok]
     have h1 : a.val < b.val := (UScalar.lt_equiv _ _).mp hgt
-    exact ⟨⟨fun _ => h1, fun _ => rfl⟩, fun d h => by simp at h⟩
+    exact ⟨⟨fun _ => h1, fun _ => by simp⟩, fun d h => by simp at h⟩
   · rw [if_neg hgt]
     have h1 : ¬ a.val < b.val := fun h => hgt ((UScalar.lt_equiv _ _).mpr h)
     apply WP.spec_bind (U128.sub_spec (x := a) (y := b) (by omega))
