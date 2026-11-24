@@ -15,7 +15,7 @@ use crate::ledger::{Holdings, LedgerError};
 
 /// `gross - fee`, defined when `fee <= gross`.
 pub fn net_amount(gross: u128, fee: u128) -> Result<u128, LedgerError> {
-    gross.checked_sub(fee).ok_or(LedgerError::FeeExceedsGross)
+    sirm_keys_core::sub_ok(gross, fee).ok_or(LedgerError::FeeExceedsGross)
 }
 
 pub fn fee_transfer(
