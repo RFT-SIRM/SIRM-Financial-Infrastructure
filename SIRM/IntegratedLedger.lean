@@ -39,8 +39,9 @@ What this does **not** cover, stated so that no reader assumes it:
 
 The real validation is stricter than `pre`. Not modelled: how policies are configured and signed, the order in which deadline conditions are reported, and anything about the request cache
 beyond the generic pipeline.
-* Nothing connects this model to the Rust or Python machines except the shape of the operations; that
-  evidence is differential testing. No Mathlib is used.
+* The Rust and Python machines are connected to this model by the shape of the operations (differential
+  testing) and, for the balance conditions of `burn` and `transfer`, by `subOk`, which states the Rust core's
+  `sub_ok_spec` in the terms of `pre` (`pre_burn_iff_subOk`, `pre_transfer_iff_subOk`). No Mathlib is used.
 -/
 
 namespace SIRM
@@ -381,6 +382,63 @@ theorem contrib_le_pendingSum (recs : Nat → Option Rec) (id s ids : Nat) (h : 
   have h0 : contrib none s = 0 := rfl
   rw [h0] at this
   omega
+
+/-! ### The subtraction decision of the Rust core in the terms of `pre` -/
+
+/-- The subtraction decision of the Rust core (`refinement/lean`, `sirm_keys_core::sub_ok`): the difference when the
+subtrahend does not exceed the minuend, `none` otherwise. This is `sub_ok_spec`. -/
+def subOk (a b : Nat) : Option Nat := if b ≤ a then some (a - b) else none
+
+theorem subOk_none_iff (a b : Nat) : subOk a b = none ↔ a < b := by
+  unfold subOk
+  by_cases h : b ≤ a <;> simp [h] <;> omega
+
+theorem subOk_some (a b t : Nat) (h : subOk a b = some t) : t = a - b ∧ b ≤ a := by
+  unfold subOk at h
+  by_cases hle : b ≤ a
+  · rw [if_pos hle] at h
+    exact ⟨(Option.some.inj h).symm, hle⟩
+  · rw [if_neg hle] at h
+    cases h
+
+/-- The balance conditions of `pre` (`amt ≤ balance`) are the cases in which `sub_ok` has an answer. -/
+theorem le_iff_subOk (a b : Nat) : b ≤ a ↔ (subOk a b).isSome = true := by
+  by_cases h : b ≤ a <;> simp [subOk, h]
+
+/-- The precondition of a burn is the account conditions and the Rust `sub_ok` decision on balance and amount. -/
+theorem pre_burn_iff_subOk (cfg : Cfg) (c : Core) (h s amt : Nat) :
+    pre cfg c (.burn h s amt) ↔
+      h < cfg.accounts ∧ h ≠ cfg.vault ∧ (subOk (c.bal s h) amt).isSome = true := by
+  first
+    | (simp [pre, le_iff_subOk]; done)
+    | (simp only [pre]; rw [le_iff_subOk])
+
+/-- The precondition of a transfer: the account conditions and either a self-transfer or the Rust `sub_ok`
+decision on the source balance and the amount. -/
+theorem pre_transfer_iff_subOk (cfg : Cfg) (c : Core) (src dst s amt : Nat) :
+    pre cfg c (.transfer src dst s amt) ↔
+      src < cfg.accounts ∧ dst < cfg.accounts ∧ src ≠ cfg.vault ∧ dst ≠ cfg.vault ∧
+        (src = dst ∨ (subOk (c.bal s src) amt).isSome = true) := by
+  first
+    | (simp [pre, le_iff_subOk]; done)
+    | (simp only [pre]; rw [le_iff_subOk])
+
+/-- The balance of the holder after a burn is the difference that `sub_ok` returns. -/
+theorem burn_bal_subOk (cfg : Cfg) (c : Core) (h s amt t : Nat)
+    (hs : subOk (c.bal s h) amt = some t) :
+    (applyOp cfg c (.burn h s amt)).bal s h = t := by
+  have ht := (subOk_some _ _ _ hs).1
+  simp [applyOp, burnEff, upd, setAt] <;> omega
+
+/-- The balance of the source after a transfer between two different accounts is the difference that `sub_ok`
+returns. -/
+theorem transfer_src_subOk (cfg : Cfg) (c : Core) (src dst s amt t : Nat) (hne : src ≠ dst)
+    (hs : subOk (c.bal s src) amt = some t) :
+    (applyOp cfg c (.transfer src dst s amt)).bal s src = t := by
+  have ht := (subOk_some _ _ _ hs).1
+  have h1 : (applyOp cfg c (.transfer src dst s amt)).bal = move c.bal s src dst amt := by
+    simp [applyOp, hne]
+  rw [h1, move_src c.bal s src dst amt hne, ht]
 
 /-! ### Every operation preserves the invariants -/
 
