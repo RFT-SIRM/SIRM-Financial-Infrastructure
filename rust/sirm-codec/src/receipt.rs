@@ -114,7 +114,7 @@ fn check(r: &Receipt) -> Result<(), ReceiptError> {
             if accepted_nonce != r.request.nonce {
                 return Err(ReceiptError::AcceptedNonceMismatch);
             }
-            if accepted_nonce.checked_add(1) != Some(next_nonce) {
+            if sirm_keys_core::succ_ok(accepted_nonce) != Some(next_nonce) {
                 return Err(ReceiptError::NextNonceMismatch);
             }
         }

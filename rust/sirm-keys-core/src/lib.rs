@@ -111,6 +111,15 @@ pub fn sub_ok(a: u128, b: u128) -> Option<u128> {
     }
 }
 
+/// `x + 1`, or `None` at `u64::MAX` (the `checked_add(1)` decision on a nonce).
+pub fn succ_ok(x: u64) -> Option<u64> {
+    if x == u64::MAX {
+        None
+    } else {
+        Some(x + 1)
+    }
+}
+
 /// Released amount and carried remainder: `(acc / den, acc % den)`; `den` must not be zero.
 pub fn migrate_split(acc: u128, den: u128) -> (u128, u128) {
     (acc / den, acc % den)
@@ -166,6 +175,13 @@ mod tests {
             for &b in &vals {
                 assert_eq!(add_ok(a, b), a.checked_add(b), "{a} {b}");
             }
+        }
+    }
+
+    #[test]
+    fn succ_ok_agrees_with_checked_add() {
+        for x in [0u64, 1, 2, u64::MAX / 2, u64::MAX - 1, u64::MAX] {
+            assert_eq!(succ_ok(x), x.checked_add(1), "{x}");
         }
     }
 

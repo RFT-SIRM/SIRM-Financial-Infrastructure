@@ -135,11 +135,9 @@ impl Migration {
 
     /// Target units a migration of `amount` would release now (carried dust included).
     pub fn released(&self, amount: u128) -> Result<u128, MigrationError> {
-        let acc = amount
-            .checked_mul(self.numerator)
-            .and_then(|p| p.checked_add(self.dust))
+        let acc = sirm_keys_core::migrate_acc(amount, self.numerator, self.dust)
             .ok_or(MigrationError::Overflow)?;
-        Ok(acc / self.denominator)
+        Ok(sirm_keys_core::migrate_split(acc, self.denominator).0)
     }
 
     pub fn migrate(
@@ -158,21 +156,14 @@ impl Migration {
         if amount > self.holdings.balance(self.source_holder, self.source_asset) {
             return Err(MigrationError::Insufficient);
         }
-        let acc = amount
-            .checked_mul(self.numerator)
-            .and_then(|p| p.checked_add(self.dust))
+        let acc = sirm_keys_core::migrate_acc(amount, self.numerator, self.dust)
             .ok_or(MigrationError::Overflow)?;
-        let released = acc / self.denominator;
-        let new_dust = acc % self.denominator;
-        let new_source = self
-            .total_source
-            .checked_add(amount)
-            .ok_or(MigrationError::Overflow)?;
-        let new_target = self
-            .total_target
-            .checked_add(released)
-            .ok_or(MigrationError::Overflow)?;
-        let next = expected.checked_add(1).ok_or(MigrationError::Overflow)?;
+        let (released, new_dust) = sirm_keys_core::migrate_split(acc, self.denominator);
+        let new_source =
+            sirm_keys_core::add_ok(self.total_source, amount).ok_or(MigrationError::Overflow)?;
+        let new_target =
+            sirm_keys_core::add_ok(self.total_target, released).ok_or(MigrationError::Overflow)?;
+        let next = sirm_keys_core::succ_ok(expected).ok_or(MigrationError::Overflow)?;
         // Both legs on a copy: burn then issue, committed together or not at all.
         let mut tmp = self.holdings.clone();
         tmp.burn(self.source_holder, self.source_asset, amount)
