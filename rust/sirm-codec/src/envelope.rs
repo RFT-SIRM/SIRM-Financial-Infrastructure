@@ -149,7 +149,7 @@ impl State {
         let Some(new_balance) = old_balance.checked_add(req.family.effect()) else {
             return (Outcome::ArithmeticRejected, None);
         };
-        let Some(next) = expected.checked_add(1) else {
+        let Some(next) = sirm_keys_core::succ_ok(expected) else {
             return (Outcome::ArithmeticRejected, None);
         };
 

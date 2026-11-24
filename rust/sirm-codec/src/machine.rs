@@ -144,7 +144,7 @@ impl Processor {
             return Outcome::FutureNonce;
         }
         // Every fallible step precedes the first write of nonce/cache.
-        let Some(next) = expected.checked_add(1) else {
+        let Some(next) = sirm_keys_core::succ_ok(expected) else {
             return Outcome::Invalid(LedgerError::Overflow);
         };
 

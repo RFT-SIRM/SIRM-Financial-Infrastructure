@@ -79,7 +79,7 @@ impl TimeLockedEscrow {
         self.records
             .values()
             .filter(|r| r.phase == Phase::Pending && r.asset == asset)
-            .try_fold(0u128, |acc, r| acc.checked_add(r.amount))
+            .try_fold(0u128, |acc, r| sirm_keys_core::add_ok(acc, r.amount))
     }
 
     /// Reconciled holdings; every record non-ready with positive amount; the vault

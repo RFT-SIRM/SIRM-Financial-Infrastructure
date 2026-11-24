@@ -22,7 +22,7 @@ pub struct SupplyState {
 impl SupplyState {
     /// `minted = burned + outstanding`, evaluated without overflow.
     pub fn invariant(&self) -> bool {
-        self.burned.checked_add(self.outstanding) == Some(self.minted)
+        sirm_keys_core::add_ok(self.burned, self.outstanding) == Some(self.minted)
     }
 }
 
@@ -82,7 +82,9 @@ impl Holdings {
 
     /// Total owner-held units of one asset; `None` on overflow.
     pub fn total_holdings(&self, asset: u32) -> Option<u128> {
-        (0..self.accounts).try_fold(0u128, |acc, a| acc.checked_add(self.balance(a, asset)))
+        (0..self.accounts).try_fold(0u128, |acc, a| {
+            sirm_keys_core::add_ok(acc, self.balance(a, asset))
+        })
     }
 
     /// Reconciliation: for every asset, supply book balances and total holdings equal
