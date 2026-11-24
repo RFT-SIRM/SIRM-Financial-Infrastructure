@@ -472,7 +472,9 @@ impl Machine {
                 if hit(src) || hit(dst) {
                     return Some(Reserved);
                 }
-                (src != dst && amount > self.ledger.balance(src, asset)).then_some(Insufficient)
+                (src != dst
+                    && sirm_keys_core::sub_ok(self.ledger.balance(src, asset), amount).is_none())
+                .then_some(Insufficient)
             }
             Op::Issue {
                 recipient,
@@ -501,7 +503,9 @@ impl Machine {
                 if hit(holder) {
                     return Some(Reserved);
                 }
-                (amount > self.ledger.balance(holder, asset)).then_some(Insufficient)
+                sirm_keys_core::sub_ok(self.ledger.balance(holder, asset), amount)
+                    .is_none()
+                    .then_some(Insufficient)
             }
             Op::Open {
                 id,
@@ -531,7 +535,9 @@ impl Machine {
                 if !self.in_range(&[depositor, beneficiary], &[asset]) {
                     return Some(UnknownAccount);
                 }
-                (amount > self.ledger.balance(depositor, asset)).then_some(Insufficient)
+                sirm_keys_core::sub_ok(self.ledger.balance(depositor, asset), amount)
+                    .is_none()
+                    .then_some(Insufficient)
             }
             Op::Release(id) | Op::Cancel(id) | Op::Expire(id) => {
                 let expire = matches!(op, Op::Expire(_));
@@ -583,7 +589,7 @@ impl Machine {
                 if amount == 0 {
                     return Some(ZeroAmount);
                 }
-                if amount > self.ledger.balance(m.holder, m.src) {
+                if sirm_keys_core::sub_ok(self.ledger.balance(m.holder, m.src), amount).is_none() {
                     return Some(Insufficient);
                 }
                 let step = (|| {
