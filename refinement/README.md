@@ -1,7 +1,7 @@
 # Refinement of the Rust key checks against the Lean model
 
 Status: **the first refinement proofs are built and checked by SIRM** (`lake build` completes on the Mac, no `sorry`):
-`count_valid_spec`, `accepts_spec`, `keys_distinct_spec`, `nonce_class_spec`, `next_nonce_spec`, `migrate_acc_spec` and `migrate_split_spec` hold for the Aeneas translation of
+`count_valid_spec`, `accepts_spec`, `keys_distinct_spec`, `nonce_class_spec`, `next_nonce_spec`, `migrate_acc_spec`, `migrate_split_spec` and `add_ok_spec` hold for the Aeneas translation of
 `rust/sirm-keys-core`, with axioms `propext`, `Classical.choice`, `Quot.sound` (the package uses Mathlib).
 Scope is this small core only. Everything else in the Rust code is still tied to the Lean model by differential
 tests (see `docs/TESTING.md`).
