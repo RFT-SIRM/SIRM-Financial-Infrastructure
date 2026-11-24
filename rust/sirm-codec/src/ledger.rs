@@ -106,12 +106,8 @@ impl Holdings {
             return Ok(());
         }
         let src_bal = self.balance(src, asset);
-        let new_src = src_bal
-            .checked_sub(amount)
-            .ok_or(LedgerError::Insufficient)?;
-        let new_dst = self
-            .balance(dst, asset)
-            .checked_add(amount)
+        let new_src = sirm_keys_core::sub_ok(src_bal, amount).ok_or(LedgerError::Insufficient)?;
+        let new_dst = sirm_keys_core::add_ok(self.balance(dst, asset), amount)
             .ok_or(LedgerError::Overflow)?;
         self.balance.insert((src, asset), new_src);
         self.balance.insert((dst, asset), new_dst);
@@ -121,15 +117,11 @@ impl Holdings {
     pub fn issue(&mut self, recipient: u32, asset: u32, amount: u128) -> Result<(), LedgerError> {
         self.check(recipient, asset)?;
         let mut s = self.supply(asset);
-        let new_bal = self
-            .balance(recipient, asset)
-            .checked_add(amount)
+        let new_bal = sirm_keys_core::add_ok(self.balance(recipient, asset), amount)
             .ok_or(LedgerError::Overflow)?;
-        s.minted = s.minted.checked_add(amount).ok_or(LedgerError::Overflow)?;
-        s.outstanding = s
-            .outstanding
-            .checked_add(amount)
-            .ok_or(LedgerError::Overflow)?;
+        s.minted = sirm_keys_core::add_ok(s.minted, amount).ok_or(LedgerError::Overflow)?;
+        s.outstanding =
+            sirm_keys_core::add_ok(s.outstanding, amount).ok_or(LedgerError::Overflow)?;
         self.balance.insert((recipient, asset), new_bal);
         self.supply.insert(asset, s);
         Ok(())
@@ -137,16 +129,12 @@ impl Holdings {
 
     pub fn burn(&mut self, holder: u32, asset: u32, amount: u128) -> Result<(), LedgerError> {
         self.check(holder, asset)?;
-        let new_bal = self
-            .balance(holder, asset)
-            .checked_sub(amount)
+        let new_bal = sirm_keys_core::sub_ok(self.balance(holder, asset), amount)
             .ok_or(LedgerError::Insufficient)?;
         let mut s = self.supply(asset);
-        s.burned = s.burned.checked_add(amount).ok_or(LedgerError::Overflow)?;
-        s.outstanding = s
-            .outstanding
-            .checked_sub(amount)
-            .ok_or(LedgerError::Insufficient)?;
+        s.burned = sirm_keys_core::add_ok(s.burned, amount).ok_or(LedgerError::Overflow)?;
+        s.outstanding =
+            sirm_keys_core::sub_ok(s.outstanding, amount).ok_or(LedgerError::Insufficient)?;
         self.balance.insert((holder, asset), new_bal);
         self.supply.insert(asset, s);
         Ok(())

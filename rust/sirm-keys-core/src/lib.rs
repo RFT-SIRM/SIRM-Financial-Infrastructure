@@ -102,6 +102,15 @@ pub fn add_ok(a: u128, b: u128) -> Option<u128> {
     }
 }
 
+/// `a - b`, or `None` when `b > a` (the `checked_sub` decision written with a comparison).
+pub fn sub_ok(a: u128, b: u128) -> Option<u128> {
+    if b > a {
+        None
+    } else {
+        Some(a - b)
+    }
+}
+
 /// Released amount and carried remainder: `(acc / den, acc % den)`; `den` must not be zero.
 pub fn migrate_split(acc: u128, den: u128) -> (u128, u128) {
     (acc / den, acc % den)
@@ -156,6 +165,24 @@ mod tests {
         for &a in &vals {
             for &b in &vals {
                 assert_eq!(add_ok(a, b), a.checked_add(b), "{a} {b}");
+            }
+        }
+    }
+
+    #[test]
+    fn sub_ok_agrees_with_checked_sub() {
+        let vals = [
+            0u128,
+            1,
+            2,
+            1 << 64,
+            u128::MAX / 2,
+            u128::MAX - 1,
+            u128::MAX,
+        ];
+        for &a in &vals {
+            for &b in &vals {
+                assert_eq!(sub_ok(a, b), a.checked_sub(b), "{a} {b}");
             }
         }
     }
