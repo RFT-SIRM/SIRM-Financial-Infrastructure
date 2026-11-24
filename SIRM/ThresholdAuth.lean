@@ -44,6 +44,26 @@ def thresholdAccepts (M : SignatureModel PublicKey Message Signature) (P : Suite
     (tp : ThresholdPolicy PublicKey) (msg : Message) (sigs : List (Nat × Signature)) : Bool :=
   decide (0 < tp.k) && decide (tp.k ≤ (validIndices M P tp msg sigs).length)
 
+/-- The per-index flags that the Rust core `sirm_keys_core::accepts` receives: entry `i` is true when index `i`
+counts. -/
+def validFlags (M : SignatureModel PublicKey Message Signature) (P : SuitePolicy)
+    (tp : ThresholdPolicy PublicKey) (msg : Message) (sigs : List (Nat × Signature)) : List Bool :=
+  (List.range tp.keys.length).map (validIdx M P tp msg sigs)
+
+/-- The acceptance decision is exactly the one proved for the Rust core (`accepts_spec` in
+`refinement/lean`: `0 < k` and `k` at most the number of true flags), applied to `validFlags`. -/
+theorem thresholdAccepts_iff_flags (M : SignatureModel PublicKey Message Signature)
+    (P : SuitePolicy) (tp : ThresholdPolicy PublicKey) (msg : Message)
+    (sigs : List (Nat × Signature)) :
+    thresholdAccepts M P tp msg sigs = true ↔
+      (0 < tp.k ∧ tp.k ≤ (validFlags M P tp msg sigs).countP (fun b => b)) := by
+  have h : (validIndices M P tp msg sigs).length =
+      (validFlags M P tp msg sigs).countP (fun b => b) := by
+    unfold validIndices validFlags
+    rw [List.countP_map, List.countP_eq_length_filter]
+    rfl
+  simp [thresholdAccepts, h]
+
 /-- An empty threshold never accepts: zero approvals cannot authorize. -/
 theorem zero_threshold_rejected (M : SignatureModel PublicKey Message Signature)
     (P : SuitePolicy) (tp : ThresholdPolicy PublicKey) (msg : Message)
