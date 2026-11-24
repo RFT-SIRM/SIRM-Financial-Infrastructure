@@ -401,6 +401,27 @@ theorem add_ok_spec (a b : Std.U128) :
     subst this
     omega
 
+/-- `sub_ok` is the `checked_sub` decision of the ledger: `none` exactly when `b > a`, otherwise the difference. -/
+theorem sub_ok_spec (a b : Std.U128) :
+    sub_ok a b ⦃ r =>
+      (r = none ↔ a.val < b.val) ∧
+      (∀ d, r = some d → d.val + b.val = a.val) ⦄ := by
+  unfold sub_ok
+  by_cases hgt : b > a
+  · rw [if_pos hgt]
+    simp only [WP.spec_ok]
+    have h1 : a.val < b.val := (UScalar.lt_equiv _ _).mp hgt
+    exact ⟨⟨fun _ => h1, fun _ => rfl⟩, fun d h => by simp at h⟩
+  · rw [if_neg hgt]
+    have h1 : ¬ a.val < b.val := fun h => hgt ((UScalar.lt_equiv _ _).mpr h)
+    apply WP.spec_bind (U128.sub_spec (x := a) (y := b) (by omega))
+    intro i hi
+    simp only [WP.spec_ok]
+    refine ⟨⟨fun h => by simp at h, fun h => absurd h h1⟩, fun d h => ?_⟩
+    have := Option.some.inj h
+    subst this
+    omega
+
 /-- `migrate_split` is the division with remainder: `acc = released * den + rest` and `rest < den`. -/
 theorem migrate_split_spec (acc den : Std.U128) (hden : den.val ≠ 0) :
     migrate_split acc den ⦃ r => acc.val = r.1.val * den.val + r.2.val ∧ r.2.val < den.val ⦄ := by
