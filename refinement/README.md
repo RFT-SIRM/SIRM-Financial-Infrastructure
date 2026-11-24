@@ -21,8 +21,8 @@ What is here:
 
 Why this is separate from the main Lean package: the Aeneas Lean backend requires Lean 4.36 and Mathlib, the
 SIRM proofs are on Lean 4.33.1 and the new SIRM files avoid Mathlib. The refinement is therefore a second Lake
-package in `refinement/lean/` that is built on its own and is not part of the 19 CI checks until it has been
-shown to build there.
+package in `refinement/lean/` that is built on its own and has its own CI job (`Refinement / build and proofs`)
+that runs `lake build` and `refinement/check_proofs.sh`.
 
 ## Steps on a machine with network access (Mac)
 
