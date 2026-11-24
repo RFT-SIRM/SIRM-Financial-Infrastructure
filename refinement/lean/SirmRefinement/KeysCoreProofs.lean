@@ -435,4 +435,34 @@ theorem migrate_split_spec (acc den : Std.U128) (hden : den.val ≠ 0) :
   exact ⟨(Nat.div_add_mod' _ _).symm, Nat.mod_lt _ (Nat.pos_of_ne_zero hden)⟩
 
 
+/-- `succ_ok` is the `checked_add(1)` decision on a nonce: `none` exactly at `2^64 - 1`, otherwise the successor. -/
+theorem succ_ok_spec (x : Std.U64) :
+    succ_ok x ⦃ r =>
+      (r = none ↔ x.val = 18446744073709551615) ∧
+      (∀ s, r = some s → s.val = x.val + 1) ⦄ := by
+  have hM := u64_max_val
+  have hb : x.val ≤ 18446744073709551615 := by scalar_tac
+  unfold succ_ok
+  by_cases hmax : x = core.num.U64.MAX
+  · have h' : x.val = 18446744073709551615 := by
+      have := (UScalar.eq_equiv x core.num.U64.MAX).mp hmax
+      omega
+    rw [if_pos hmax]
+    simp only [WP.spec_ok]
+    exact ⟨⟨fun _ => h', fun _ => by simp⟩, fun s h => by simp at h⟩
+  · have h' : x.val ≠ 18446744073709551615 := by
+      intro h
+      apply hmax
+      exact (UScalar.eq_equiv x core.num.U64.MAX).mpr (by omega)
+    have hlt : x.val < 18446744073709551615 := by omega
+    rw [if_neg hmax]
+    apply WP.spec_bind (U64.add_spec (x := x) (y := 1#u64) (by scalar_tac))
+    intro i hi
+    simp only [WP.spec_ok]
+    refine ⟨⟨fun h => by simp at h, fun h => absurd h h'⟩, fun s h => ?_⟩
+    have := Option.some.inj h
+    subst this
+    first | simpa using hi | (simp at hi; omega)
+
+
 end sirm_keys_core

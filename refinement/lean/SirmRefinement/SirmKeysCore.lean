@@ -305,8 +305,17 @@ def sub_ok (a : Std.U128) (b : Std.U128) : Result (Option Std.U128) := do
   else let i ← a - b
        ok (some i)
 
+/-- [sirm_keys_core::succ_ok]:
+    Source: 'src/lib.rs', lines 115:0-121:1
+    Visibility: public -/
+def succ_ok (x : Std.U64) : Result (Option Std.U64) := do
+  if x = core.num.U64.MAX
+  then ok none
+  else let i ← x + 1#u64
+       ok (some i)
+
 /-- [sirm_keys_core::migrate_split]:
-    Source: 'src/lib.rs', lines 115:0-117:1
+    Source: 'src/lib.rs', lines 124:0-126:1
     Visibility: public -/
 def migrate_split
   (acc : Std.U128) (den : Std.U128) : Result (Std.U128 × Std.U128) := do
