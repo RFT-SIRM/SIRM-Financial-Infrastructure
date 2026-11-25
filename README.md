@@ -8,9 +8,9 @@
 
 **The normative financial-state and accounting specification for SIRM Protocol, formalized in Lean 4.**
 
-SIRM Financial Infrastructure defines financial state, admissible operations, accounting relationships, and safety invariants. The Lean development is the source of truth for the protocol's mathematical semantics. A deterministic Rust reference implementation and the independent RFT Network are planned downstream stages; neither is represented as complete.
+SIRM Financial Infrastructure defines financial state, admissible operations, accounting relationships, and safety invariants. The Lean development is the source of truth for the protocol's mathematical semantics. A deterministic Rust reference implementation of the ledger machine and the signed wire layer exists and is tested (see the build report below); the independent RFT Network is a planned downstream stage and is not represented as built.
 
-A one-page summary of what is proved, what is only tested and what is open: [docs/STATUS_AT_A_GLANCE.md](docs/STATUS_AT_A_GLANCE.md).
+Build report, one page: which floors stand, what holds each one up and what was run to check it: [docs/STATUS_AT_A_GLANCE.md](docs/STATUS_AT_A_GLANCE.md); the review of 25 November 2026 with its numbers: [docs/REVIEW_2026-11-25.md](docs/REVIEW_2026-11-25.md).
 
 ## 1. Where this project fits
 
@@ -267,6 +267,7 @@ The staged requirements are recorded in [Release Gates](docs/RELEASE_GATES.md). 
 
 - [Formalization Status](docs/FORMALIZATION_STATUS.md) — present Lean declarations and open proof obligations.
 - [Mathematical Scope](docs/MATHEMATICAL_SCOPE.md) — precise theorem scope, assumptions, and limits.
+- [Review of 25 November 2026](docs/REVIEW_2026-11-25.md) — what was run and read, with numbers, the findings and what was not covered.
 - [Refinement of the Rust decision core](refinement/README.md) — ten specifications proved for the Aeneas translation of `rust/sirm-keys-core`, their limits and how to rebuild them.
 - [Canonical encoding v0](engineering/canonical_encoding/SPEC_v0.md) — proposed request byte layout, checked properties and explicit gaps.
 - [Integrated state machine proposal](docs/INTEGRATED_STATE_MACHINE_PROPOSAL.md) — one shared ledger and request pipeline for all ten operations, with the Lean slice and its proved invariants.
