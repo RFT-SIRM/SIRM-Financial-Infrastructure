@@ -33,6 +33,8 @@ jobs:
           engineering/ledger_core/results/integrated_resolve_trace_v0.json
       - name: Axiom scan of every theorem of the SIRM package
         run: bash scripts/axiom_scan.sh
+      - name: Self-test of the axiom scanner
+        run: bash scripts/axiom_scan_selftest.sh
 
   rust:
     name: Rust / codec, ledger, auth and machine conformance

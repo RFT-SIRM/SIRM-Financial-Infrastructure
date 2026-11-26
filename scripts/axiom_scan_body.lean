@@ -1,7 +1,7 @@
 open Lean Elab Command
 
-/-- `#scan_axioms Prefix` checks every theorem declared in a module whose name starts with `Prefix` (generated
-equation lemmas included). Each must depend only on `propext`, `Quot.sound` and `Classical.choice`, and no module
+/-- `#scan_axioms Prefix` checks every theorem declared in a module whose name starts with `Prefix` (equation lemmas
+that exist in the compiled modules included). Each must depend only on `propext`, `Quot.sound` and `Classical.choice`, and no module
 under the prefix may declare an axiom. A problem is an error, so `lean` exits non-zero. Besides the totals it prints
 one line per module with the number of theorems that depend on `Classical.choice`. -/
 elab "#scan_axioms " pfx:ident : command => do
