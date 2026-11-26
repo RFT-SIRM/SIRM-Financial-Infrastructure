@@ -31,6 +31,8 @@ jobs:
           lake env lean --run replay/ReplayTraces.lean
           engineering/ledger_core/results/integrated_trace_v0.json
           engineering/ledger_core/results/integrated_resolve_trace_v0.json
+      - name: Axiom scan of every theorem of the SIRM package
+        run: bash scripts/axiom_scan.sh
 
   rust:
     name: Rust / codec, ledger, auth and machine conformance

@@ -9,7 +9,7 @@ links to.
 
 | Floor | What is built | Checked by |
 |---|---|---|
-| 1. Specification | Lean 4: 47 files in `SIRM/`, about 13,805 lines, 456 top-level `theorem` and `lemma` declarations (counted on 25 November 2026 by line-start declarations), no `sorry` | `lake build`, `lake test`, the CI audit "No proof placeholders" |
+| 1. Specification | Lean 4: 47 files in `SIRM/`, about 13,805 lines, 456 top-level `theorem` and `lemma` declarations (counted on 25 November 2026 by line-start declarations), no `sorry` | `lake build`, `lake test`, the CI audit "No proof placeholders", an axiom scan of every theorem (CI step) |
 | 2. Proved decision core | `rust/sirm-keys-core`: key distinctness, threshold, nonce class, nonce successor, migration arithmetic, checked `u128` sums and differences. Ten specifications are proved for its Aeneas translation, with only the axioms `propext`, `Classical.choice`, `Quot.sound` | CI job `Refinement / build and proofs` (`lake build`, `refinement/check_proofs.sh`) |
 | 3. Reference machine | `rust/sirm-codec`: eleven operations behind one pipeline (`integrated::Machine`). It takes its nonce decision, checked sums and differences, migration arithmetic and the four balance checks from the proved core | Rust against independent Python traces, seeded fuzz, adversarial stress test (CI: 180,000 requests; extended run: 9 million) |
 | 4. Wire layer | Request encoding v2, signed request v3 (Ed25519 with strict verification; ML-DSA and hybrid wires are refused, no verifier chosen), state commitment v6 | The 15 committed vector files are reproduced byte for byte by the Python references; Rust conformance tests; signature stress test (CI: 125,000 bit flips; extended run: 2.5 million) |
